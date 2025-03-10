@@ -6,6 +6,15 @@ import { removeShore, setShoreVisibility } from '../world/shores.js';
 import { createActiveVolcanoIsland, updateActiveVolcanoes } from '../world/volcanicIsland.js';
 import { toggleFog } from '../environment/fog.js';
 
+
+const VOLCANIC_FOG_CONFIG = {
+    color: 0xFF0000,           // Red fog
+    density: 0.001,            // Appropriate density for exponential fog
+    enableWindEffect: true,    // Whether wind affects fog color
+    windEffectColor: 0xFF0000, // Custom color for wind effect
+    windEffectStrength: 0.4    // Strength of wind color effect (0-1)
+};
+
 // Configuration for the volcanic biome
 const VOLCANIC_BIOME_CONFIG = {
     id: 'volcanic',
@@ -687,6 +696,7 @@ class VolcanicBiome extends BiomeInterface {
      * @param {Object} playerObject - The player object
      */
     handleFogTransition(isEntering, playerObject) {
+        setFogProperties(VOLCANIC_FOG_CONFIG);
         if (isEntering) {
             console.log("Entering volcanic biome - activating red fog");
             toggleFog(true); // Explicitly fade in the fog
