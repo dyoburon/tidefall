@@ -1209,13 +1209,7 @@ function initializeWorld() {
 
 // Initialize fog system with appropriate color
 console.log("Initializing fog system...");
-const fog = setupFog(scene, {
-    color: 0x3a3a3a,  // Neutral gray
-    near: 300,
-    far: 1200,
-    density: 0.0008,
-    useExponentialFog: false  // Linear fog is better for non-luminous fog
-});
+const fog = setupFog(scene);
 
 // Function to desaturate colors to prevent luminosity
 function desaturateColor(color) {
