@@ -4,7 +4,7 @@ import { boat as playerObject, scene } from '../core/gameState.js';
 import { createIsland, checkAllIslandCollisions, updateAllIslandEffects, areShoreEffectsEnabled } from '../world/islands.js';
 import { removeShore, setShoreVisibility } from '../world/shores.js';
 import { createActiveVolcanoIsland, updateActiveVolcanoes } from '../world/volcanicIsland.js';
-import { toggleFog } from '../environment/fog.js';
+import { toggleFog, setFogProperties } from '../environment/fog.js';
 
 
 const VOLCANIC_FOG_CONFIG = {
