@@ -603,10 +603,10 @@ const keydownHandler = (event) => {
             console.log("Toggling fog system...");
             const fogEnabled = toggleFog(scene);
             console.log("🌫️ Slow fog dissipation (5s)");
-            dissipateFog({
+            /*dissipateFog({
                 duration: 5000,
                 onComplete: () => console.log("Fog has dissipated")
-            });
+            });*/
             break;
     }
 };
@@ -912,7 +912,7 @@ function animate() {
     setFogColor(hexColor);
     updateFog(boat.position, deltaTime, getWindData());
 
-    updateFogEffects(deltaTime);
+    //updateFogEffects(deltaTime);
 
     // Optional: Log the changing colors (uncomment for debugging)
     // console.log(`Fog color gradient: phase ${dayPhase.toFixed(2)}, color #${interpolatedColor.getHexString()}`);
@@ -1209,7 +1209,7 @@ function initializeWorld() {
 
 // Initialize fog system with appropriate color
 console.log("Initializing fog system...");
-const fog = setupFog(scene);
+const fog = setupFog();
 
 // Function to desaturate colors to prevent luminosity
 function desaturateColor(color) {
