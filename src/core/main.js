@@ -601,12 +601,12 @@ const keydownHandler = (event) => {
             break;
         case 'f': case 'F':
             console.log("Toggling fog system...");
-            const fogEnabled = toggleFog(scene);
-            console.log("🌫️ Slow fog dissipation (5s)");
-            dissipateFog({
+            const fogEnabled = toggleFog();
+            //console.log("🌫️ Slow fog dissipation (5s)");
+            /*dissipateFog({
                 duration: 5000,
                 onComplete: () => console.log("Fog has dissipated")
-            });
+            });*/
             break;
     }
 };
@@ -910,7 +910,7 @@ function animate() {
     // Convert to hex and set fog color
     const hexColor = nonLuminousColor.getHex();
     setFogColor(hexColor);
-    updateFog(boat.position, deltaTime, getWindData());
+    updateFog(boat.position, deltaTime);
 
     updateFogEffects(deltaTime);
 
@@ -1209,10 +1209,10 @@ function initializeWorld() {
 
 // Initialize fog system with appropriate color
 console.log("Initializing fog system...");
-const fog = setupFog(scene, {
+const fog = setupFog({
     color: 0x3a3a3a,  // Neutral gray
     near: 300,
-    far: 1200,
+    far: 10,
     density: 0.0008,
     useExponentialFog: false  // Linear fog is better for non-luminous fog
 });
