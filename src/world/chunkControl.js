@@ -28,7 +28,7 @@ import {
 import openBiome from '../biomes/openbiome.js';
 import arcticBiome from '../biomes/arcticbiome.js';
 import { boat, scene } from '../core/gameState.js';
-
+import volcanicBiome from '../biomes/volcanicbiome.js';
 
 // Chunking system variables
 export const visibleDistance = 2000; // Distance to see islands from
@@ -60,6 +60,7 @@ export function initializeChunkSystem() {
     // Register all biomes
     registerBiome(openBiome);
     registerBiome(arcticBiome);
+    registerBiome(volcanicBiome);
 
     console.log("Chunk system initialized with biomes!");
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import BiomeInterface from './BiomeInterface.js';
+import BiomeInterface from './biomeinterface.js';
 import { boat as playerObject, scene } from '../core/gameState.js';
 import { createIceberg, checkIcebergCollision } from '../world/iceberg.js';
 import { createSnowIsland } from '../world/snowIsland.js';

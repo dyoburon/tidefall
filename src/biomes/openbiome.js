@@ -9,7 +9,7 @@ import {
     areShoreEffectsEnabled
 } from '../world/islands.js';
 import { removeShore, setShoreVisibility } from '../world/shores.js';
-import BiomeInterface from './BiomeInterface.js';
+import BiomeInterface from './biomeinterface.js';
 import { boat as playerObject } from '../core/gameState.js';
 
 // Configuration for the open biome
