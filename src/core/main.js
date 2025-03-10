@@ -50,6 +50,7 @@ import { getTimeOfDay } from '../environment/skybox.js';
 import { initCollisionResponse, updateCollisionResponse, isBoatAirborne } from '../controls/islandCollisionResponse.js';
 import { getPlayerInventory, playerHasItem } from './network.js';
 import SpatialAudioSystem from '../audio/spatialAudio.js';
+import { dissipateFog, updateFogEffects } from '../environment/fog.js';
 
 // Define these variables at the file level scope (outside any functions)
 // so they're accessible throughout the file
@@ -78,8 +79,9 @@ const water = setupWater('cartoony');
 // Initialize biome
 initializeChunkSystem();
 
-const spatialAudio = new SpatialAudioSystem(camera, scene);
+//const spatialAudio = new SpatialAudioSystem(camera, scene);
 
+/*
 // Create a test beacon sound
 const beaconPosition = new THREE.Vector3(0, 0, 0); // Place it somewhere in your world
 const beaconId = spatialAudio.createTestBeacon(beaconPosition, {
@@ -90,7 +92,7 @@ const beaconId = spatialAudio.createTestBeacon(beaconPosition, {
     volume: 0.8,
     debug: true // Shows a visual sphere at the sound location
 });
-
+*/
 /*
 const cubeTextureLoader = new THREE.CubeTextureLoader();
 cubeTextureLoader.setPath('/threejs-water-shader/');
@@ -600,7 +602,11 @@ const keydownHandler = (event) => {
         case 'f': case 'F':
             console.log("Toggling fog system...");
             const fogEnabled = toggleFog(scene);
-            console.log(`Fog system: ${fogEnabled ? 'ENABLED' : 'DISABLED'}`);
+            console.log("🌫️ Slow fog dissipation (5s)");
+            dissipateFog({
+                duration: 5000,
+                onComplete: () => console.log("Fog has dissipated")
+            });
             break;
     }
 };
@@ -905,6 +911,8 @@ function animate() {
     const hexColor = nonLuminousColor.getHex();
     setFogColor(hexColor);
     updateFog(boat.position, deltaTime, getWindData());
+
+    updateFogEffects(deltaTime);
 
     // Optional: Log the changing colors (uncomment for debugging)
     // console.log(`Fog color gradient: phase ${dayPhase.toFixed(2)}, color #${interpolatedColor.getHexString()}`);
