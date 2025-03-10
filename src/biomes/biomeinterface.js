@@ -150,6 +150,16 @@ class BiomeInterface {
 
         return value < finalChance;
     }
+
+    /**
+     * Handle fog effects when entering or leaving this biome
+     * @param {boolean} isEntering - True if entering biome, false if leaving
+     * @param {Object} playerObject - The player object
+     * @returns {void}
+     */
+    handleFogTransition(isEntering, playerObject) {
+        // Default implementation does nothing - biomes should override as needed
+    }
 }
 
 export default BiomeInterface;

@@ -11,6 +11,15 @@ import {
     areShoreEffectsEnabled
 } from '../world/islands.js';
 import { removeShore, setShoreVisibility } from '../world/shores.js';
+import { toggleFog, setFogProperties } from '../environment/fog.js';
+
+const ARCTIC_FOG_CONFIG = {
+    color: 0xADD8E6,           // Red fog
+    density: 0.001,            // Appropriate density for exponential fog
+    enableWindEffect: true,    // Whether wind affects fog color
+    windEffectColor: 0xADD8E6, // Custom color for wind effect
+    windEffectStrength: 0.4    // Strength of wind color effect (0-1)
+};
 
 // Configuration for the arctic biome
 const ARCTIC_BIOME_CONFIG = {
@@ -612,6 +621,17 @@ class ArcticBiome extends BiomeInterface {
             this.snowSystem.stop();
             this.isSnowActive = false;
             console.log("Player left Arctic biome - stopping snow");
+        }
+    }
+
+    handleFogTransition(isEntering, playerObject) {
+        setFogProperties(ARCTIC_FOG_CONFIG);
+        if (isEntering) {
+            console.log("Entering volcanic biome - activating red fog");
+            toggleFog(true); // Explicitly fade in the fog
+        } else {
+            console.log("Leaving volcanic biome - dissipating fog");
+            toggleFog(false); // Explicitly fade out the fog
         }
     }
 }

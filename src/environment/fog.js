@@ -4,7 +4,7 @@ import { scene } from '../core/gameState.js';
 // Configuration parameters with defaults (for exponential fog)
 const DEFAULT_FOG_CONFIG = {
     color: 0xFF0000,           // Red fog
-    density: 0.008,            // Appropriate density for exponential fog
+    density: 0.001,            // Appropriate density for exponential fog
     enableWindEffect: true,    // Whether wind affects fog color
     windEffectColor: 0xFF0000, // Custom color for wind effect
     windEffectStrength: 0.4    // Strength of wind color effect (0-1)
@@ -108,10 +108,57 @@ export function setFogColor(color) {
 }
 
 /**
- * Toggles fog on/off
+ * Toggles fog on/off or explicitly sets fog state
+ * @param {boolean} [fadeIn] - If provided, explicitly sets whether to fade in (true) or fade out (false)
  * @returns {boolean} - New fog state (true = enabled)
  */
-export function toggleFog() {
+export function toggleFog(fadeIn) {
+    // If fadeIn parameter is provided, use it to determine the action
+    if (fadeIn !== undefined) {
+        if (fadeIn) {
+            // Explicitly fade in
+            console.log("Explicit fade in triggered");
+
+            // Create new fog with zero density if it doesn't exist
+            if (!scene.fog) {
+                sceneFog = new THREE.FogExp2(fogConfig.color, 0);
+                scene.fog = sceneFog;
+            }
+
+            isFadingIn = true;
+            isFadingOut = false;
+
+            fadeInFog({
+                duration: 10000,
+                onComplete: () => {
+                    console.log("Fog has faded in");
+                    isFadingIn = false;
+                }
+            });
+
+            return true;
+        } else {
+            // Explicitly fade out
+            console.log("Explicit fade out triggered");
+
+            if (scene.fog) {
+                isFadingOut = true;
+                isFadingIn = false;
+
+                dissipateFog({
+                    duration: 5000,
+                    onComplete: () => {
+                        console.log("Fog has dissipated");
+                        isFadingOut = false;
+                    }
+                });
+            }
+
+            return false;
+        }
+    }
+
+    // Original toggle behavior if no parameter provided
     if (scene.fog) {
         console.log("Dissipate fog should trigger");
         isFadingOut = true;
@@ -164,9 +211,9 @@ export function setFogProperties(config = {}) {
         setFogColor(config.color);
     }
 
-    if (config.density !== undefined) {
+    /*if (config.density !== undefined) {
         setFogDensity(config.density);
-    }
+    }*/
 
     // Update our stored config
     fogConfig = { ...fogConfig, ...config };

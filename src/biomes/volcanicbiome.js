@@ -4,6 +4,7 @@ import { boat as playerObject, scene } from '../core/gameState.js';
 import { createIsland, checkAllIslandCollisions, updateAllIslandEffects, areShoreEffectsEnabled } from '../world/islands.js';
 import { removeShore, setShoreVisibility } from '../world/shores.js';
 import { createActiveVolcanoIsland, updateActiveVolcanoes } from '../world/volcanicIsland.js';
+import { toggleFog } from '../environment/fog.js';
 
 // Configuration for the volcanic biome
 const VOLCANIC_BIOME_CONFIG = {
@@ -677,6 +678,21 @@ class VolcanicBiome extends BiomeInterface {
             // this.ashSystem.stop();
             this.isAshActive = false;
             console.log("Player left Volcanic biome - stopping ash effects");
+        }
+    }
+
+    /**
+     * Handle fog effects when entering or leaving this biome
+     * @param {boolean} isEntering - True if entering biome, false if leaving
+     * @param {Object} playerObject - The player object
+     */
+    handleFogTransition(isEntering, playerObject) {
+        if (isEntering) {
+            console.log("Entering volcanic biome - activating red fog");
+            toggleFog(true); // Explicitly fade in the fog
+        } else {
+            console.log("Leaving volcanic biome - dissipating fog");
+            toggleFog(false); // Explicitly fade out the fog
         }
     }
 }

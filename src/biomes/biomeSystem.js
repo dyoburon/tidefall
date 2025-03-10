@@ -27,6 +27,9 @@ let biomeSeed = 12345;
 let lastChunkMapPrintTime = 0;
 const CHUNK_MAP_PRINT_INTERVAL = 5000; // 5 seconds in milliseconds
 
+// Track the current/previous biome the player is in
+let currentPlayerBiome = null;
+
 /**
  * Initialize the biome system with the given seed
  * @param {number} seed - Seed for biome distribution
@@ -34,6 +37,7 @@ const CHUNK_MAP_PRINT_INTERVAL = 5000; // 5 seconds in milliseconds
 function initializeBiomeSystem() {
     console.log("Initializing biome system...");
     clearBiomeCache();
+    currentPlayerBiome = null;
 }
 
 /**
@@ -161,7 +165,7 @@ function processChunk(chunkX, chunkZ, scene, seed) {
     const biome = getBiomeForChunk(chunkX, chunkZ);
     console.log("is in processChunk", chunkX, chunkZ, biome.name);
 
-    if (!biome && !(isPlayerInBiome(biome) === biome.name)) return [];
+    if (!biome && !(getPlayerBiome().name === biome.name)) return [];
 
 
     //console.log("is in processChunk", chunkX, chunkZ, biome.name);
@@ -183,7 +187,7 @@ function spawnAroundPosition(scene, seed, radius = 2) {
     const biome = getBiomeForChunk(boat.position.x, boat.position.z);
 
 
-    if (isPlayerInBiome(biome).name === biome.name) {
+    if (getPlayerBiome().name === biome.name) {
         const centerChunkX = Math.floor(centerPosition.x / chunkSize);
         const centerChunkZ = Math.floor(centerPosition.z / chunkSize);
 
@@ -208,41 +212,48 @@ function spawnAroundPosition(scene, seed, radius = 2) {
  * @param {THREE.Vector3} playerPosition - Current player position
  */
 function updateAllBiomes(deltaTime, playerPosition) {
-    //console.log("is in updateAllBiomes");
-    biomeImplementations.forEach(biome => {
-        // if boat is in biome, update biome
-        //console.log("is in updateAllBiomes", biome.name);
-        // print what biome the player is in
-        //console.log("is in updateAllBiomes", biome.name);
+    // Check if player has changed biomes
+    const playerBiome = getPlayerBiome();
 
-        if (isPlayerInBiome(biome).name === biome.name) {
-            //console.log("player is in biome", biome.name);
-            // print the region map
-            //console.log("region map", regionBiomes);
-            // print the biome map
-            //console.log("biome map", biomeMap);
-            //console.log("is in updateAllBiomes", biome.name);
+    // Handle biome transition if needed
+    if (!currentPlayerBiome || (playerBiome && playerBiome.name !== currentPlayerBiome.name)) {
+        // If there was a previous biome, call its exit handler
+        if (currentPlayerBiome) {
+            console.log(`Leaving biome: ${currentPlayerBiome.name}`);
+            currentPlayerBiome.handleFogTransition(false, boat);
+        }
+
+        // Call the new biome's enter handler
+        console.log(`Entering biome: ${playerBiome.name}`);
+        playerBiome.handleFogTransition(true, boat);
+
+        // Update current biome reference
+        currentPlayerBiome = playerBiome;
+    }
+
+    // Update active biomes
+    biomeImplementations.forEach(biome => {
+        if (playerBiome && playerBiome.name === biome.name) {
             biome.update(deltaTime, playerPosition);
         }
     });
 }
 
-function isPlayerInBiome(biome) {
+/**
+ * Check which biome the player is currently in
+ * @returns {Object|null} The biome the player is in, or null
+ */
+function getPlayerBiome() {
     const playerChunkX = Math.floor(boat.position.x / chunkSize);
     const playerChunkZ = Math.floor(boat.position.z / chunkSize);
 
-    //console.log("get biome for chunk", getBiomeForChunk(playerChunkX, playerChunkZ));
-    // print playerChunkX, playerChunkZ
-    // print the chunk map
-    // print the chunk map only once
-    // print the biome map
-    // player is in biome
-
-    // print the chunk map only once
+    // Print debug info at intervals
     const currentTime = Date.now();
     if (currentTime - lastChunkMapPrintTime > CHUNK_MAP_PRINT_INTERVAL) {
-        //console.log("chunk map", regionBiomes);
+        lastChunkMapPrintTime = currentTime;
+        // Debug logging as needed
     }
+
     return getBiomeForChunk(playerChunkX, playerChunkZ);
 }
 
@@ -313,5 +324,6 @@ export {
     getAllBiomes,
     clearBiomeCache,
     getDefaultBiome,
-    getBiomeById
+    getBiomeById,
+    getPlayerBiome
 };
