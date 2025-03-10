@@ -18,6 +18,9 @@ let fogConfig = { ...DEFAULT_FOG_CONFIG };
 let isFadingIn = false;
 let isFadingOut = false;
 
+// Track the intended/target fog state
+let targetFogState = false; // false = off, true = on
+
 /**
  * Initializes exponential fog in the scene
  * @param {THREE.Scene} scene - The scene to add fog to
@@ -115,6 +118,24 @@ export function setFogColor(color) {
 export function toggleFog(fadeIn) {
     // If fadeIn parameter is provided, use it to determine the action
     if (fadeIn !== undefined) {
+        // Check if this is already our target state
+        if (fadeIn === targetFogState) {
+            console.log(`Fog is already ${fadeIn ? 'fading in/on' : 'fading out/off'}, ignoring redundant call`);
+            return targetFogState;
+        }
+
+        // Set the new target state
+        targetFogState = fadeIn;
+
+        // Interruption handling: Cancel any ongoing effects in the opposite direction
+        if (fadeIn && isFadingOut) {
+            console.log("Interrupting fade-out to start fade-in");
+            isFadingOut = false;
+        } else if (!fadeIn && isFadingIn) {
+            console.log("Interrupting fade-in to start fade-out");
+            isFadingIn = false;
+        }
+
         if (fadeIn) {
             // Explicitly fade in
             console.log("Explicit fade in triggered");
@@ -126,7 +147,6 @@ export function toggleFog(fadeIn) {
             }
 
             isFadingIn = true;
-            isFadingOut = false;
 
             fadeInFog({
                 duration: 10000,
@@ -143,7 +163,6 @@ export function toggleFog(fadeIn) {
 
             if (scene.fog) {
                 isFadingOut = true;
-                isFadingIn = false;
 
                 dissipateFog({
                     duration: 5000,
@@ -156,37 +175,6 @@ export function toggleFog(fadeIn) {
 
             return false;
         }
-    }
-
-    // Original toggle behavior if no parameter provided
-    if (scene.fog) {
-        console.log("Dissipate fog should trigger");
-        isFadingOut = true;
-        isFadingIn = false;
-        dissipateFog({
-            duration: 5000,
-            onComplete: () => {
-                console.log("Fog has dissipated");
-                isFadingOut = false;
-            }
-        });
-        return false;
-    } else {
-        console.log("Fade in should trigger");
-        isFadingIn = true;
-        isFadingOut = false;
-        // Create new fog with zero density
-        sceneFog = new THREE.FogExp2(fogConfig.color, 0);
-        scene.fog = sceneFog;
-
-        fadeInFog({
-            duration: 10000,
-            onComplete: () => {
-                console.log("Fog has faded in");
-                isFadingIn = false;
-            }
-        });
-        return true;
     }
 }
 

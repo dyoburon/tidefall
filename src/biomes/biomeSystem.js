@@ -30,6 +30,10 @@ const CHUNK_MAP_PRINT_INTERVAL = 5000; // 5 seconds in milliseconds
 // Track the current/previous biome the player is in
 let currentPlayerBiome = null;
 
+// Add to the top of the file with other variables
+let isFogTransitioning = false;
+let transitionQueue = []; // Use a queue instead of a single pending transition
+
 /**
  * Initialize the biome system with the given seed
  * @param {number} seed - Seed for biome distribution
@@ -215,17 +219,48 @@ function updateAllBiomes(deltaTime, playerPosition) {
     // Check if player has changed biomes
     const playerBiome = getPlayerBiome();
 
-    // Handle biome transition if needed
+    // Process transition queue
+    if (!isFogTransitioning && transitionQueue.length > 0) {
+        // Get next transition from queue
+        const nextTransition = transitionQueue.shift();
+        console.log(`Processing queued fog transition: ${nextTransition.isEntering ? 'entering' : 'leaving'} ${nextTransition.biome.name}`);
+
+        // Execute transition
+        isFogTransitioning = true;
+        nextTransition.biome.handleFogTransition(nextTransition.isEntering, boat);
+
+        // Schedule the end of transition
+        const duration = nextTransition.isEntering ? 10000 : 5000;
+        setTimeout(() => {
+            console.log(`Fog transition complete for ${nextTransition.biome.name}`);
+            isFogTransitioning = false;
+        }, duration + 200);
+    }
+
+    // Handle biome change
     if (!currentPlayerBiome || (playerBiome && playerBiome.name !== currentPlayerBiome.name)) {
-        // If there was a previous biome, call its exit handler
+        console.log(`Biome change detected: ${currentPlayerBiome?.name || 'none'} -> ${playerBiome.name}`);
+
+        // Always handle exits before entries
         if (currentPlayerBiome) {
-            console.log(`Leaving biome: ${currentPlayerBiome.name}`);
-            currentPlayerBiome.handleFogTransition(false, boat);
+            // Add exit transition to queue if not already there
+            if (!isTransitionInQueue(currentPlayerBiome, false)) {
+                console.log(`Queueing exit from ${currentPlayerBiome.name}`);
+                transitionQueue.push({
+                    biome: currentPlayerBiome,
+                    isEntering: false
+                });
+            }
         }
 
-        // Call the new biome's enter handler
-        console.log(`Entering biome: ${playerBiome.name}`);
-        playerBiome.handleFogTransition(true, boat);
+        // Add entry transition to queue if not already there
+        if (!isTransitionInQueue(playerBiome, true)) {
+            console.log(`Queueing entry to ${playerBiome.name}`);
+            transitionQueue.push({
+                biome: playerBiome,
+                isEntering: true
+            });
+        }
 
         // Update current biome reference
         currentPlayerBiome = playerBiome;
@@ -237,6 +272,16 @@ function updateAllBiomes(deltaTime, playerPosition) {
             biome.update(deltaTime, playerPosition);
         }
     });
+}
+
+/**
+ * Helper to check if a transition is already in the queue
+ * @param {Object} biome - The biome to check
+ * @param {boolean} isEntering - Whether looking for entry (true) or exit (false)
+ * @returns {boolean} True if transition is already queued
+ */
+function isTransitionInQueue(biome, isEntering) {
+    return transitionQueue.some(t => t.biome === biome && t.isEntering === isEntering);
 }
 
 /**
