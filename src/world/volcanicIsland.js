@@ -65,6 +65,9 @@ export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
     // Add walkable paths up the volcano
     addWalkablePaths(island, baseRadius, volcanoHeight, random);
 
+    // Add floating pumice islands around the volcano - store return value
+    const pumiceIslands = addPumiceIslands(island, baseRadius, scene, random);
+
     // Setup eruption cycle
     setupEruptionCycle(island, baseRadius, volcanoHeight, random);
 
@@ -79,7 +82,8 @@ export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
             lastEruptionTime: Date.now(),
             nextEruptionTime: Date.now() + 60000 + random() * 120000, // 1-3 minutes
             eruptionStrength: 0.2 + random() * 0.8,
-            eruptionParticles: null
+            eruptionParticles: null,
+            pumiceIslands: pumiceIslands // Store reference to pumice islands here
         }
     };
 
@@ -1392,18 +1396,198 @@ function getHeightOnVolcano(distance, volcanoHeight) {
  * @param {number} deltaTime - Time since last update in seconds
  */
 export function updateActiveVolcanoes(deltaTime) {
-    // Minimal updates - just basic animation if needed
+    // Debug counter of how many pumice islands we're updating
+    let pumiceCount = 0;
+
     for (let i = 0; i < activeVolcanoes.length; i++) {
         const volcano = activeVolcanoes[i];
-        if (volcano && volcano.mesh && volcano.mesh.userData.lavaPool) {
-            // Optional: Simple pulsing glow effect for lava
-            const time = Date.now() / 1000;
-            const pulseValue = 0.8 + Math.sin(time) * 0.2;
+        if (volcano && volcano.mesh) {
+            // Update lava pool pulsing if it exists
+            if (volcano.mesh.userData.lavaPool) {
+                const time = Date.now() / 1000;
+                const pulseValue = 0.8 + Math.sin(time) * 0.2;
 
-            const lavaPool = volcano.mesh.userData.lavaPool;
-            if (lavaPool && lavaPool.material) {
-                lavaPool.material.emissiveIntensity = pulseValue;
+                const lavaPool = volcano.mesh.userData.lavaPool;
+                if (lavaPool && lavaPool.material) {
+                    lavaPool.material.emissiveIntensity = pulseValue;
+                }
+            }
+
+            // Check both possible locations for pumice islands
+            let pumiceIslands = volcano.mesh.userData.pumiceIslands || [];
+
+            // Also check in volcano data as backup
+            if (volcano.volcanoData && volcano.volcanoData.pumiceIslands) {
+                pumiceIslands = volcano.volcanoData.pumiceIslands;
+            }
+
+            // Update pumice islands
+            for (let j = 0; j < pumiceIslands.length; j++) {
+                const pumice = pumiceIslands[j];
+                if (pumice && pumice.update) {
+                    pumice.update(deltaTime);
+                    pumiceCount++;
+                }
             }
         }
+    }
+
+    // Log pumice update count occasionally
+    if (Math.random() < 0.01) {
+        console.log(`Updated ${pumiceCount} pumice islands`);
+    }
+}
+
+/**
+ * Add floating pumice islands around the volcano
+ * @param {THREE.Group} island - The island group
+ * @param {number} radius - Base radius of the volcano
+ * @param {THREE.Scene} scene - The scene to add entities to
+ * @param {Function} random - Seeded random function
+ */
+function addPumiceIslands(island, radius, scene, random) {
+    // DEBUG: Greatly increased number of pumice islands (15-20 instead of 2-5)
+    const pumiceCount = 15 + Math.floor(random() * 5);
+    console.log(`Creating ${pumiceCount} pumice islands around volcano`);
+
+    const pumiceIslands = [];
+
+    for (let i = 0; i < pumiceCount; i++) {
+        // Position around the volcano in a more visible pattern
+        const angle = (i / pumiceCount) * Math.PI * 2; // Evenly distribute
+        // Keep them closer to the volcano and visible
+        const distance = radius * (1.0 + random() * 0.5);
+
+        const position = new THREE.Vector3(
+            Math.cos(angle) * distance,
+            0, // Water level
+            Math.sin(angle) * distance
+        );
+
+        // Calculate global position
+        const globalPosition = new THREE.Vector3().copy(position).add(island.position);
+        const pumice = createPumiceIsland(globalPosition, scene);
+
+        // DEBUG: Log each island creation
+        console.log(`Pumice island ${i} created at`, globalPosition);
+
+        pumiceIslands.push(pumice);
+    }
+
+    // Store in the island userData for updates
+    island.userData.pumiceIslands = pumiceIslands;
+
+    // DEBUG: Also store in volcanoData for redundancy
+    if (island.userData.volcano) {
+        island.userData.volcano.pumiceIslands = pumiceIslands;
+    }
+
+    return pumiceIslands; // Return for direct access
+}
+
+/**
+ * Create a single pumice island
+ * @param {THREE.Vector3} position - Position in world space
+ * @param {THREE.Scene} scene - The scene to add to
+ * @returns {Object} The pumice island object
+ */
+function createPumiceIsland(position, scene) {
+    // Make them much larger and more obvious
+    const size = 25 + Math.random() * 15; // 25-40 units instead of 10-25
+
+    // Create a more distinctive shape - taller with clearer outline
+    const geometry = new THREE.CylinderGeometry(size, size * 0.8, 8, 12);
+
+    // Use a brighter, more noticeable material
+    const material = new THREE.MeshStandardMaterial({
+        color: 0xDDDDDD, // Brighter white
+        roughness: 0.7,
+        metalness: 0.2,
+        // Add slight emissive for better visibility
+        emissive: 0x111111,
+        emissiveIntensity: 0.1
+    });
+
+    const pumice = new THREE.Mesh(geometry, material);
+
+    // Enhanced outline - thicker and more visible with contrasting color
+    applyOutline(pumice, {
+        scale: 1.04,  // Increased from 1.02 for a thicker outline
+        color: 0x000000, // Black outline
+        thickness: 0.5 // Add thickness parameter if supported by your applyOutline function
+    });
+
+    // Add some surface details to make it look more like pumice
+    addPumiceDetails(pumice, size);
+
+    // Position and add to scene
+    pumice.position.copy(position);
+    pumice.position.y = 2; // Higher above water to be more visible
+    scene.add(pumice);
+
+    // Add drift behavior - make it move faster for visibility
+    pumice.userData.drift = {
+        speed: 3 + Math.random() * 2, // Much faster: 3-5 units/sec instead of 0.5-1.5
+        direction: Math.random() * Math.PI * 2
+    };
+
+    return {
+        mesh: pumice,
+        collider: { center: position, radius: size },
+        update: (deltaTime) => {
+            // Move the island
+            pumice.position.x += Math.cos(pumice.userData.drift.direction) * pumice.userData.drift.speed * deltaTime;
+            pumice.position.z += Math.sin(pumice.userData.drift.direction) * pumice.userData.drift.speed * deltaTime;
+
+            // More dramatic bobbing
+            pumice.position.y = 2 + Math.sin(Date.now() * 0.002) * 1.0; // Larger movement
+
+            // Slowly rotate for visibility
+            pumice.rotation.y += deltaTime * 0.2;
+        }
+    };
+}
+
+/**
+ * Add surface details to make pumice look more realistic
+ * @param {THREE.Mesh} pumice - The pumice mesh
+ * @param {number} size - Size of the pumice
+ */
+function addPumiceDetails(pumice, size) {
+    // Add small bumps and holes to simulate pumice's porous texture
+    const bumpCount = 8 + Math.floor(Math.random() * 8);
+
+    for (let i = 0; i < bumpCount; i++) {
+        // Create small bump or divot
+        const bumpSize = size * 0.1 * (0.5 + Math.random() * 0.5);
+        const bumpGeometry = new THREE.SphereGeometry(bumpSize, 6, 6);
+
+        // Alternate between bumps and holes
+        const isBump = Math.random() > 0.5;
+        const bumpMaterial = new THREE.MeshStandardMaterial({
+            color: isBump ? 0xEEEEEE : 0x999999,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+
+        const bump = new THREE.Mesh(bumpGeometry, bumpMaterial);
+
+        // Position randomly on top surface
+        const angle = Math.random() * Math.PI * 2;
+        const distanceFromCenter = size * 0.6 * Math.random();
+
+        bump.position.set(
+            Math.cos(angle) * distanceFromCenter,
+            4, // On top surface
+            Math.sin(angle) * distanceFromCenter
+        );
+
+        if (!isBump) {
+            // Make it a hole by pushing it down
+            bump.position.y = 3;
+            bump.scale.set(0.8, 0.5, 0.8);
+        }
+
+        pumice.add(bump);
     }
 }
