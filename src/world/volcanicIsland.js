@@ -48,7 +48,7 @@ export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
     createVolcanoBase(island, baseRadius, volcanoHeight, craterRadius, craterDepth, random);
 
     // Add lava flows to the volcano
-    addLavaFlows(island, baseRadius, volcanoHeight, random);
+    //addLavaFlows(island, baseRadius, volcanoHeight, random);
 
     // Add lava platforms around the volcano (new feature)
     addLavaPlatforms(island, baseRadius, random);
@@ -773,6 +773,7 @@ function addSpireFormation(island, angle, distance, volcanoHeight, random) {
  * @param {Function} random - Seeded random function
  */
 function addLavaDome(island, angle, distance, random) {
+    /*
     // Create a dome with glowing lava cracks
     const domeRadius = 10 + random() * 15;
     const domeHeight = domeRadius * 0.7;
@@ -842,7 +843,7 @@ function addLavaDome(island, angle, distance, random) {
         );
 
         island.add(rock);
-    }
+    }*/
 }
 
 /**
@@ -1317,6 +1318,7 @@ function createVolcanicTexture(baseColor, lavaColor, intensity, random) {
  * @returns {THREE.Texture} Generated texture
  */
 function createLavaCracksTexture(random) {
+    /*
     // Create unique key for this texture
     const cacheKey = `lava_cracks_${Math.floor(random() * 1000)}`;
 
@@ -1376,6 +1378,7 @@ function createLavaCracksTexture(random) {
     textureCache.set(cacheKey, texture);
 
     return texture;
+    */
 }
 
 /**
@@ -1396,6 +1399,7 @@ function getHeightOnVolcano(distance, volcanoHeight) {
  * @param {number} deltaTime - Time since last update in seconds
  */
 export function updateActiveVolcanoes(deltaTime) {
+    /*
     // Debug counter of how many pumice islands we're updating
     let pumiceCount = 0;
 
@@ -1436,6 +1440,7 @@ export function updateActiveVolcanoes(deltaTime) {
     if (Math.random() < 0.01) {
         console.log(`Updated ${pumiceCount} pumice islands`);
     }
+        */
 }
 
 /**
@@ -1446,6 +1451,7 @@ export function updateActiveVolcanoes(deltaTime) {
  * @param {Function} random - Seeded random function
  */
 function addPumiceIslands(island, radius, scene, random) {
+    /*
     // DEBUG: Greatly increased number of pumice islands (15-20 instead of 2-5)
     const pumiceCount = 15 + Math.floor(random() * 5);
     console.log(`Creating ${pumiceCount} pumice islands around volcano`);
@@ -1483,6 +1489,7 @@ function addPumiceIslands(island, radius, scene, random) {
     }
 
     return pumiceIslands; // Return for direct access
+    */
 }
 
 /**

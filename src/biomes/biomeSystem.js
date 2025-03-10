@@ -14,8 +14,8 @@ const biomeImplementations = [];
 // Map of biome IDs to their implementation instance
 const biomeMap = new Map();
 
-// Map to track which biome is assigned to which chunk
-const chunkBiomes = new Map();
+// Map to track which biome is assigned to which region (not chunk)
+const regionBiomes = new Map();
 
 // Default biome to use when no specific biome is assigned
 let defaultBiome = null;
@@ -96,15 +96,18 @@ function seededRandom(x, z) {
  * @returns {Object} Biome implementation for this chunk
  */
 function getBiomeForChunk(chunkX, chunkZ) {
-    const chunkKey = `${chunkX},${chunkZ}`;
+    // Convert chunk coordinates to region coordinates (each region is 2x2 chunks)
+    const regionX = Math.floor(chunkX / 4);
+    const regionZ = Math.floor(chunkZ / 4);
+    const regionKey = `${regionX},${regionZ}`;
 
-    // Return cached biome if available
-    if (chunkBiomes.has(chunkKey)) {
-        return chunkBiomes.get(chunkKey);
+    // Return cached biome if available for this region
+    if (regionBiomes.has(regionKey)) {
+        return regionBiomes.get(regionKey);
     }
 
-    // Determine biome based on noise and weights
-    const random = seededRandom(chunkX, chunkZ);
+    // Determine biome based on noise and weights using region coordinates
+    const random = seededRandom(regionX, regionZ);
     let totalWeight = 0;
 
     // Calculate total weight
@@ -129,8 +132,8 @@ function getBiomeForChunk(chunkX, chunkZ) {
         selectedBiome = defaultBiome || (biomeImplementations.length > 0 ? biomeImplementations[0] : null);
     }
 
-    // Cache the result
-    chunkBiomes.set(chunkKey, selectedBiome);
+    // Cache the result for the entire region
+    regionBiomes.set(regionKey, selectedBiome);
 
     return selectedBiome;
 }
@@ -213,6 +216,11 @@ function updateAllBiomes(deltaTime, playerPosition) {
         //console.log("is in updateAllBiomes", biome.name);
 
         if (isPlayerInBiome(biome).name === biome.name) {
+            //console.log("player is in biome", biome.name);
+            // print the region map
+            //console.log("region map", regionBiomes);
+            // print the biome map
+            //console.log("biome map", biomeMap);
             //console.log("is in updateAllBiomes", biome.name);
             biome.update(deltaTime, playerPosition);
         }
@@ -228,11 +236,12 @@ function isPlayerInBiome(biome) {
     // print the chunk map
     // print the chunk map only once
     // print the biome map
+    // player is in biome
 
     // print the chunk map only once
     const currentTime = Date.now();
     if (currentTime - lastChunkMapPrintTime > CHUNK_MAP_PRINT_INTERVAL) {
-        //console.log("chunk map", chunkBiomes);
+        //console.log("chunk map", regionBiomes);
     }
     return getBiomeForChunk(playerChunkX, playerChunkZ);
 }
@@ -269,7 +278,7 @@ function getAllBiomes() {
  * Clear the biome assignment cache
  */
 function clearBiomeCache() {
-    chunkBiomes.clear();
+    regionBiomes.clear();
 }
 
 /**

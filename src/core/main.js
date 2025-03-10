@@ -49,6 +49,7 @@ import { setupFog, updateFog, toggleFog, setFogColor } from '../environment/fog.
 import { getTimeOfDay } from '../environment/skybox.js';
 import { initCollisionResponse, updateCollisionResponse, isBoatAirborne } from '../controls/islandCollisionResponse.js';
 import { getPlayerInventory, playerHasItem } from './network.js';
+import SpatialAudioSystem from '../audio/spatialAudio.js';
 
 // Define these variables at the file level scope (outside any functions)
 // so they're accessible throughout the file
@@ -76,6 +77,19 @@ const water = setupWater('cartoony');
 
 // Initialize biome
 initializeChunkSystem();
+
+const spatialAudio = new SpatialAudioSystem(camera, scene);
+
+// Create a test beacon sound
+const beaconPosition = new THREE.Vector3(0, 0, 0); // Place it somewhere in your world
+const beaconId = spatialAudio.createTestBeacon(beaconPosition, {
+    frequency: 440, // A4 note
+    interval: 2000, // Beep every 2 seconds
+    refDistance: 200, // Start hearing clearly at this distance
+    maxDistance: 1000, // Can't hear beyond this distance
+    volume: 0.8,
+    debug: true // Shows a visual sphere at the sound location
+});
 
 /*
 const cubeTextureLoader = new THREE.CubeTextureLoader();
@@ -894,6 +908,9 @@ function animate() {
 
     // Optional: Log the changing colors (uncomment for debugging)
     // console.log(`Fog color gradient: phase ${dayPhase.toFixed(2)}, color #${interpolatedColor.getHexString()}`);
+
+    // Update the spatial audio system with the player's position
+    //spatialAudio.update(boat.position);
 }
 
 // Calculate boat speed based on velocity
@@ -1253,3 +1270,5 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+// Initialize the spatial audio system after camera and scene are created
