@@ -50,6 +50,9 @@ export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
     // Add lava flows to the volcano
     addLavaFlows(island, baseRadius, volcanoHeight, random);
 
+    // Add lava platforms around the volcano (new feature)
+    addLavaPlatforms(island, baseRadius, random);
+
     // Add steam vents around the volcano
     addSteamVents(island, baseRadius, volcanoHeight, random);
 
@@ -339,6 +342,177 @@ function addLavaFlows(island, radius, height, random) {
         // Add to object for animation
         lavaFlow.userData.textureOffset = textureOffset;
         lavaFlow.userData.flowSpeed = 0.2 + random() * 0.3;
+    }
+}
+
+/**
+ * Add lava platforms around the volcano
+ * @param {THREE.Group} island - The island group
+ * @param {number} radius - Base radius of the volcano
+ * @param {Function} random - Seeded random function
+ */
+function addLavaPlatforms(island, radius, random) {
+    // Create 1-3 lava platforms around the island
+    const platformCount = 1 + Math.floor(random() * 2);
+
+    for (let i = 0; i < platformCount; i++) {
+        // Position the platform at some distance from the volcano
+        const angle = random() * Math.PI * 2;
+        const distance = radius * (1.2 + random() * 0.8); // Place outside the main island
+
+        // Platform dimensions
+        const platformRadius = 20 + random() * 30;
+        const platformHeight = 2 + random() * 2;
+
+        // Create a group for this platform
+        const platformGroup = new THREE.Group();
+
+        // 1. Create cooled outer ring (black lava rock)
+        const outerRingGeometry = new THREE.CircleGeometry(platformRadius, 32);
+        const outerRingMaterial = new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+
+        const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
+        outerRing.rotation.x = -Math.PI / 2; // Lay flat
+        outerRing.position.y = 0.5; // Just above water
+        platformGroup.add(outerRing);
+
+        // 2. Create inner active lava pool
+        const innerRadius = platformRadius * (0.3 + random() * 0.3); // 30-60% of the platform
+        const innerGeometry = new THREE.CircleGeometry(innerRadius, 32);
+        const innerMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff3300,
+            emissive: 0xff0000,
+            emissiveIntensity: 1,
+            roughness: 0.5,
+            metalness: 0.3
+        });
+
+        const innerLava = new THREE.Mesh(innerGeometry, innerMaterial);
+        innerLava.rotation.x = -Math.PI / 2; // Lay flat
+        innerLava.position.y = 0.6; // Slightly above the black ring
+        platformGroup.add(innerLava);
+
+        // 3. Add random cracks and details to make it look natural
+        addLavaPlatformDetails(platformGroup, platformRadius, innerRadius, random);
+
+        // Position the platform
+        platformGroup.position.set(
+            Math.cos(angle) * distance,
+            0, // At water level
+            Math.sin(angle) * distance
+        );
+
+        // Add some randomization to the platform
+        platformGroup.rotation.y = random() * Math.PI * 2;
+
+        // Add to island
+        island.add(platformGroup);
+
+        // Store reference for animations
+        platformGroup.userData.lavaPool = innerLava;
+        innerLava.userData.flowSpeed = 0.05 + random() * 0.1; // Slower flow for pools
+
+        // Add bubble effects to the inner lava
+        addLavaBubbles(innerLava, innerRadius, random);
+    }
+}
+
+/**
+ * Add details to a lava platform to make it look more natural
+ * @param {THREE.Group} platformGroup - The platform group
+ * @param {number} outerRadius - The outer platform radius
+ * @param {number} innerRadius - The inner lava radius
+ * @param {Function} random - Seeded random function
+ */
+function addLavaPlatformDetails(platformGroup, outerRadius, innerRadius, random) {
+    // Add cracks radiating from the center
+    const crackCount = 4 + Math.floor(random() * 6);
+    const ringWidth = outerRadius - innerRadius;
+
+    for (let i = 0; i < crackCount; i++) {
+        const angle = (i / crackCount) * Math.PI * 2 + random() * 0.2;
+        const length = ringWidth * (0.7 + random() * 0.3);
+        const width = 0.8 + random() * 1.5;
+
+        // Create a crack geometry
+        const crackGeometry = new THREE.PlaneGeometry(length, width);
+        const crackMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff3300,
+            emissive: 0xff2200,
+            emissiveIntensity: 0.8,
+            roughness: 0.7
+        });
+
+        const crack = new THREE.Mesh(crackGeometry, crackMaterial);
+
+        // Position at the edge of the inner lava and point outward
+        crack.position.set(
+            Math.cos(angle) * (innerRadius + length / 2),
+            0.55, // Just above platform
+            Math.sin(angle) * (innerRadius + length / 2)
+        );
+
+        // Rotate to point outward
+        crack.rotation.x = -Math.PI / 2; // Flat
+        crack.rotation.z = -angle; // Point along radius
+
+        platformGroup.add(crack);
+
+        // Store for animation
+        crack.userData.flowSpeed = 0.1 + random() * 0.2;
+    }
+
+    // Add elevated rocks and formations to make it less flat
+    const rockCount = 6 + Math.floor(random() * 8);
+
+    for (let i = 0; i < rockCount; i++) {
+        const angle = random() * Math.PI * 2;
+        const distance = innerRadius + (outerRadius - innerRadius) * random();
+
+        // Only add rocks to the cooled area
+        if (distance < innerRadius * 1.1) continue;
+
+        const rockSize = 1 + random() * 3;
+        const rockHeight = 1 + random() * 2;
+
+        // Random rock shape
+        let rockGeometry;
+        const shapeType = Math.floor(random() * 3);
+
+        if (shapeType === 0) {
+            rockGeometry = new THREE.ConeGeometry(rockSize, rockHeight, 5);
+        } else if (shapeType === 1) {
+            rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0);
+        } else {
+            rockGeometry = new THREE.BoxGeometry(
+                rockSize * (0.8 + random() * 0.4),
+                rockHeight,
+                rockSize * (0.8 + random() * 0.4)
+            );
+        }
+
+        const rockMaterial = new THREE.MeshStandardMaterial({
+            color: 0x222222,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+
+        const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+
+        rock.position.set(
+            Math.cos(angle) * distance,
+            rockHeight / 2, // Half above surface
+            Math.sin(angle) * distance
+        );
+
+        // Random rotation
+        rock.rotation.y = random() * Math.PI;
+
+        platformGroup.add(rock);
     }
 }
 
@@ -1677,7 +1851,7 @@ function updateSteamParticles(object, deltaTime) {
                 ages.push(0);
             }
 
-            while (lifetimes.length < particleCount) {
+            while (lifespans.length < particleCount) {
                 lifetimes.push(Math.random() * 2);
             }
 
