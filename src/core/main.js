@@ -47,6 +47,7 @@ import { getPlayerInfo } from '../ui/login.js';
 import { spawnBlockCave } from '../world/blockCave.js';
 import { setupFog, updateFog, toggleFog, setFogColor } from '../environment/fog.js';
 import { getTimeOfDay } from '../environment/skybox.js';
+import { updateShipMovement } from './shipController.js';
 import { initCollisionResponse, updateCollisionResponse, isBoatAirborne } from '../controls/islandCollisionResponse.js';
 import { getPlayerInventory, playerHasItem } from './network.js';
 import SpatialAudioSystem from '../audio/spatialAudio.js';

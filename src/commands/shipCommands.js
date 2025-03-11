@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { boat, boatVelocity, shipSpeedConfig } from '../core/gameState.js';
+import { boat, boatVelocity } from '../core/gameState.js';
+import { shipSpeedConfig } from '../core/shipController.js';
 import { getAllIslandColliders } from '../world/islandManager.js';
 
 // Store the default boat speed for reference

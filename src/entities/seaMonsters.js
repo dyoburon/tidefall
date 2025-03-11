@@ -1,5 +1,6 @@
-import * as THREE from 'three';
-import { scene, getTime, boatVelocity, addToScene, removeFromScene, isInScene, applyShipKnockback } from '../core/gameState.js';
+
+import { scene, getTime, boatVelocity, addToScene, removeFromScene, isInScene } from '../core/gameState.js';
+import { applyShipKnockback } from '../core/shipController.js';
 import { getTimeOfDay } from '../environment/skybox.js'; // Import time of day function
 import { flashBoatDamage } from '../entities/character.js'; // Add this import
 import { getFishInventory } from '../gameplay/fishing.js'; // Import the fish inventory
