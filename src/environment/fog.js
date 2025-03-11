@@ -60,7 +60,7 @@ export function setupFog(config = {}) {
  * @param {Object} windData - Optional wind data for fog movement
  */
 export function updateFog(playerPosition, deltaTime, windData = null) {
-    console.log("Density:", sceneFog.density);
+    //console.log("Density:", sceneFog.density);
     if (!sceneFog && scene.fog) {
         sceneFog = scene.fog; // Ensure we have the reference if fog exists
     }
@@ -260,7 +260,7 @@ export function dissipateFog(options = {}) {
                 // Remove fog completely
                 scene.fog = null;
 
-                console.log("Fog dissipation complete, fog removed");
+                //console.log("Fog dissipation complete, fog removed");
 
                 // Call completion callback
                 onComplete();
@@ -514,9 +514,6 @@ function transitionFogType(fromType, toType, duration = 8000) {
     // Get settings for both fog types
     const fromSettings = getFogSettingsForType(fromType);
     const toSettings = getFogSettingsForType(toType);
-
-    console.log("fromSettings", fromSettings);
-    console.log("toSettings", toSettings);
 
     // Set flag to prevent updateFog from overriding our settings
     isInterpolatingFog = true;
