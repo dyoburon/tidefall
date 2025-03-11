@@ -7,6 +7,7 @@ import logging
 import time
 from datetime import datetime
 import firebase_admin
+from firebase import auth
 from firebase_admin import credentials, firestore, auth as firebase_auth
 import firestore_models  # Import our new Firestore models
 from collections import defaultdict
@@ -37,15 +38,6 @@ firebase_logger.setLevel(logging.WARNING)  # Changed from DEBUG to WARNING
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ship_game_secret_key')
 
-# Initialize Firebase and Firestore (instead of SQLAlchemy)
-firebase_cred_path = os.environ.get('FIREBASE_CREDENTIALS', 'firebasekey.json')
-cred = credentials.Certificate(firebase_cred_path)
-firebase_app = firebase_admin.initialize_app(cred)
-db = firestore.client()
-
-# Initialize our Firestore models with the Firestore client
-firestore_models.init_firestore(db)
-
 # Set up Socket.IO
 socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'))
 
@@ -72,6 +64,25 @@ mimetypes.add_type('model/gltf+json', '.gltf')
 STATIC_FILES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 os.makedirs(STATIC_FILES_DIR, exist_ok=True)
 
+
+def init_firebase():
+    # Initialize Firebase and Firestore (instead of SQLAlchemy)
+    firebase_cred_path = os.environ.get('FIREBASE_CREDENTIALS', 'firebasekey.json')
+    cred = credentials.Certificate(firebase_cred_path)
+    firebase_app = firebase_admin.initialize_app(cred)
+    db = firestore.client()
+
+    # Initialize our Firestore models with the Firestore client
+    firestore_models.init_firestore(db)
+    auth.init_auth(firebase_app)
+
+    return firebase_app, db
+
+
+init_firebase()
+
+
+
 # Load data from Firestore on startup
 def load_data_from_firestore():
     # Load players
@@ -93,27 +104,6 @@ def load_data_from_firestore():
 # Call the function during app startup
 load_data_from_firestore()
 
-# Add this new function for token verification
-def verify_firebase_token(token):
-    """Verify Firebase token and return the UID if valid"""
-    try:
-        if not token:
-            logger.warning("No token provided for verification")
-            return None
-            
-        logger.info("Attempting to verify Firebase token")
-        
-        # Verify the token
-        decoded_token = firebase_auth.verify_id_token(token)
-        
-        # Get user UID from the token
-        uid = decoded_token['uid']
-        logger.info(f"Successfully verified Firebase token for user: {uid}")
-        return uid
-    except Exception as e:
-       # logger.error(f"Error verifying Firebase token: {e}")
-        logger.exception("Token verification exception details:")  # This logs the full stack trace
-        return None
 
 # Socket.IO event handlers
 @socketio.on('connect')
@@ -150,7 +140,7 @@ def handle_player_join(data):
     claimed_firebase_uid = data.get('player_id')
     # ONLY proceed with database storage if Firebase authentication is provided and valid
     if firebase_token and claimed_firebase_uid:
-        verified_uid = verify_firebase_token(firebase_token)
+        verified_uid = auth.verify_firebase_token(firebase_token)
         
         if verified_uid and verified_uid == claimed_firebase_uid:
             #logger.info(f"Authentication successful for Firebase user: {verified_uid}")
