@@ -111,7 +111,7 @@ def verify_firebase_token(token):
         logger.info(f"Successfully verified Firebase token for user: {uid}")
         return uid
     except Exception as e:
-        logger.error(f"Error verifying Firebase token: {e}")
+       # logger.error(f"Error verifying Firebase token: {e}")
         logger.exception("Token verification exception details:")  # This logs the full stack trace
         return None
 
@@ -126,11 +126,11 @@ def handle_disconnect():
     
     # Look up the player ID from our mapping
     player_id = socket_to_user_map.pop(request.sid, None)
-    logger.error(f'request.sid: {request.sid}')
-    logger.error(f"Socket to user map: {socket_to_user_map}")
-
-    logger.error(f"Player ID: {player_id}")
-    logger.error(f"Players: {players}")
+   # logger.error(f'request.sid: {request.sid}')
+    #logger.error(f"Socket to user map: {socket_to_user_map}")
+ 
+ #   logger.error(f"Player ID: {player_id}")
+  #  logger.error(f"Players: {players}")
     
     # If this was a player, mark them as inactive
     if player_id and player_id in players:
@@ -153,7 +153,7 @@ def handle_player_join(data):
         verified_uid = verify_firebase_token(firebase_token)
         
         if verified_uid and verified_uid == claimed_firebase_uid:
-            logger.info(f"Authentication successful for Firebase user: {verified_uid}")
+            #logger.info(f"Authentication successful for Firebase user: {verified_uid}")
             # Use the Firebase UID directly without the prefix
             player_id = verified_uid
             
@@ -161,7 +161,7 @@ def handle_player_join(data):
             request.player_id = player_id
             
             # Store in our socket-to-user mapping
-            logger.info(f"Mapped socket {request.sid} to user {player_id}")
+            #logger.info(f"Mapped socket {request.sid} to user {player_id}")
             
             # Now proceed with database operations
             docid = "firebase_" + player_id
@@ -428,9 +428,9 @@ def handle_player_action(data):
 @socketio.on('send_message')
 def handle_chat_message(data):
     # Log the entire data payload
-    print(f"=====================================")
-    logger.error(f"CHAT DEBUG: Message data received: {data}")
-    logger.error(f"CHAT DEBUG: Message data received: {data}")
+    #print(f"=====================================")
+    #logger.error(f"CHAT DEBUG: Message data received: {data}")
+    #ogger.error(f"CHAT DEBUG: Message data received: {data}")
     
     # Handle different message formats
     if isinstance(data, str):
@@ -724,7 +724,7 @@ def handle_add_to_inventory(data):
 @app.route('/api/players/<player_id>/inventory', methods=['GET'])
 def get_player_inventory(player_id):
     print(f"DEBUG: Getting player inventory for {player_id}")
-    logger.error(f"DEBUG: Getting player inventory for {player_id}")
+    #logger.error(f"DEBUG: Getting player inventory for {player_id}")
     """Get a player's inventory"""
     inventory = firestore_models.Inventory.get(player_id)
     if inventory:
@@ -738,7 +738,7 @@ def handle_get_inventory(data):
     Expects: { player_id }
     """
     print(f"DEBUG: Getting inventory for {data}")
-    logger.error(f"DEBUG: Getting inventory for {data}")
+    #logger.error(f"DEBUG: Getting inventory for {data}")
     player_id = data.get('player_id')
     if not player_id:
         logger.warning("Missing player ID in inventory request. Ignoring.")
@@ -755,5 +755,5 @@ def handle_get_inventory(data):
 
 if __name__ == '__main__':
     # Run the Socket.IO server with debug and reloader enabled
-    socketio.run(app, host='0.0.0.0') 
-    # socketio.run(app, host='0.0.0.0', port=5001, debug=True, use_reloader=True) 
+    # socketio.run(app, host='0.0.0.0') 
+    socketio.run(app, host='0.0.0.0', port=5001, debug=True, use_reloader=True) 
