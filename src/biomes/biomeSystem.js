@@ -30,9 +30,19 @@ const CHUNK_MAP_PRINT_INTERVAL = 5000; // 5 seconds in milliseconds
 // Track the current/previous biome the player is in
 let currentPlayerBiome = null;
 
-// Add to the top of the file with other variables
-let isFogTransitioning = false;
-let transitionQueue = []; // Use a queue instead of a single pending transition
+// Near the top of the file with other variables
+const FOG_STATE = {
+    INACTIVE: 'inactive',
+    FADING_IN: 'fading_in',
+    ACTIVE: 'active',
+    FADING_OUT: 'fading_out',
+    TRANSITIONING: 'transitioning' // New state for fog-to-fog transitions
+};
+
+let currentFogState = FOG_STATE.INACTIVE;
+let fogStateBiome = null; // Which biome's fog is currently active
+let fogStateTimer = 0; // Timer for state transitions
+let fogCheckCooldown = 0; // Cooldown between fog checks
 
 /**
  * Initialize the biome system with the given seed
@@ -219,51 +229,35 @@ function updateAllBiomes(deltaTime, playerPosition) {
     // Check if player has changed biomes
     const playerBiome = getPlayerBiome();
 
-    // Process transition queue
-    if (!isFogTransitioning && transitionQueue.length > 0) {
-        // Get next transition from queue
-        const nextTransition = transitionQueue.shift();
-        console.log(`Processing queued fog transition: ${nextTransition.isEntering ? 'entering' : 'leaving'} ${nextTransition.biome.name}`);
-
-        // Execute transition
-        isFogTransitioning = true;
-        nextTransition.biome.handleFogTransition(nextTransition.isEntering, boat);
-
-        // Schedule the end of transition
-        const duration = nextTransition.isEntering ? 10000 : 5000;
-        setTimeout(() => {
-            console.log(`Fog transition complete for ${nextTransition.biome.name}`);
-            isFogTransitioning = false;
-        }, duration + 200);
-    }
-
-    // Handle biome change
+    // Update current biome reference if needed
     if (!currentPlayerBiome || (playerBiome && playerBiome.name !== currentPlayerBiome.name)) {
         console.log(`Biome change detected: ${currentPlayerBiome?.name || 'none'} -> ${playerBiome.name}`);
-
-        // Always handle exits before entries
-        if (currentPlayerBiome) {
-            // Add exit transition to queue if not already there
-            if (!isTransitionInQueue(currentPlayerBiome, false)) {
-                console.log(`Queueing exit from ${currentPlayerBiome.name}`);
-                transitionQueue.push({
-                    biome: currentPlayerBiome,
-                    isEntering: false
-                });
-            }
-        }
-
-        // Add entry transition to queue if not already there
-        if (!isTransitionInQueue(playerBiome, true)) {
-            console.log(`Queueing entry to ${playerBiome.name}`);
-            transitionQueue.push({
-                biome: playerBiome,
-                isEntering: true
-            });
-        }
-
-        // Update current biome reference
         currentPlayerBiome = playerBiome;
+    }
+
+    // Update fog state timers
+    if (fogStateTimer > 0) {
+        fogStateTimer -= deltaTime * 1000;
+        if (fogStateTimer <= 0) {
+            // State transition completed
+            handleFogStateCompletion();
+        }
+    }
+
+    // Update fog check cooldown
+    if (fogCheckCooldown > 0) {
+        fogCheckCooldown -= deltaTime * 1000;
+    }
+
+    // Only check fog state if not transitioning and cooldown is complete
+    if (currentFogState !== FOG_STATE.FADING_IN &&
+        currentFogState !== FOG_STATE.FADING_OUT &&
+        fogCheckCooldown <= 0) {
+
+        checkAndUpdateFogState(playerBiome);
+
+        // Set a cooldown before next check (1 second)
+        fogCheckCooldown = 1000;
     }
 
     // Update active biomes
@@ -275,13 +269,94 @@ function updateAllBiomes(deltaTime, playerPosition) {
 }
 
 /**
- * Helper to check if a transition is already in the queue
- * @param {Object} biome - The biome to check
- * @param {boolean} isEntering - Whether looking for entry (true) or exit (false)
- * @returns {boolean} True if transition is already queued
+ * Check if fog state needs to change and update it
+ * @param {Object} currentBiome - Current biome player is in
  */
-function isTransitionInQueue(biome, isEntering) {
-    return transitionQueue.some(t => t.biome === biome && t.isEntering === isEntering);
+function checkAndUpdateFogState(currentBiome) {
+    // Make sure we have a valid biome with properties
+    if (!currentBiome || !currentBiome.getProperties) {
+        console.error("Invalid biome passed to checkAndUpdateFogState:", currentBiome);
+        return;
+    }
+
+    // Get properties using the getter method
+    const properties = currentBiome.getProperties();
+
+    // Determine if the current biome should have fog
+    const biomeWantsFog = properties.hasFog || false;
+    const fogType = biomeWantsFog ? (properties.fogType || 'default') : null;
+
+    console.log(`Checking fog state:`);
+    console.log(`- Biome: ${currentBiome.name}`);
+    console.log(`- Properties:`, properties);
+    console.log(`- hasFog: ${biomeWantsFog}`);
+    console.log(`- fogType: ${fogType}`);
+    console.log(`- Current fog state: ${currentFogState}`);
+    console.log(`- Current fog biome: ${fogStateBiome?.name || 'none'}`);
+
+    // Case 1: No fog → Fog (fade in)
+    if (biomeWantsFog && currentFogState === FOG_STATE.INACTIVE) {
+        console.log(`✅ CONDITION 1 MET: Activating ${fogType} fog for ${currentBiome.name}`);
+        currentFogState = FOG_STATE.FADING_IN;
+        fogStateBiome = currentBiome;
+        currentBiome.handleFogTransition(true, boat, fogType);
+        fogStateTimer = 10000; // 10 seconds for fade in
+    }
+    // Case 2: Fog → No Fog (fade out)
+    else if (!biomeWantsFog && currentFogState === FOG_STATE.ACTIVE) {
+        console.log(`✅ CONDITION 2 MET: Deactivating fog from ${fogStateBiome.name}`);
+        currentFogState = FOG_STATE.FADING_OUT;
+        const oldFogType = fogStateBiome.getProperties().fogType || 'default';
+        fogStateBiome.handleFogTransition(false, boat, oldFogType);
+        fogStateTimer = 5000; // 5 seconds for fade out
+    }
+    // Case 3: Fog Type A → Fog Type B (transition between fog types)
+    else if (biomeWantsFog && currentFogState === FOG_STATE.ACTIVE && fogStateBiome) {
+        const currentFogType = fogStateBiome.getProperties().fogType || 'default';
+        if (fogType !== currentFogType) {
+            console.log(`✅ CONDITION 3 MET: Transitioning fog: ${currentFogType} → ${fogType}`);
+            currentFogState = FOG_STATE.TRANSITIONING;
+            handleFogTypeTransition(currentFogType, fogType, currentBiome);
+            fogStateTimer = 500; // 8 seconds for transition
+        }
+    }
+    else {
+        console.log(`❌ NO CONDITIONS MET - Debug info:`);
+        console.log(`- biomeWantsFog: ${biomeWantsFog}`);
+        console.log(`- currentFogState: ${currentFogState}`);
+        console.log(`- fogStateBiome: ${fogStateBiome?.name || 'none'}`);
+    }
+}
+
+/**
+ * Handle transition between different fog types
+ * @param {string} fromType - Current fog type
+ * @param {string} toType - Target fog type
+ * @param {Object} targetBiome - The biome we're transitioning to
+ */
+function handleFogTypeTransition(fromType, toType, targetBiome) {
+    // We'll call our new function in fog.js here
+    // This will need to be implemented in fog.js
+    targetBiome.handleFogTypeTransition(fromType, toType, boat);
+    fogStateBiome = targetBiome;
+}
+
+/**
+ * Handle completion of a fog state transition
+ */
+function handleFogStateCompletion() {
+    if (currentFogState === FOG_STATE.FADING_IN || currentFogState === FOG_STATE.TRANSITIONING) {
+        console.log("Fog transition complete - now active");
+        currentFogState = FOG_STATE.ACTIVE;
+    }
+    else if (currentFogState === FOG_STATE.FADING_OUT) {
+        console.log("Fog fade-out complete");
+        currentFogState = FOG_STATE.INACTIVE;
+        fogStateBiome = null;
+    }
+
+    // After any transition completes, set a cooldown before next check
+    fogCheckCooldown = 3000; // 3 second cooldown after transition
 }
 
 /**

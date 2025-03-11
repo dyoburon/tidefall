@@ -11,9 +11,9 @@ import {
     areShoreEffectsEnabled
 } from '../world/islands.js';
 import { removeShore, setShoreVisibility } from '../world/shores.js';
-import { toggleFog, setFogProperties } from '../environment/fog.js';
+import { toggleFog, setFogProperties, transitionFogType } from '../environment/fog.js';
 
-const ARCTIC_FOG_CONFIG = {
+export const ARCTIC_FOG_CONFIG = {
     color: 0xADD8E6,           // Red fog
     density: 0.001,            // Appropriate density for exponential fog
     enableWindEffect: true,    // Whether wind affects fog color
@@ -22,7 +22,7 @@ const ARCTIC_FOG_CONFIG = {
 };
 
 // Configuration for the arctic biome
-const ARCTIC_BIOME_CONFIG = {
+export const ARCTIC_BIOME_CONFIG = {
     id: 'arctic',
     name: 'Arctic',
     properties: {
@@ -50,9 +50,12 @@ const ARCTIC_BIOME_CONFIG = {
         birdDensity: 0.4,        // Fewer birds
         fishDensity: 0.6,        // Fewer fish
         polarBearChance: 0.05,   // Chance of polar bears on icebergs
+        hasFog: true,
+        fogType: 'arctic'
     },
     isDefault: false,
     weight: 1 // Rarity of this biome
+
 };
 
 /**
@@ -627,12 +630,17 @@ class ArcticBiome extends BiomeInterface {
     handleFogTransition(isEntering, playerObject) {
         setFogProperties(ARCTIC_FOG_CONFIG);
         if (isEntering) {
-            console.log("Entering volcanic biome - activating red fog");
+            console.log("Entering arctic biome - activating fog");
             toggleFog(true); // Explicitly fade in the fog
         } else {
-            console.log("Leaving volcanic biome - dissipating fog");
+            console.log("Leaving arctic biome - dissipating fog");
             toggleFog(false); // Explicitly fade out the fog
         }
+    }
+
+    handleFogTypeTransition(fromType, toType, boat) {
+        // Call the new method in fog.js
+        transitionFogType(fromType, toType);
     }
 }
 
@@ -641,4 +649,3 @@ const arcticBiome = new ArcticBiome(ARCTIC_BIOME_CONFIG);
 
 // Export the instance and config
 export default arcticBiome;
-export { ARCTIC_BIOME_CONFIG }; 

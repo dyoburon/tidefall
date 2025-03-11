@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { scene } from '../core/gameState.js';
+// Import fog configs from each biome
+import { VOLCANIC_FOG_CONFIG } from '../biomes/volcanicbiome.js';
+import { ARCTIC_FOG_CONFIG } from '../biomes/arcticbiome.js';
+import { OPEN_FOG_CONFIG } from '../biomes/openbiome.js';
 
 // Configuration parameters with defaults (for exponential fog)
 const DEFAULT_FOG_CONFIG = {
@@ -17,9 +21,14 @@ let fogConfig = { ...DEFAULT_FOG_CONFIG };
 // Track the current fog effect state
 let isFadingIn = false;
 let isFadingOut = false;
+let isInterpolatingFog = false; // New flag for fog type transitions
 
 // Track the intended/target fog state
 let targetFogState = false; // false = off, true = on
+
+// Add this to the top of the file with other variable declarations
+let fogTransitionInterval = null;
+let activeType = 'default'; // Track the active fog type
 
 /**
  * Initializes exponential fog in the scene
@@ -51,6 +60,7 @@ export function setupFog(config = {}) {
  * @param {Object} windData - Optional wind data for fog movement
  */
 export function updateFog(playerPosition, deltaTime, windData = null) {
+    console.log("Density:", sceneFog.density);
     if (!sceneFog && scene.fog) {
         sceneFog = scene.fog; // Ensure we have the reference if fog exists
     }
@@ -63,17 +73,17 @@ export function updateFog(playerPosition, deltaTime, windData = null) {
 
     if (!sceneFog) return;
 
-    // Subtly change fog density based on position
-    const positionFactor = (Math.sin(playerPosition.x * 0.001) + Math.sin(playerPosition.z * 0.001)) * 0.5;
-    const baseDensity = fogConfig.density;
-    const densityVariation = baseDensity * 0.2; // 20% variation
+    // Only modify density if we're not in ANY fog transition
+    if (!isFadingIn && !isFadingOut && !isInterpolatingFog && sceneFog) {
+        // Subtly change fog density based on position
+        const positionFactor = (Math.sin(playerPosition.x * 0.001) + Math.sin(playerPosition.z * 0.001)) * 0.5;
+        const baseDensity = fogConfig.density;
+        const densityVariation = baseDensity * 0.2; // 20% variation
 
-    // Only modify density directly if we're not in the middle of a fade effect
-    if (!isFadingIn && !isFadingOut && sceneFog) {
         sceneFog.density = baseDensity + (positionFactor * densityVariation);
     }
 
-    // Handle wind effect
+    // Handle wind effect - color changes can happen during transitions
     if (windData && fogConfig.enableWindEffect !== false) {
         const windStrength = Math.min(1, windData.speed / 10);
         const baseColor = new THREE.Color(fogConfig.color);
@@ -378,3 +388,207 @@ export function toggleFogEffect() {
         });
     }
 }
+
+/**
+ * Update fog settings with new values
+ * @param {Object} settings - New fog settings to apply
+ * @param {THREE.Color} settings.color - Fog color
+ * @param {number} settings.density - Fog density (for FogExp2)
+ * @param {number} settings.near - Near plane (for regular Fog)
+ * @param {number} settings.far - Far plane (for regular Fog)
+ */
+function updateFogSettings(settings) {
+    if (!scene) {
+        console.warn("Scene not available for fog settings update");
+        return;
+    }
+
+    console.log("Updating fog settings:", settings);
+
+    // Apply to existing fog
+    if (scene.fog) {
+
+        console.log("test 2");
+        // Update color regardless of fog type
+        if (settings.color) {
+            scene.fog.color.copy(settings.color);
+        }
+
+        // Update other properties based on fog type
+        if (scene.fog.isFogExp2) {
+            console.log("test 3");
+            if (settings.density !== undefined) {
+                console.log("test 4");
+                scene.fog.density = settings.density;
+            }
+        } else {
+            // Regular Fog
+            if (settings.near !== undefined) {
+                scene.fog.near = settings.near;
+            }
+            if (settings.far !== undefined) {
+                scene.fog.far = settings.far;
+            }
+        }
+    } else {
+        // No existing fog, create it if we have enough settings
+        if (settings.density !== undefined) {
+            // Create exponential fog
+            scene.fog = new THREE.FogExp2(
+                settings.color || new THREE.Color(0xcccccc),
+                settings.density
+            );
+        } else if (settings.near !== undefined && settings.far !== undefined) {
+            // Create regular fog
+            scene.fog = new THREE.Fog(
+                settings.color || new THREE.Color(0xcccccc),
+                settings.near,
+                settings.far
+            );
+        }
+    }
+}
+
+/**
+ * Get fog settings for a specific fog type
+ * @param {string} type - Fog type
+ * @returns {Object} Fog settings
+ */
+function getFogSettingsForType(type) {
+    // Default fog settings
+    const defaultSettings = {
+        color: new THREE.Color(0xcccccc),
+        density: 0.015,
+        near: 10,
+        far: 300
+    };
+
+    // Return imported settings based on type
+    switch (type) {
+        case 'volcanic':
+            return VOLCANIC_FOG_CONFIG;
+        case 'arctic':
+            return ARCTIC_FOG_CONFIG;
+        case 'open':
+            return OPEN_FOG_CONFIG;
+        default:
+            return defaultSettings;
+    }
+}
+
+/**
+ * Interpolate between two colors
+ * @param {THREE.Color} colorA - Starting color
+ * @param {THREE.Color} colorB - Target color
+ * @param {number} progress - Interpolation progress (0-1)
+ * @returns {THREE.Color} Interpolated color
+ */
+function interpolateColor(colorA, colorB, progress) {
+    const result = new THREE.Color();
+    result.r = interpolateValue(colorA.r, colorB.r, progress);
+    result.g = interpolateValue(colorA.g, colorB.g, progress);
+    result.b = interpolateValue(colorA.b, colorB.b, progress);
+    return result;
+}
+
+/**
+ * Interpolate between two values
+ * @param {number} a - Starting value
+ * @param {number} b - Target value
+ * @param {number} progress - Interpolation progress (0-1)
+ * @returns {number} Interpolated value
+ */
+function interpolateValue(a, b, progress) {
+    return a + (b - a) * progress;
+}
+
+/**
+ * Transition between two different fog types
+ * @param {string} fromType - Current fog type (e.g., 'volcanic')
+ * @param {string} toType - Target fog type (e.g., 'arctic')
+ * @param {number} duration - Transition duration in milliseconds
+ */
+function transitionFogType(fromType, toType, duration = 8000) {
+    console.log(`Transitioning fog: ${fromType} → ${toType} over ${duration}ms`);
+
+    // Get settings for both fog types
+    const fromSettings = getFogSettingsForType(fromType);
+    const toSettings = getFogSettingsForType(toType);
+
+    console.log("fromSettings", fromSettings);
+    console.log("toSettings", toSettings);
+
+    // Set flag to prevent updateFog from overriding our settings
+    isInterpolatingFog = true;
+
+    // Store start time for interpolation
+    const startTime = Date.now();
+
+    // Clear any existing transition
+    if (fogTransitionInterval) {
+        clearInterval(fogTransitionInterval);
+        fogTransitionInterval = null;
+    }
+
+    // Start the transition
+    fogTransitionInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1); // 0 to 1
+
+        // Interpolate between the fog settings
+        const currentColor = interpolateColor(
+            fromSettings.color,
+            toSettings.color,
+            progress
+        );
+
+        const currentDensity = interpolateValue(
+            fromSettings.density,
+            toSettings.density,
+            progress
+        );
+
+        const currentNear = interpolateValue(
+            fromSettings.near,
+            toSettings.near,
+            progress
+        );
+
+        const currentFar = interpolateValue(
+            fromSettings.far,
+            toSettings.far,
+            progress
+        );
+
+        // Apply interpolated settings - important to use all computed values
+        updateFogSettings({
+            color: currentColor,
+            density: currentDensity,
+            near: currentNear,
+            far: currentFar
+        });
+
+        // Complete the transition
+        if (progress >= 1) {
+            clearInterval(fogTransitionInterval);
+            fogTransitionInterval = null;
+            activeType = toType;
+
+            // Update the fog config to match the target settings
+            fogConfig = { ...fogConfig, ...toSettings };
+
+            // Reset the interpolation flag
+            isInterpolatingFog = false;
+
+            console.log(`Fog transition to ${toType} complete`);
+        }
+    }, 16); // Update roughly every frame at 60fps
+}
+
+// Don't forget to export the new function
+export {
+    // ... existing exports
+    transitionFogType,
+    getFogSettingsForType,
+    updateFogSettings
+};

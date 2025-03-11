@@ -16,6 +16,7 @@ class BiomeInterface {
     constructor(config) {
         this._id = config.id;
         this._name = config.name;
+        this._hasFog = config.hasFog || false;
         this.properties = config.properties || {};
         this.isDefault = config.isDefault || false;
         this.weight = config.weight || 1;
@@ -47,6 +48,14 @@ class BiomeInterface {
      */
     get name() {
         return this._name;
+    }
+
+    /**
+     * Get the name of this biome
+     * @returns {string} The biome name
+     */
+    get hasFog() {
+        return this._hasFog;
     }
 
     /**

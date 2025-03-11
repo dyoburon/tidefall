@@ -4,16 +4,17 @@ import { boat as playerObject, scene } from '../core/gameState.js';
 import { createIsland, checkAllIslandCollisions, updateAllIslandEffects, areShoreEffectsEnabled } from '../world/islands.js';
 import { removeShore, setShoreVisibility } from '../world/shores.js';
 import { createActiveVolcanoIsland, updateActiveVolcanoes } from '../world/volcanicIsland.js';
-import { toggleFog, setFogProperties } from '../environment/fog.js';
+import { toggleFog, setFogProperties, transitionFogType } from '../environment/fog.js';
 
 
-const VOLCANIC_FOG_CONFIG = {
-    color: 0xFF0000,           // Red fog
+export const VOLCANIC_FOG_CONFIG = {
+    color: 0xFF4500,           // Red-orange fog
     density: 0.001,            // Appropriate density for exponential fog
     enableWindEffect: true,    // Whether wind affects fog color
-    windEffectColor: 0xFF0000, // Custom color for wind effect
-    windEffectStrength: 0.4    // Strength of wind color effect (0-1)
+    windEffectColor: 0xFF3000, // Custom color for wind effect
+    windEffectStrength: 0.5    // Strength of wind color effect (0-1)
 };
+
 
 // Configuration for the volcanic biome
 const VOLCANIC_BIOME_CONFIG = {
@@ -44,6 +45,8 @@ const VOLCANIC_BIOME_CONFIG = {
         // Entity spawn parameters
         birdDensity: 0.2,         // Very few birds
         fishDensity: 0.4,         // Fewer fish
+        hasFog: true,          // THIS IS CRITICAL - it was missing
+        fogType: 'volcanic'     // THIS IS CRITICAL - it was missing
     },
     isDefault: false,
     weight: 1 // Rarity of this biome
@@ -56,6 +59,8 @@ const VOLCANIC_BIOME_CONFIG = {
 class VolcanicBiome extends BiomeInterface {
     constructor(config = VOLCANIC_BIOME_CONFIG) {
         super(config);
+
+        // Add the hasFog property directly to the biome instance
 
         // Add volcanos to tracked entities
         this.spawnedEntities.volcanos = [];
@@ -698,12 +703,23 @@ class VolcanicBiome extends BiomeInterface {
     handleFogTransition(isEntering, playerObject) {
         setFogProperties(VOLCANIC_FOG_CONFIG);
         if (isEntering) {
-            console.log("Entering volcanic biome - activating red fog");
+            console.log("Entering volcanic biome - activating fog");
             toggleFog(true); // Explicitly fade in the fog
         } else {
             console.log("Leaving volcanic biome - dissipating fog");
             toggleFog(false); // Explicitly fade out the fog
         }
+    }
+
+    /**
+     * Handle transition between different fog types
+     * @param {string} fromType - Current fog type
+     * @param {string} toType - Target fog type
+     * @param {Object} boat - Player boat object
+     */
+    handleFogTypeTransition(fromType, toType, boat) {
+        // Call the new method in fog.js
+        transitionFogType(fromType, toType);
     }
 }
 
@@ -712,4 +728,3 @@ const volcanicBiome = new VolcanicBiome(VOLCANIC_BIOME_CONFIG);
 
 // Export the instance and config
 export default volcanicBiome;
-export { VOLCANIC_BIOME_CONFIG }; 

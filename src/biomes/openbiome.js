@@ -11,6 +11,15 @@ import {
 import { removeShore, setShoreVisibility } from '../world/shores.js';
 import BiomeInterface from './biomeinterface.js';
 import { boat as playerObject } from '../core/gameState.js';
+import { toggleFog, setFogProperties, transitionFogType } from '../environment/fog.js';
+
+export const OPEN_FOG_CONFIG = {
+    color: 0xD3D3D3,           // Red fog
+    density: 0.0,            // Appropriate density for exponential fog
+    enableWindEffect: true,    // Whether wind affects fog color
+    windEffectColor: 0xD3D3D3, // Custom color for wind effect
+    windEffectStrength: 0.4    // Strength of wind color effect (0-1)
+};
 
 // Configuration for the open biome
 const OPEN_BIOME_CONFIG = {
@@ -29,7 +38,9 @@ const OPEN_BIOME_CONFIG = {
         // Entity spawn parameters (for future implementation)
         birdDensity: 0.8,
         fishDensity: 1.2,
-        monsterChance: 0.03
+        monsterChance: 0.03,
+        hasFog: true,
+        fogType: 'open'
     },
     // Make this the default biome
     isDefault: true,
@@ -349,6 +360,22 @@ class OpenBiome extends BiomeInterface {
         // Copy the last update position to track when we've moved significantly
         lastUpdatePosition.copy(playerPosition);
     }
+
+    handleFogTransition(isEntering, playerObject) {
+        setFogProperties(OPEN_FOG_CONFIG);
+        if (isEntering) {
+            console.log("Entering open biome - activating fog");
+            toggleFog(true); // Explicitly fade in the fog
+        } else {
+            console.log("Leaving open biome - dissipating fog");
+            toggleFog(false); // Explicitly fade out the fog
+        }
+    }
+
+    handleFogTypeTransition(fromType, toType, boat) {
+        // Call the new method in fog.js
+        transitionFogType(fromType, toType);
+    }
 }
 
 // Create singleton instance
@@ -356,4 +383,3 @@ const openBiome = new OpenBiome(OPEN_BIOME_CONFIG);
 
 // Export the instance and config
 export default openBiome;
-export { OPEN_BIOME_CONFIG };
