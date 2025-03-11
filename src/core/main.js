@@ -745,6 +745,7 @@ function animate() {
     if (!collided) {
         // Only update X and Z position - Y is controlled by collision system when in flight
         if (window.boatInParabolicFlight) {
+
             // Debug logging before position change
             if (window.collisionDebugActive) {
                 console.log("%c🔄 MAIN: Applying flight-safe position update", "color:purple;");

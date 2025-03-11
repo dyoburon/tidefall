@@ -1,6 +1,8 @@
 // gameState.js - Central store for shared game objects to avoid circular dependencies
 import * as THREE from 'three';
 import { createBoat } from '../entities/character.js';
+import { checkAllIslandCollisions } from '../world/islands.js';
+
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
 export const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -170,6 +172,9 @@ export function updateShipMovement(deltaTime) {
     const windData = getWindData();
     const windDirection = windData.direction;
     const windSpeed = windData.speed;
+
+
+    checkAndHandleIslandCollisions();
 
     // Calculate ship's current speed and heading
     const currentSpeed = boatVelocity.length();
@@ -379,4 +384,66 @@ export function applyShipKnockback(direction, force = 1.0, options = {}) {
     console.log(`🚢 KNOCKBACK applied! Force: ${force}, Speed: ${boatVelocity.length().toFixed(2)}`);
 
     return boatVelocity.clone(); // Return the new velocity for reference
+}
+
+// Add this with your other global variables
+let lastIslandCollisionTime = 0;
+const ISLAND_COLLISION_COOLDOWN = 1.0; // Seconds between collision responses
+
+// Add this function to gameState.js
+export function checkAndHandleIslandCollisions() {
+    // Skip if too soon after last collision
+    const currentTime = getTime() / 1000;
+    if (currentTime - lastIslandCollisionTime < ISLAND_COLLISION_COOLDOWN) {
+        return;
+    }
+
+    // Get ship position and velocity
+    const shipPosition = boat.position.clone();
+    const currentSpeed = boatVelocity.length();
+
+    // Check for collision with any islands (add extra radius for early detection)
+    if (checkAllIslandCollisions(shipPosition, 2)) {
+        console.log("🏝️ ISLAND COLLISION DETECTED!");
+
+        // Calculate direction vector away from island
+        // Since we don't have the exact island center, use the negative of current velocity 
+        // and add significant upward component to create "flying" effect
+        const bounceDirection = new THREE.Vector3();
+
+        if (currentSpeed > 0.1) {
+            // If we have significant speed, bounce opposite to our direction of travel
+            bounceDirection.copy(boatVelocity).negate().normalize();
+        } else {
+            // If very slow or stopped, just bounce backward relative to boat orientation
+            bounceDirection.set(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), boat.rotation.y);
+        }
+
+        // Add significant upward component to create "flying" effect
+        bounceDirection.y = 1.5; // Strong upward component
+        bounceDirection.normalize();
+
+        // Force depends on impact speed - faster impact = stronger bounce
+        const impactForce = Math.max(2.0, Math.min(5.0, currentSpeed * 10));
+
+        // Apply knockback with custom parameters
+        applyShipKnockback(bounceDirection, impactForce, {
+            resetVelocity: true,      // Cancel existing velocity
+            bounceFactor: 1.2,        // Extra bouncy
+            dampingFactor: 0.6,       // Slow damping
+            knockbackDuration: 1.2    // Long knockback effect
+        });
+
+        // Set collision time to prevent rapid multiple collisions
+        lastIslandCollisionTime = currentTime;
+
+        // Optional: Add camera shake or other effects
+        if (window.shakeCamera) {
+            window.shakeCamera(0.5, 0.8); // Intensity, duration
+        }
+
+        return true; // Collision handled
+    }
+
+    return false; // No collision
 }
