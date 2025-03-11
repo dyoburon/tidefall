@@ -22,12 +22,16 @@ let time = 0;
 // Add these variables near the top with other exports
 export const shipSpeedConfig = {
     basePlayerSpeed: 0.5,     // Normal max speed when player is controlling
-    baseKnockbackSpeed: 8.5,   // Max speed when not player-controlled (like knockbacks)
+    baseKnockbackSpeed: 2,   // Max speed when not player-controlled (like knockbacks)
     speedMultiplier: 1.0       // Multiplier that can be adjusted by /speed command
 };
 
 // Add this near the top with other exports
 export let allPlayers = [];
+
+// Add this near your other exports
+export let knockbackActive = false;
+export let knockbackTimer = 0;
 
 // Player name and color functions that login.js is trying to import
 export function setPlayerName(name) {
@@ -185,12 +189,12 @@ export function updateShipMovement(deltaTime) {
     // Apply sail power with wind efficiency
     const effectiveSailPower = SHIP_CONFIG.baseSailPower * Math.sqrt(shipSpeedConfig.speedMultiplier);
 
-    if (keys.forward) {
+    if (keys.forward && !knockbackActive) {
         // DRAMATICALLY IMPROVED FORWARD ACCELERATION
         accelerationForce.add(shipHeading.clone().multiplyScalar(effectiveSailPower));
     }
 
-    if (keys.backward) {
+    if (keys.backward && !knockbackActive) {
         // DRAMATICALLY IMPROVED BACKWARD ACCELERATION
         const backwardForce = -effectiveSailPower * SHIP_CONFIG.backwardPowerRatio;
         accelerationForce.add(shipHeading.clone().multiplyScalar(backwardForce));
@@ -253,8 +257,16 @@ export function updateShipMovement(deltaTime) {
     const windDrift = windVector.clone().multiplyScalar(windDriftAmount);
     boatVelocity.add(windDrift);
 
+    // Update knockback timer if active
+    if (knockbackActive) {
+        knockbackTimer -= deltaTime;
+        if (knockbackTimer <= 0) {
+            knockbackActive = false;
+        }
+    }
+
     // DRAMATICALLY IMPROVED DECELERATION when not accelerating
-    if (!keys.forward && !keys.backward) {
+    if (!keys.forward && !keys.backward && !knockbackActive) {
         // Much stronger damping for quick deceleration
         boatVelocity.multiplyScalar(SHIP_CONFIG.normalDampingFactor);
 
@@ -317,4 +329,54 @@ export function removeFromScene(object) {
 // Helper to safely check if an object is in the scene
 export function isInScene(object) {
     return object && object.parent === scene;
+}
+
+// Modify the applyShipKnockback function
+export function applyShipKnockback(direction, force = 1.0, options = {}) {
+    // Default options
+    const defaults = {
+        resetVelocity: true,       // Whether to zero out current velocity first
+        maxSpeed: shipSpeedConfig.baseKnockbackSpeed, // Max speed cap for knockback
+        bounceFactor: 0.3,         // How "bouncy" the knockback feels (0-1)
+        dampingFactor: 0.3,        // CHANGED: No damping (was 0.1)
+        knockbackDuration: 0.3     // How long knockback immunity lasts (seconds)
+    };
+
+    // Merge provided options with defaults
+    const settings = { ...defaults, ...options };
+
+    // Normalize the direction vector
+    const knockbackDir = direction.clone().normalize();
+
+    // Calculate knockback velocity based on force (significantly increase force)
+    const knockbackVelocity = knockbackDir.multiplyScalar(force * 5.0); // Multiplied by 5x
+
+    // If we should reset velocity first (for hard collisions)
+    if (settings.resetVelocity) {
+        // First, calculate the component of current velocity in the knockback direction
+        const currentVelocityInKnockbackDir = boatVelocity.dot(knockbackDir);
+
+        // Only reset if we're moving toward the collision point
+        if (currentVelocityInKnockbackDir < 0) {
+            // Zero out velocity before applying knockback
+            boatVelocity.set(0, 0, 0);
+        }
+    }
+
+    // Add knockback force to velocity (scaled by bounce factor)
+    boatVelocity.add(knockbackVelocity.multiplyScalar(settings.bounceFactor));
+
+    // Apply speed limit to prevent excessive knockback
+    const currentSpeed = boatVelocity.length();
+    if (currentSpeed > settings.maxSpeed) {
+        boatVelocity.multiplyScalar(settings.maxSpeed / currentSpeed);
+    }
+
+    // Set knockback flag and timer
+    knockbackActive = true;
+    knockbackTimer = settings.knockbackDuration;
+
+    console.log(`🚢 KNOCKBACK applied! Force: ${force}, Speed: ${boatVelocity.length().toFixed(2)}`);
+
+    return boatVelocity.clone(); // Return the new velocity for reference
 }

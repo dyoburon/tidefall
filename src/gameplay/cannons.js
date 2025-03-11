@@ -5,6 +5,7 @@ import { onMonsterKilled, addToInventory } from '../core/network.js';
 import { handleMonsterTreasureDrop, removeMonsterOutline } from '../entities/seaMonsters.js';
 import { initCannonTargetingSystem, updateTargeting, isMonsterEffectivelyTargeted, isMonsterTargetedWithGreenLine } from './cannonautosystem.js';
 import { playCannonSound } from '../audio/soundEffects.js';
+import { flashMonsterRed } from '../entities/seaMonsters.js';
 
 // Cannon system configuration
 const CANNON_RANGE = 100; // Maximum range for cannons
@@ -431,107 +432,7 @@ function hitMonster(monster, hasGreenLine = false) {
 }
 
 // Update the flashMonsterRed function to properly restore colors
-function flashMonsterRed(monster, hadGreenLine = false) {
-    // Ensure monster has the damage flash property to track state
-    if (monster.isFlashingRed === undefined) {
-        monster.isFlashingRed = false;
-    }
 
-    // Prevent color animation overlap if already flashing
-    if (monster.isFlashingRed) {
-        clearTimeout(monster.flashTimeout);
-    }
-
-    // Mark as currently flashing
-    monster.isFlashingRed = true;
-
-    // Store all original colors first if not already done
-    if (!monster.storedColors) {
-        monster.storedColors = new Map();
-    }
-
-    // Store original emissive if needed
-    if (!monster.storedEmissive) {
-        monster.storedEmissive = new Map();
-    }
-
-    // Process all mesh components of the monster
-    if (monster.mesh) {
-        monster.mesh.traverse((child) => {
-            if (child.isMesh && child.material) {
-                // Skip outline meshes - outlines use BackSide rendering
-                if (child.material.side === THREE.BackSide) {
-                    // Ensure outlines stay black
-                    if (child.material.color) {
-                        child.material.color.set(0x000000);
-                    }
-                    return; // Skip further processing for outline materials
-                }
-
-                // Handle both single materials and material arrays for non-outline meshes
-                const materials = Array.isArray(child.material) ? child.material : [child.material];
-
-                materials.forEach((material, index) => {
-                    // Skip any BackSide materials (outlines)
-                    if (material.side === THREE.BackSide) {
-                        // Keep outlines black
-                        if (material.color) {
-                            material.color.set(0x000000);
-                        }
-                        return;
-                    }
-
-                    if (material && material.color) {
-                        // Create a unique identifier for this material
-                        const materialId = `${child.id}-${index}`;
-
-                        // Store original color if not already stored
-                        if (!monster.storedColors.has(materialId)) {
-                            monster.storedColors.set(materialId, material.color.clone());
-                        }
-
-                        // Set to bright red - use a more intense red for targeted hits
-                        material.color.set(hadGreenLine ? 0xff0000 : 0xdd0000);
-
-                        // Boost emissive for extra glow effect if supported
-                        if (material.emissive) {
-                            if (!monster.storedEmissive.has(materialId)) {
-                                monster.storedEmissive.set(materialId, material.emissive.clone());
-                            }
-
-                            // Add red glow - brighter for green line hits
-                            material.emissive.set(hadGreenLine ? 0x550000 : 0x330000);
-                        }
-                    }
-                });
-            }
-        });
-    }
-
-    // Also handle special monster parts like fins if they exist
-    const specialParts = ['dorsalFin', 'leftFin', 'rightFin'];
-    specialParts.forEach(partName => {
-        if (monster[partName] && monster[partName].material && monster[partName].material.color) {
-            const materialId = `special-${partName}`;
-
-            // Store original color
-            if (!monster.storedColors.has(materialId)) {
-                monster.storedColors.set(materialId, monster[partName].material.color.clone());
-            }
-
-            // Set to red - brighter for targeted hits
-            monster[partName].material.color.set(hadGreenLine ? 0xff0000 : 0xdd0000);
-        }
-    });
-
-    // Flash longer for targeted hits (green line)
-    const flashDuration = hadGreenLine ? 700 : 500;
-
-    // Restore original colors after a delay
-    monster.flashTimeout = setTimeout(() => {
-        restoreMonsterColors(monster);
-    }, flashDuration);
-}
 
 // Create a separate function to restore monster colors to make the code cleaner
 // and ensure it can be called from multiple places if needed

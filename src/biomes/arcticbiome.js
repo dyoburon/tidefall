@@ -15,7 +15,7 @@ import { toggleFog, setFogProperties, transitionFogType } from '../environment/f
 
 export const ARCTIC_FOG_CONFIG = {
     color: 0xADD8E6,           // Red fog
-    density: 0.001,            // Appropriate density for exponential fog
+    density: 0.0005,            // Appropriate density for exponential fog
     enableWindEffect: true,    // Whether wind affects fog color
     windEffectColor: 0xADD8E6, // Custom color for wind effect
     windEffectStrength: 0.4    // Strength of wind color effect (0-1)

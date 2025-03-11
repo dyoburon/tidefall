@@ -5,7 +5,7 @@ import { ToonWater } from './toonWater.js';
 
 let waterMesh;
 let waterNormals;
-const waterSize = 10000; // Large water plane but not excessive
+const waterSize = 5000; // Large water plane but not excessive
 const waterSegments = 10; // Reduced from 1000 to improve performance and stability
 let currentWaterStyle = 'realistic'; // Track current water style
 

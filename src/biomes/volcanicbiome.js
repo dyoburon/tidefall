@@ -5,14 +5,18 @@ import { createIsland, checkAllIslandCollisions, updateAllIslandEffects, areShor
 import { removeShore, setShoreVisibility } from '../world/shores.js';
 import { createActiveVolcanoIsland, updateActiveVolcanoes } from '../world/volcanicIsland.js';
 import { toggleFog, setFogProperties, transitionFogType } from '../environment/fog.js';
+import {
+    setupSwimmingSwarms,
+    updateSwimmingSwarms
+} from '../entities/swimmingSwarm.js';
 
 
 export const VOLCANIC_FOG_CONFIG = {
-    color: 0xFF4500,           // Red-orange fog
-    density: 0.001,            // Appropriate density for exponential fog
+    color: 0xffcccc,           // Red-orange fog
+    density: 0.0005,            // Appropriate density for exponential fog
     enableWindEffect: true,    // Whether wind affects fog color
-    windEffectColor: 0xFF3000, // Custom color for wind effect
-    windEffectStrength: 0.5    // Strength of wind color effect (0-1)
+    windEffectColor: 0xffcccc, // Custom color for wind effect
+    windEffectStrength: 0.4    // Strength of wind color effect (0-1)
 };
 
 
@@ -67,6 +71,9 @@ class VolcanicBiome extends BiomeInterface {
 
         // Add lava flows to tracked entities
         this.spawnedEntities.lavaFlows = [];
+
+        // Initialize nanodredge collectives
+        //setupSwimmingSwarms(playerObject);
 
         // Initialize ash particle system
         // Note: Ash system would need to be implemented similar to snow system
@@ -428,6 +435,8 @@ class VolcanicBiome extends BiomeInterface {
 
         // Update lava flows
         this.updateLavaFlows(deltaTime);
+
+        // updateSwimmingSwarms(deltaTime);
 
         // Update all island effects
         updateAllIslandEffects(deltaTime);

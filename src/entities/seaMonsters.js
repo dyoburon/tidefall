@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene, getTime, boatVelocity, addToScene, removeFromScene, isInScene } from '../core/gameState.js';
+import { scene, getTime, boatVelocity, addToScene, removeFromScene, isInScene, applyShipKnockback } from '../core/gameState.js';
 import { getTimeOfDay } from '../environment/skybox.js'; // Import time of day function
 import { flashBoatDamage } from '../entities/character.js'; // Add this import
 import { getFishInventory } from '../gameplay/fishing.js'; // Import the fish inventory
@@ -52,6 +52,13 @@ let treasureInventory = {}; // Treasures collected from monsters
 const HIT_COOLDOWN = 1.5; // Seconds between possible hits
 let lastHitTime = -999; // Initialize to negative value to ensure first hit works
 
+// Increase these constants for better collision detection
+const BOAT_COLLISION_DAMAGE = 0.8;        // Base damage dealt to monster when hit by boat
+const BOAT_COLLISION_COOLDOWN = 0;    // Reduced cooldown for more responsive collisions
+const BOAT_COLLISION_RANGE = 35;        // INCREASED from 20 to 35 for much more reliable detection
+const BOAT_SURFACE_THRESHOLD = -15;     // INCREASED depth threshold from -10 to -15
+let lastBoatCollisionTime = -999;       // Timer for collision cooldown
+
 export function setupSeaMonsters(boat) {
     try {
         playerBoat = boat;
@@ -92,6 +99,166 @@ export function setupSeaMonsters(boat) {
     }
 }
 
+
+export function flashMonsterRed(monster, hadGreenLine = false) {
+    // Ensure monster has the damage flash property to track state
+    if (monster.isFlashingRed === undefined) {
+        monster.isFlashingRed = false;
+    }
+
+    // Prevent color animation overlap if already flashing
+    if (monster.isFlashingRed) {
+        clearTimeout(monster.flashTimeout);
+    }
+
+    // Mark as currently flashing
+    monster.isFlashingRed = true;
+
+    // Store all original colors first if not already done
+    if (!monster.storedColors) {
+        monster.storedColors = new Map();
+    }
+
+    // Store original emissive if needed
+    if (!monster.storedEmissive) {
+        monster.storedEmissive = new Map();
+    }
+
+    // Process all mesh components of the monster
+    if (monster.mesh) {
+        monster.mesh.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // Skip outline meshes - outlines use BackSide rendering
+                if (child.material.side === THREE.BackSide) {
+                    // Ensure outlines stay black
+                    if (child.material.color) {
+                        child.material.color.set(0x000000);
+                    }
+                    return; // Skip further processing for outline materials
+                }
+
+                // Handle both single materials and material arrays for non-outline meshes
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+                materials.forEach((material, index) => {
+                    // Skip any BackSide materials (outlines)
+                    if (material.side === THREE.BackSide) {
+                        // Keep outlines black
+                        if (material.color) {
+                            material.color.set(0x000000);
+                        }
+                        return;
+                    }
+
+                    if (material && material.color) {
+                        // Create a unique identifier for this material
+                        const materialId = `${child.id}-${index}`;
+
+                        // Store original color if not already stored
+                        if (!monster.storedColors.has(materialId)) {
+                            monster.storedColors.set(materialId, material.color.clone());
+                        }
+
+                        // Set to bright red - use a more intense red for targeted hits
+                        material.color.set(hadGreenLine ? 0xff0000 : 0xdd0000);
+
+                        // Boost emissive for extra glow effect if supported
+                        if (material.emissive) {
+                            if (!monster.storedEmissive.has(materialId)) {
+                                monster.storedEmissive.set(materialId, material.emissive.clone());
+                            }
+
+                            // Add red glow - brighter for green line hits
+                            material.emissive.set(hadGreenLine ? 0x550000 : 0x330000);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // Also handle special monster parts like fins if they exist
+    const specialParts = ['dorsalFin', 'leftFin', 'rightFin'];
+    specialParts.forEach(partName => {
+        if (monster[partName] && monster[partName].material && monster[partName].material.color) {
+            const materialId = `special-${partName}`;
+
+            // Store original color
+            if (!monster.storedColors.has(materialId)) {
+                monster.storedColors.set(materialId, monster[partName].material.color.clone());
+            }
+
+            // Set to red - brighter for targeted hits
+            monster[partName].material.color.set(hadGreenLine ? 0xff0000 : 0xdd0000);
+        }
+    });
+
+    // Flash longer for targeted hits (green line)
+    const flashDuration = hadGreenLine ? 700 : 500;
+
+    // Restore original colors after a delay
+    monster.flashTimeout = setTimeout(() => {
+        restoreMonsterColors(monster);
+    }, flashDuration);
+}
+
+// Create a separate function to restore monster colors to make the code cleaner
+// and ensure it can be called from multiple places if needed
+function restoreMonsterColors(monster) {
+    // Safety check - make sure monster exists
+    if (!monster || !monster.mesh || !monster.storedColors) {
+        return;
+    }
+
+    // Only restore if monster still exists and has stored colors
+    try {
+        monster.mesh.traverse((child) => {
+            if (child.isMesh && child.material) {
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+                materials.forEach((material, index) => {
+                    if (material && material.color) {
+                        const materialId = `${child.id}-${index}`;
+                        const originalColor = monster.storedColors.get(materialId);
+
+                        if (originalColor) {
+                            // Use copy to ensure we're properly transferring the color values
+                            material.color.copy(originalColor);
+                        }
+
+                        // Restore emissive if it exists
+                        if (material.emissive && monster.storedEmissive) {
+                            const originalEmissive = monster.storedEmissive.get(materialId);
+                            if (originalEmissive) {
+                                material.emissive.copy(originalEmissive);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        // Restore special parts
+        const specialParts = ['dorsalFin', 'leftFin', 'rightFin'];
+        specialParts.forEach(partName => {
+            if (monster[partName] && monster[partName].material && monster[partName].material.color) {
+                const materialId = `special-${partName}`;
+                const originalColor = monster.storedColors.get(materialId);
+
+                if (originalColor) {
+                    monster[partName].material.color.copy(originalColor);
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error restoring monster colors:", error);
+    }
+
+    // Reset flag
+    monster.isFlashingRed = false;
+}
+
+
 // Helper function to select random monster type based on weights
 export function selectRandomMonsterType() {
     const random = Math.random();
@@ -128,7 +295,8 @@ export function updateSeaMonsters(deltaTime) {
         // Update last time of day
         lastTimeOfDay = currentTimeOfDay;
 
-        // Debug current time and last hit time
+        // NEW: Check for boat collisions with monsters
+        checkBoatMonsterCollisions();
 
         // Update existing monsters
         monsters.forEach((monster, index) => {
@@ -1444,4 +1612,169 @@ export function removeMonsterOutline(monster) {
     if (monster && monster.mesh) {
         removeOutline(monster.mesh, { recursive: true });
     }
-} 
+}
+
+// Add this simple function to handle boat-monster collisions
+function checkBoatMonsterCollisions() {
+    if (!playerBoat) return;
+
+    const currentTime = getTime() / 1000; // Convert to seconds
+
+    // Check if we can deal damage (cooldown expired)
+    if (currentTime - lastBoatCollisionTime <= BOAT_COLLISION_COOLDOWN) {
+        return; // Still in cooldown period
+    }
+
+    // Get boat velocity magnitude (speed)
+    const boatSpeed = boatVelocity.length();
+
+    // Lower the minimum speed threshold to make collisions more forgiving
+    const MIN_COLLISION_SPEED = 0.01; // REDUCED from 0.05 for more consistent detection
+    if (boatSpeed < MIN_COLLISION_SPEED) return;
+
+    // Debug collision info
+    console.log(`🔍 Checking collisions: Boat speed: ${boatSpeed.toFixed(2)}, Monsters: ${monsters.length}`);
+
+    // Check collision with each monster
+    monsters.forEach(monster => {
+        // Skip monsters that are already dying
+        if (monster.state === MONSTER_STATE.DYING) return;
+
+        // Increased surface threshold - check monsters that are closer to surface
+        if (monster.mesh.position.y < BOAT_SURFACE_THRESHOLD) return;
+
+        // Check distance between boat and monster
+        const distanceToMonster = playerBoat.position.distanceTo(monster.mesh.position);
+
+        // Log distance for monsters near collision range
+        if (distanceToMonster < BOAT_COLLISION_RANGE * 1.5) {
+            console.log(`👹 Monster proximity: ${distanceToMonster.toFixed(1)} units, Type: ${monster.monsterType}, Y-pos: ${monster.mesh.position.y.toFixed(1)}`);
+        }
+
+        if (distanceToMonster < BOAT_COLLISION_RANGE) {
+            // Collision detected! Apply damage proportional to boat speed
+            const speedFactor = Math.min(4, Math.max(1, boatSpeed * 5));
+            const damageAmount = Math.floor(BOAT_COLLISION_DAMAGE * speedFactor);
+
+            // Apply damage to monster
+            monster.health -= damageAmount;
+            console.log(`💥 COLLISION! Hit monster with ${damageAmount} damage. Monster health: ${monster.health}`);
+
+            // NEW: Flash monster red to indicate damage (reusing cannon hit effect)
+            flashMonsterRed(monster, true); // Use true to make it brighter like a well-targeted hit
+
+            // Set collision cooldown
+            lastBoatCollisionTime = currentTime;
+
+            // Create BIGGER splash effect for better visual feedback
+            createBiggerSplashEffect(monster.mesh.position.clone());
+
+            // Calculate impact direction (from monster to player)
+            const impactDirection = new THREE.Vector3()
+                .subVectors(playerBoat.position, monster.mesh.position)
+                .normalize();
+
+            // Apply knockback force proportional to boat speed
+            // Force is stronger when boat is moving fast
+            const impactForce = 0.001 + boatSpeed * 3.0; // INCREASED force for more noticeable knockback
+
+            // Use the new knockback function
+            applyShipKnockback(impactDirection, impactForce, {
+                resetVelocity: true,      // CHANGED to reset velocity for more dramatic effect
+                bounceFactor: 1.5,        // INCREASED bounce factor for stronger impact
+                dampingFactor: 1.0,       // No damping on impact
+                knockbackDuration: 0.8    // INCREASED duration from 0.5 to 0.8 seconds
+            });
+
+            // Add direct position shift for immediate feedback
+            playerBoat.position.add(impactDirection.multiplyScalar(1.5));
+
+            // Check if monster is defeated
+            if (monster.health <= 0) {
+                // Transition to dying state
+                monster.state = MONSTER_STATE.DYING;
+                monster.stateTimer = 3; // Time for dying animation
+
+                // Possibly drop treasure
+                handleMonsterTreasureDrop(monster);
+
+                // Schedule monster cleanup
+                setTimeout(() => {
+                    // Remove monster from scene and array
+                    if (isInScene(monster.mesh)) {
+                        removeFromScene(monster.mesh);
+
+                        // Remove monster from array
+                        const index = monsters.indexOf(monster);
+                        if (index !== -1) {
+                            monsters.splice(index, 1);
+                        }
+                    }
+                }, 3000); // Remove after dying animation completes
+            } else {
+                // Monster is still alive but damaged - make it flee
+                /*monster.state = MONSTER_STATE.DIVING;
+                monster.stateTimer = 3;
+
+                // Move away from player
+                const fleeDirection = new THREE.Vector3()
+                    .subVectors(monster.mesh.position, playerBoat.position)
+                    .normalize();
+
+                monster.velocity.copy(fleeDirection.multiplyScalar(MONSTER_SPEED * 3));*/
+            }
+        }
+    });
+}
+
+// Add this function for a bigger splash visual effect on collision
+function createBiggerSplashEffect(position) {
+    // Create a larger splash effect with particles
+    const splashGeometry = new THREE.SphereGeometry(0.7, 6, 6); // Larger particles
+    const splashMaterial = new THREE.MeshBasicMaterial({
+        color: 0xFFFFFF, // White for better visibility
+        transparent: true,
+        opacity: 1.0
+    });
+
+    for (let i = 0; i < 30; i++) { // More particles
+        const splash = new THREE.Mesh(splashGeometry, splashMaterial);
+        splash.position.copy(position);
+        splash.position.y = Math.max(0, position.y); // Ensure at water level
+
+        // Random velocity - Even more explosive for better visual feedback
+        const velocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 10,     // Wider spread
+            Math.random() * 12 + 6,         // Higher splash
+            (Math.random() - 0.5) * 10      // Wider spread
+        );
+
+        scene.add(splash);
+
+        // Animate and remove splash particles
+        const startTime = getTime();
+
+        function animateSplash() {
+            const elapsedTime = (getTime() - startTime) / 1000;
+
+            if (elapsedTime > 0.5) {
+                scene.remove(splash);
+                return;
+            }
+
+            // Apply gravity
+            velocity.y -= 0.6;  // Faster falling
+
+            // Move splash
+            splash.position.add(velocity.clone().multiplyScalar(0.03));
+
+            // Fade out
+            splash.material.opacity = 1 - (elapsedTime / 0.5);
+
+            requestAnimationFrame(animateSplash);
+        }
+
+        animateSplash();
+    }
+}
+
