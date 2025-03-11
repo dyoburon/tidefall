@@ -31,10 +31,10 @@ import { boat, scene } from '../core/gameState.js';
 import volcanicBiome from '../biomes/volcanicbiome.js';
 
 // Chunking system variables
-export const visibleDistance = 2000; // Distance to see islands from
+export const visibleDistance = 1000; // Distance to see islands from
 export const chunkSize = 600; // Size of each "chunk" of ocean
 export const islandsPerChunk = 2; // Reduced from 3 to 1 island per chunk
-export const maxViewDistance = 1; // Reduced from 5 to 3 chunks view distance
+export const maxViewDistance = 0; // Reduced from 5 to 3 chunks view distance
 
 
 export const WORLD_SEED = 12345;
