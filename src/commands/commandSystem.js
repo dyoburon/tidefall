@@ -8,6 +8,7 @@ import { monsterCommands } from './monsterCommands.js';
 import { teleportCommands } from './teleportCommands.js';
 import { clanCommands } from './clanCommands.js';
 import { birdCommands } from './birdCommands.js';
+import { weatherCommands } from './weatherCommands.js';
 
 // Create a global variable to track fly mode state
 // This will be checked by the updateCameraPosition function
@@ -24,6 +25,11 @@ export const COMMAND_CONFIG = {
     // Core commands
     fly: {
         description: 'Toggle fly mode or control flying options. Usage: /fly [speed]'
+    },
+
+    // Weather commands
+    rain: {
+        description: 'Control rain weather. Usage: /rain [start|stop|intensity (1-10)]'
     },
 
     // Island commands
@@ -108,6 +114,11 @@ let animationLoopPatched = false;
 export function initCommandSystem() {
     // Register core commands
     registerCommand('fly', flyCommand, 'Toggle fly mode or control flying options');
+
+    // Register weather commands from the weatherCommands module
+    weatherCommands.forEach(cmd => {
+        registerCommand(cmd.name, cmd.handler, cmd.description);
+    });
 
     // Register island commands from the islandCommands module
     islandCommands.forEach(cmd => {

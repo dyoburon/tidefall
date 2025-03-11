@@ -1,4 +1,5 @@
 
+import * as THREE from 'three';
 import { scene, getTime, boatVelocity, addToScene, removeFromScene, isInScene } from '../core/gameState.js';
 import { applyShipKnockback } from '../core/shipController.js';
 import { getTimeOfDay } from '../environment/skybox.js'; // Import time of day function
@@ -1634,7 +1635,7 @@ function checkBoatMonsterCollisions() {
     if (boatSpeed < MIN_COLLISION_SPEED) return;
 
     // Debug collision info
-    console.log(`🔍 Checking collisions: Boat speed: ${boatSpeed.toFixed(2)}, Monsters: ${monsters.length}`);
+    // console.log(`🔍 Checking collisions: Boat speed: ${boatSpeed.toFixed(2)}, Monsters: ${monsters.length}`);
 
     // Check collision with each monster
     monsters.forEach(monster => {

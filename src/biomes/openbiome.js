@@ -12,6 +12,7 @@ import { removeShore, setShoreVisibility } from '../world/shores.js';
 import BiomeInterface from './biomeinterface.js';
 import { boat as playerObject } from '../core/gameState.js';
 import { toggleFog, setFogProperties, transitionFogType } from '../environment/fog.js';
+import { initRain, startRain, updateRain } from '../weather/rain.js';
 
 export const OPEN_FOG_CONFIG = {
     color: 0xD3D3D3,           // Red fog
@@ -55,6 +56,13 @@ const OPEN_BIOME_CONFIG = {
 class OpenBiome extends BiomeInterface {
     constructor(config = OPEN_BIOME_CONFIG) {
         super(config);
+
+        // Initialize rain system
+        this.rainSystem = initRain();
+        this.isRainActive = false;
+
+        // Track when to update rain
+        this.rainUpdateTimer = 0;
     }
 
     /**
@@ -246,6 +254,22 @@ class OpenBiome extends BiomeInterface {
     }
 
     /**
+     * Start rain in this biome
+     * @param {THREE.Vector3} playerPosition - Player position
+     */
+    startRain(playerPosition) {
+        // Configure rain intensity
+        const intensity = {
+            count: 800,           // Number of raindrops
+            windStrength: 0.03    // Wind strength affecting rain
+        };
+
+        startRain(playerPosition, intensity);
+        this.isRainActive = true;
+        console.log("Starting rain in open biome");
+    }
+
+    /**
      * Update function to be called in the game loop
      * @param {number} deltaTime - Time since last update
      * @param {THREE.Vector3} playerPosition - Current player position
@@ -253,6 +277,14 @@ class OpenBiome extends BiomeInterface {
     update(deltaTime, playerPosition) {
         // Update all island effects
         updateAllIslandEffects(deltaTime);
+
+        // Update rain system
+        if (this.isRainActive) {
+            updateRain(deltaTime, playerPosition);
+        } else if (playerPosition) {
+            // Start rain if not active
+            this.startRain(playerPosition);
+        }
 
         // Future: Update entity animations, behaviors, etc.
     }
