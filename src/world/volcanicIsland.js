@@ -18,6 +18,7 @@ const activeVolcanoes = [];
  */
 export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
     // Use the seed to create deterministic randomness for this island
+    /*
     const random = () => {
         seed = (seed * 9301 + 49297) % 233280;
         return seed / 233280;
@@ -91,6 +92,7 @@ export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
     activeVolcanoes.push(islandEntry);
 
     return islandEntry;
+    */
 }
 
 /**
@@ -389,6 +391,7 @@ function addLavaFlows(island, radius, height, random) {
  * @param {Function} random - Seeded random function
  */
 function addLavaPlatforms(island, radius, random) {
+    /*
     // Create 1-3 lava platforms around the island
     const platformCount = 1 + Math.floor(random() * 2);
 
@@ -455,7 +458,7 @@ function addLavaPlatforms(island, radius, random) {
 
         // Add bubble effects to the inner lava
         addLavaBubbles(innerLava, innerRadius, random);
-    }
+    }*/
 }
 
 /**
@@ -556,6 +559,7 @@ function addCaldera(island, craterRadius, craterDepth, volcanoHeight, random) {
  * @param {Function} random - Seeded random function
  */
 function addLavaBubbles(lavaPool, radius, random) {
+    /*
     // Add bubble formations on the lava
     const bubbleCount = 6 + Math.floor(random() * 6);
 
@@ -594,7 +598,7 @@ function addLavaBubbles(lavaPool, radius, random) {
         bubble.userData.initialY = 0.1;
         bubble.userData.bubbleSpeed = 0.5 + random() * 1.5;
         bubble.userData.bubblePhase = random() * Math.PI * 2;
-    }
+    }*/
 }
 
 /**
@@ -605,6 +609,7 @@ function addLavaBubbles(lavaPool, radius, random) {
  * @param {Function} random - Seeded random function
  */
 function addCalderaRim(island, craterRadius, volcanoHeight, random) {
+    /*
     // Create a ring of rocks around the crater
     const rockCount = 12 + Math.floor(random() * 12);
 
@@ -650,7 +655,7 @@ function addCalderaRim(island, craterRadius, volcanoHeight, random) {
         rock.rotateY(random() * Math.PI);
 
         island.add(rock);
-    }
+    }*/
 }
 
 /**
@@ -854,6 +859,7 @@ function addLavaDome(island, angle, distance, random) {
  * @param {Function} random - Seeded random function
  */
 function addVolcanicPlug(island, angle, distance, random) {
+    /*
     // Create a cylindrical volcanic plug
     const plugRadius = 5 + random() * 8;
     const plugHeight = 15 + random() * 25;
@@ -887,7 +893,7 @@ function addVolcanicPlug(island, angle, distance, random) {
     applyOutline(plug, { scale: 1.02 });
 
     // Add debris around the plug
-    addRockDebris(island, plug.position, plugRadius * 1.5, random);
+    addRockDebris(island, plug.position, plugRadius * 1.5, random);*/
 }
 
 /**
@@ -1121,6 +1127,7 @@ function addWalkablePaths(island, radius, height, random) {
  * @param {Function} random - Seeded random function
  */
 function addPathEdging(island, angle1, radius1, height1, angle2, radius2, height2, pathWidth, random) {
+    /*
     const rockCount = 2 + Math.floor(random() * 3);
 
     for (let i = 0; i < rockCount; i++) {
@@ -1162,7 +1169,7 @@ function addPathEdging(island, angle1, radius1, height1, angle2, radius2, height
         );
 
         island.add(rock);
-    }
+    }*/
 }
 
 /**
@@ -1561,6 +1568,7 @@ function createPumiceIsland(position, scene) {
  * @param {number} size - Size of the pumice
  */
 function addPumiceDetails(pumice, size) {
+    /*
     // Add small bumps and holes to simulate pumice's porous texture
     const bumpCount = 8 + Math.floor(Math.random() * 8);
 
@@ -1596,5 +1604,5 @@ function addPumiceDetails(pumice, size) {
         }
 
         pumice.add(bump);
-    }
+    }*/
 }

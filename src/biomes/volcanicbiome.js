@@ -288,6 +288,7 @@ class VolcanicBiome extends BiomeInterface {
      * @returns {Object} The created lava flow object
      */
     createLavaFlow(options) {
+        /*
         const { position, random, scene } = options;
 
         // This is a placeholder - in a real implementation, you would:
@@ -324,7 +325,7 @@ class VolcanicBiome extends BiomeInterface {
             mesh: mesh,
             collider: collider,
             flowSpeed: 0.5 + random() * 1.5
-        };
+        };*/
     }
 
     /**
