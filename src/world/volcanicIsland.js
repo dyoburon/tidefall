@@ -18,7 +18,7 @@ const activeVolcanoes = [];
  */
 export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
     // Use the seed to create deterministic randomness for this island
-    /*
+
     const random = () => {
         seed = (seed * 9301 + 49297) % 233280;
         return seed / 233280;
@@ -52,25 +52,25 @@ export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
     //addLavaFlows(island, baseRadius, volcanoHeight, random);
 
     // Add lava platforms around the volcano (new feature)
-    addLavaPlatforms(island, baseRadius, random);
+    //addLavaPlatforms(island, baseRadius, random);
 
     // Add steam vents around the volcano
-    addSteamVents(island, baseRadius, volcanoHeight, random);
+    //addSteamVents(island, baseRadius, volcanoHeight, random);
 
     // Add caldera at the top with lava pool
-    addCaldera(island, craterRadius, craterDepth, volcanoHeight, random);
+    //addCaldera(island, craterRadius, craterDepth, volcanoHeight, random);
 
     // Add rock formations and volcanic features
-    addVolcanicFormations(island, baseRadius, volcanoHeight, random);
+    //addVolcanicFormations(island, baseRadius, volcanoHeight, random);
 
     // Add walkable paths up the volcano
-    addWalkablePaths(island, baseRadius, volcanoHeight, random);
+    //addWalkablePaths(island, baseRadius, volcanoHeight, random);
 
     // Add floating pumice islands around the volcano - store return value
     const pumiceIslands = addPumiceIslands(island, baseRadius, scene, random);
 
     // Setup eruption cycle
-    setupEruptionCycle(island, baseRadius, volcanoHeight, random);
+    //setupEruptionCycle(island, baseRadius, volcanoHeight, random);
 
     // Create island entry to return
     const islandEntry = {
@@ -92,7 +92,7 @@ export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
     activeVolcanoes.push(islandEntry);
 
     return islandEntry;
-    */
+
 }
 
 /**
