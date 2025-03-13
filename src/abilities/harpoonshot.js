@@ -13,6 +13,7 @@ class HarpoonShot {
         this.canCancel = true;
         this.staysActiveAfterExecution = true; // Keep active while harpoon is attached
         this.harpoonSpeed = 25;
+        this.gravity = 0.3; // Very small gravity value to start with
 
         // Track the harpoon state
         this.harpoon = null;
@@ -108,6 +109,7 @@ class HarpoonShot {
         const startTime = getTime();
         const maxDistance = 150; // Maximum travel distance
         const initialPosition = position.clone();
+        let verticalVelocity = 0; // Simple vertical velocity, starts at 0
 
         const animateHarpoon = () => {
             if (!this.harpoon) return; // Safety check
@@ -123,8 +125,9 @@ class HarpoonShot {
             // Move harpoon
             const distanceTraveled = this.harpoon.position.distanceTo(initialPosition);
             if (distanceTraveled > maxDistance) {
-                console.log("Harpoon reached max distance. Removing.");
-                this.removeHarpoon();
+                console.log("Harpoon reached max distance. Will remove in 1 second.");
+                // Add a 1 second delay before removing
+                setTimeout(() => this.removeHarpoon(), 1000);
                 return;
             }
 
@@ -132,11 +135,23 @@ class HarpoonShot {
             const moveStep = this.harpoonSpeed * 0.16;
             this.harpoon.position.add(direction.clone().multiplyScalar(moveStep));
 
+            // Apply very simple gravity
+            verticalVelocity -= this.gravity * 0.16; // Increase downward velocity each frame
+            this.harpoon.position.y += verticalVelocity; // Apply vertical velocity to position
+
             // Update the line
             this.updateHarpoonLine(this.getHarpoonFiringPosition(), this.harpoon.position);
 
             // Check for enemy collisions
             this.checkEnemyCollisions();
+
+            // Check for water collision
+            if (this.harpoon.position.y <= 0) {
+                console.log("Harpoon hit water. Will remove in 1 second.");
+                // Add a 1 second delay before removing
+                setTimeout(() => this.removeHarpoon(), 1000);
+                return;
+            }
 
             // Continue animation if not attached
             if (!this.isAttached) {
