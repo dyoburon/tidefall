@@ -260,7 +260,7 @@ class OpenBiome extends BiomeInterface {
     startRain(playerPosition) {
         // Configure rain intensity
         const intensity = {
-            count: 800,           // Number of raindrops
+            count: 0,           // Number of raindrops
             windStrength: 0.03    // Wind strength affecting rain
         };
 

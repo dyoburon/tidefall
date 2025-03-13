@@ -709,6 +709,41 @@ function updateOtherPlayerPosition(playerData) {
         rotation: playerData.rotation,
         mode: playerData.mode
     };
+
+    // IMPORTANT ADDITION: Update player in the allPlayers array in gameState
+    updatePlayerInAllPlayers(playerData);
+}
+
+// Add this helper function to update a player's data in the allPlayers array
+function updatePlayerInAllPlayers(playerData) {
+    // Import the functions we need from gameState
+    const { getAllPlayers, updateAllPlayers } = require('./gameState');
+
+    // Get the current allPlayers array
+    const allPlayers = getAllPlayers();
+
+    if (!allPlayers || !Array.isArray(allPlayers)) {
+        console.log("⚠️ updatePlayerInAllPlayers: allPlayers is not an array or doesn't exist");
+        return;
+    }
+
+    // Find and update the player in the array
+    const updatedPlayers = allPlayers.map(player => {
+        if (player.id === playerData.id) {
+            // Update this player's data with the new position
+            return {
+                ...player,
+                position: playerData.position,
+                rotation: playerData.rotation,
+                mode: playerData.mode
+            };
+        }
+        return player;
+    });
+
+    // Update the allPlayers array in gameState
+    updateAllPlayers(updatedPlayers);
+    console.log(`🔄 Player position updated in allPlayers array: ${playerData.id}`);
 }
 
 // Update another player's information (like name)

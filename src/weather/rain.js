@@ -3,7 +3,7 @@ import { scene, getTime } from '../core/gameState.js';
 
 // Rain configuration - simplified from snow with increased fall speed
 const RAIN_CONFIG = {
-    PARTICLES_COUNT: 200,            // Number of rain particles
+    PARTICLES_COUNT: 0,            // Number of rain particles
     PARTICLE_SIZE_MIN: 0.05,         // Minimum size
     PARTICLE_SIZE_MAX: 0.10,         // Maximum size
     FALL_SPEED_MIN: 0.5,             // Faster than snow
@@ -40,19 +40,31 @@ export function initRain() {
  * Start rain effect
  * @param {THREE.Vector3} playerPosition - Player's current position
  * @param {Object} intensity - Rain intensity parameters (optional)
+ * @returns {boolean} Whether rain was successfully started
  */
 export function startRain(playerPosition, intensity = {}) {
+    // If explicitly set to 0 and no override, don't start rain
+    if (RAIN_CONFIG.PARTICLES_COUNT === 0 && !intensity.count) {
+        console.log("Rain disabled: PARTICLES_COUNT is 0");
+        return false;
+    }
+
     isRaining = true;
     lastPlayerPosition.copy(playerPosition);
 
     // Apply intensity overrides if provided
-    if (intensity.count) RAIN_CONFIG.PARTICLES_COUNT = intensity.count;
-    if (intensity.windStrength) RAIN_CONFIG.WIND_STRENGTH = intensity.windStrength;
+    if (intensity.count !== undefined) RAIN_CONFIG.PARTICLES_COUNT = intensity.count;
+    if (intensity.windStrength !== undefined) RAIN_CONFIG.WIND_STRENGTH = intensity.windStrength;
 
-    // Initialize with some particles
-    for (let i = 0; i < 20; i++) {
-        createRaindrop(playerPosition);
+    // Initialize with some particles, but only if PARTICLES_COUNT > 0
+    if (RAIN_CONFIG.PARTICLES_COUNT > 0) {
+        const initialDrops = Math.min(20, RAIN_CONFIG.PARTICLES_COUNT);
+        for (let i = 0; i < initialDrops; i++) {
+            createRaindrop(playerPosition);
+        }
     }
+
+    return true;
 }
 
 /**
@@ -123,6 +135,18 @@ function createRaindrop(centerPosition) {
  * @param {THREE.Vector3} playerPosition - Current player position
  */
 export function updateRain(deltaTime, playerPosition) {
+    // Early exit if PARTICLES_COUNT is explicitly set to 0
+    // This ensures no new raindrops are created even if isRaining is true
+    if (RAIN_CONFIG.PARTICLES_COUNT === 0) {
+        // If there are any existing raindrops, let them fall naturally
+        if (raindrops.length > 0) {
+            console.log(`🌧️ Rain disabled but cleaning up ${raindrops.length} remaining drops`);
+            // Process existing raindrops without creating new ones
+            processExistingRaindrops(deltaTime, playerPosition);
+        }
+        return;
+    }
+
     if (!deltaTime || isNaN(deltaTime)) {
         deltaTime = 0.016; // Default to ~60fps
     }
@@ -154,6 +178,20 @@ export function updateRain(deltaTime, playerPosition) {
             createRaindrop(lastPlayerPosition);
         }
     }
+
+    // Process existing raindrops
+    processExistingRaindrops(deltaTime, playerPosition);
+}
+
+/**
+ * Process and update existing raindrops without creating new ones
+ * @param {number} deltaTime - Time since last frame in seconds
+ * @param {THREE.Vector3} playerPosition - Current player position
+ */
+function processExistingRaindrops(deltaTime, playerPosition) {
+    // Update wind direction
+    const windX = Math.cos(windAngle) * RAIN_CONFIG.WIND_STRENGTH;
+    const windZ = Math.sin(windAngle) * RAIN_CONFIG.WIND_STRENGTH;
 
     // Update each raindrop
     for (let i = raindrops.length - 1; i >= 0; i--) {

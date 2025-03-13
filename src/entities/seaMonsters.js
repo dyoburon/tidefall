@@ -1,4 +1,3 @@
-
 import * as THREE from 'three';
 import { scene, getTime, boatVelocity, addToScene, removeFromScene, isInScene } from '../core/gameState.js';
 import { applyShipKnockback } from '../core/shipController.js';
@@ -9,7 +8,7 @@ import { createTreasureDrop, updateTreasures, initTreasureSystem } from '../game
 import { applyOutline, removeOutline } from '../theme/outlineStyles.js';
 
 // Sea monster configuration
-const MONSTER_COUNT = 15;
+const MONSTER_COUNT = 0;
 const MONSTER_TYPES = {
     YELLOW_BEAST: 'yellowBeast',   // Original monster
     KRAKEN: 'kraken',              // New octopus-like monster
@@ -55,9 +54,9 @@ const HIT_COOLDOWN = 1.5; // Seconds between possible hits
 let lastHitTime = -999; // Initialize to negative value to ensure first hit works
 
 // Increase these constants for better collision detection
-const BOAT_COLLISION_DAMAGE = 0.8;        // Base damage dealt to monster when hit by boat
+const BOAT_COLLISION_DAMAGE = 0.2;        // Base damage dealt to monster when hit by boat
 const BOAT_COLLISION_COOLDOWN = 0;    // Reduced cooldown for more responsive collisions
-const BOAT_COLLISION_RANGE = 35;        // INCREASED from 20 to 35 for much more reliable detection
+const BOAT_COLLISION_RANGE = 20;        // INCREASED from 20 to 35 for much more reliable detection
 const BOAT_SURFACE_THRESHOLD = -15;     // INCREASED depth threshold from -10 to -15
 let lastBoatCollisionTime = -999;       // Timer for collision cooldown
 
@@ -1685,7 +1684,8 @@ function checkBoatMonsterCollisions() {
                 resetVelocity: true,      // CHANGED to reset velocity for more dramatic effect
                 bounceFactor: 1.5,        // INCREASED bounce factor for stronger impact
                 dampingFactor: 1.0,       // No damping on impact
-                knockbackDuration: 0.8    // INCREASED duration from 0.5 to 0.8 seconds
+                knockbackDuration: 0.8,    // INCREASED duration from 0.5 to 0.8 seconds
+                isMonsterCollision: true   // Flag this as a monster collision so it can be filtered
             });
 
             // Add direct position shift for immediate feedback
