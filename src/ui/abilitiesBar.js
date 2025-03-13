@@ -80,6 +80,8 @@ class AbilitiesBar {
         // Set image for Q
         if (this.keyBindings[index] === 'Q') {
             iconPlaceholder.style.backgroundImage = 'url("./cannonshotability.jpeg")';
+        } else if (this.keyBindings[index] === 'E') {
+            iconPlaceholder.style.backgroundImage = 'url("./harpoonshotability.jpeg")';
         }
 
         // Create key binding label with nautical styling

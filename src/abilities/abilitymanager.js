@@ -1,5 +1,6 @@
 import AbilityCrosshair from './abilitycrosshair.js';
 import CannonShot from './cannonshot.js';
+import HarpoonShot from './harpoonshot.js';
 
 /**
  * Central manager for all game abilities
@@ -32,9 +33,9 @@ class AbilityManager {
         // Register a test ability (THIS IS NEW)
         this.registerTestAbility();
 
-        // Register CannonShot ability (NEW)
-        //this.registerCannonShot(); // Keep CannonShot registered with 'c'
-        this.registerAbility('cannonShot', new CannonShot(), 'q'); // Explicitly register with 'c'
+        // Register abilities
+        this.registerAbility('cannonShot', new CannonShot(), 'q');
+        this.registerHarpoonShot(); // Added dedicated method for consistency
     }
 
     /**
@@ -58,6 +59,7 @@ class AbilityManager {
 
         // Set up key binding if provided
         if (keyBinding) {
+            // Store the key binding as is (preserve case)
             this.keyBindings.set(keyBinding.toLowerCase(), id);
         }
 
@@ -107,6 +109,15 @@ class AbilityManager {
     }
 
     /**
+     * Registers the HarpoonShot ability.
+     */
+    registerHarpoonShot() {
+        const harpoonShot = new HarpoonShot();
+        this.registerAbility(harpoonShot.id, harpoonShot, 'E'); // Explicitly bind to 'E' key
+        console.log("Harpoon Shot registered with key binding 'E'");
+    }
+
+    /**
      * Get an ability by ID
      * @param {string} id - The ability ID
      * @returns {Object} The ability object or undefined
@@ -130,11 +141,14 @@ class AbilityManager {
         }
 
         const key = event.key.toLowerCase();
+        console.log(`Key pressed: '${event.key}', looking up as '${key}'`); // Debug log
 
         // Check if this key is bound to an ability
         if (this.keyBindings.has(key)) {
             const abilityId = this.keyBindings.get(key);
             const ability = this.abilities.get(abilityId);
+
+            console.log(`Key '${key}' is bound to ability '${abilityId}'`); // Debug log
 
             if (ability) {
                 // Prevent starting an ability if one is already active
@@ -146,6 +160,8 @@ class AbilityManager {
                 // Start aiming with this ability
                 this.startAbilityAiming(ability);
             }
+        } else {
+            console.log(`Key '${key}' is not bound to any ability`); // Debug log
         }
     }
 
