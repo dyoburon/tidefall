@@ -12,7 +12,7 @@ import { setupClouds, updateClouds } from '../environment/clouds.js';
 import { setupBirds, updateBirds } from '../entities/birds.js';
 import { setupSeaMonsters, updateSeaMonsters, getMonsters, updateLurkingMonster, updateHuntingMonster, updateSurfacingMonster, updateAttackingMonster, updateDivingMonster, updateDyingMonster, updateSpecialMonsterBehaviors } from '../entities/seaMonsters.js';
 import { initFishing, updateFishing, getFishCount } from '../gameplay/fishing.js';
-import { initCannons, updateCannons } from '../gameplay/cannons.js';
+//import { initCannons, updateCannons } from '../gameplay/cannons.js';
 import { animateSail } from '../animations/animations.js';
 import { applyWindInfluence, updateBoatRocking } from '../entities/character.js';
 import { initLeaderboard, updateLeaderboardData } from '../ui/leaderboard.js';
@@ -852,7 +852,7 @@ function animate() {
     updateVillagers(activeIslands);
 
     // Update cannons
-    updateCannons(deltaTime);
+    //updateCannons(deltaTime);
 
 
     // Update chunks
@@ -1039,7 +1039,7 @@ const seaMonsters = setupSeaMonsters(boat);
 initFishing(boat);
 
 // Initialize cannon system
-initCannons(boat, seaMonsters);
+//initCannons(boat, seaMonsters);
 
 // Get monsters reference for cannon system
 const monsters = getMonsters();

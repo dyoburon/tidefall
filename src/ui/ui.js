@@ -59,7 +59,7 @@ class GameUI {
         this.elements.connectionStatus = this.createUIElement('Status: Connecting...');
         this.elements.speedometer = this.createSpeedometer();
         this.elements.fishing = this.createFishingUI();
-        this.elements.cannon = this.createCannonUI();
+        //this.elements.cannon = this.createCannonUI();
         this.elements.inventory = this.createInventory();
 
         // Initialize player markers and island markers
@@ -94,7 +94,7 @@ class GameUI {
         this.terminal = initGameTerminal();
 
         // Connect the fire button to the fireCannons function
-        this.elements.cannon.fireButton.addEventListener('click', fireCannons);
+        //this.elements.cannon.fireButton.addEventListener('click', fireCannons);
     }
 
     createUIElement(text) {
@@ -493,6 +493,7 @@ class GameUI {
 
     createCannonUI() {
         // Create cannon control container with ornate styling
+        /*
         const cannonContainer = document.createElement('div');
         cannonContainer.id = 'cannon-ui';
         cannonContainer.style.position = 'absolute';
@@ -537,6 +538,8 @@ class GameUI {
 
             headerBar.appendChild(accent);
         });
+
+        /*
 
         // Cannon label
         const cannonLabel = document.createElement('div');
@@ -642,6 +645,7 @@ class GameUI {
                 progress: cooldownProgress
             }
         };
+        */
     }
 
     createInventory() {
