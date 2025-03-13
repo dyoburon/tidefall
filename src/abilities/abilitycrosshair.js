@@ -93,6 +93,8 @@ class AbilityCrosshair {
 
         this.isActive = true;
         this.crosshairElement.style.display = 'block';
+        console.log("Crosshair element display:", this.crosshairElement.style.display); // Check display
+        console.log("Crosshair element:", this.crosshairElement); // Log the element itself
 
         // Change cursor style
         document.body.style.cursor = 'none';
@@ -141,6 +143,10 @@ class AbilityCrosshair {
         // Position crosshair at mouse position
         this.crosshairElement.style.left = `${this.mousePosition.x * window.innerWidth / 2 + window.innerWidth / 2}px`;
         this.crosshairElement.style.top = `${-this.mousePosition.y * window.innerHeight / 2 + window.innerHeight / 2}px`;
+
+        console.log("Crosshair position:", this.crosshairElement.style.left, this.crosshairElement.style.top); // Log position
+        console.log("Crosshair visibility:", this.crosshairElement.style.visibility); // Check visibility
+        console.log("Crosshair offsetWidth:", this.crosshairElement.offsetWidth, "offsetHeight:", this.crosshairElement.offsetHeight); // Check dimensions
     }
 
     /**

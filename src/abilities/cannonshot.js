@@ -1,0 +1,396 @@
+import * as THREE from 'three';
+import { boat, scene, getTime } from '../core/gameState.js';
+import { playCannonSound } from '../audio/soundEffects.js'; // Import sound
+
+/**
+ * Cannon Shot ability - Fires a single cannonball towards the target location.
+ */
+class CannonShot {
+    constructor() {
+        this.id = 'cannonShot';
+        this.name = 'Cannon Shot';
+        this.canCancel = true;
+        this.staysActiveAfterExecution = false;
+        this.cannonballSpeed = 18; // Adjust as needed
+        this.gravity = 100;      // Adjust as needed.  Increased significantly.
+
+        this.cannonPositions = [
+            { name: 'leftFront', x: -2.5, z: -3 },
+            { name: 'leftRear', x: -2.5, z: 3 },
+            { name: 'rightFront', x: 2.5, z: -3 },
+            { name: 'rightRear', x: 2.5, z: 3 }
+        ];
+    }
+
+    onAimStart(crosshair) {
+        console.log('Cannon Shot Aiming Started');
+        // Could change crosshair color/shape here if desired
+    }
+
+    onExecute(targetPosition) {
+        console.log('Cannon Shot Executed at:', targetPosition);
+
+        // Find nearest cannon position
+        const cannonPosition = this.getNearestCannonPosition(targetPosition);
+        const cannonName = this.getCannonNameFromPosition(cannonPosition);
+        console.log("Nearest cannon position:", cannonPosition, "Cannon Name", cannonName);
+
+        // Calculate direction from cannon to target
+        const direction = new THREE.Vector3().subVectors(targetPosition, cannonPosition);
+        direction.normalize();
+        console.log("Firing direction:", direction);
+
+        // --- Create Cannonball (NEW LOGIC) ---
+        this.createCannonball(cannonPosition, direction);
+
+        // Play sound
+        playCannonSound();
+
+        // Create smoke effect (using existing function)
+        this.createCannonSmoke(cannonName); // Use the correct name
+    }
+
+    onCancel() {
+        console.log('Cannon Shot Canceled');
+    }
+
+    update(deltaTime) {
+        // Nothing continuous needed *for the ability itself*.
+        // Cannonball animation is handled separately.
+    }
+
+    getNearestCannonPosition(targetPosition) {
+        let nearestPosition = null;
+        let minDistance = Infinity;
+
+        for (const pos of this.cannonPositions) {
+            const worldPosition = new THREE.Vector3(pos.x, 1.5, pos.z).applyMatrix4(boat.matrixWorld);
+            console.log("boat.matrixWorld:", boat.matrixWorld); // Log the matrix
+            const distance = worldPosition.distanceTo(targetPosition);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestPosition = worldPosition;
+            }
+        }
+        console.log("getNearestCannonPosition, nearestPosition", nearestPosition)
+        return nearestPosition;
+    }
+
+    getCannonNameFromPosition(position) {
+        for (const cannon of this.cannonPositions) {
+            const worldPosition = new THREE.Vector3(cannon.x, 1.5, cannon.z).applyMatrix4(boat.matrixWorld);
+            if (worldPosition.equals(position)) { // Use .equals() for Vector3 comparison
+                return cannon.name;
+            }
+        }
+        return null; // Should not happen, but handle for safety
+    }
+
+    createCannonball(position, direction) {
+        const cannonballGeometry = new THREE.SphereGeometry(2.0, 16, 16);
+        const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
+        const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
+        cannonball.position.copy(position);
+        console.log("Cannonball created at:", cannonball.position);
+        scene.add(cannonball);
+
+        // Add a slight upward component to the direction
+        const firingDirection = direction.clone();
+        firingDirection.y += 0.05; // Reduced upward angle.
+        firingDirection.normalize();
+
+        const velocity = firingDirection.clone().multiplyScalar(this.cannonballSpeed);
+        console.log("Initial velocity:", velocity);
+
+        // Create muzzle flash
+        this.createMuzzleFlash(position, firingDirection);
+
+        const startTime = getTime();
+        const maxDistance = 150;
+        const initialPosition = position.clone();
+
+        const animateCannonball = () => {
+            const elapsedTime = (getTime() - startTime) / 1000;
+            console.log("Elapsed time:", elapsedTime, "seconds");
+
+            const distanceTraveled = cannonball.position.distanceTo(initialPosition);
+            if (distanceTraveled > maxDistance) {
+                console.log("Cannonball reached max distance. Removing.");
+                scene.remove(cannonball);
+                return;
+            }
+
+            velocity.y -= this.gravity * elapsedTime;
+            console.log("Current velocity (y):", velocity.y); // Log only y component
+
+            cannonball.position.x += velocity.x * 0.16;
+            cannonball.position.y += velocity.y * 0.16;
+            cannonball.position.z += velocity.z * 0.16;
+            console.log("Cannonball position (y):", cannonball.position.y); // Log only y component
+
+            cannonball.rotation.x += 0.02;
+            cannonball.rotation.z += 0.02;
+
+            if (cannonball.position.y <= 0) {
+                console.log("Cannonball hit water. Creating splash and removing.");
+                this.createEnhancedSplashEffect(cannonball.position.clone());
+                scene.remove(cannonball);
+                return;
+            }
+
+            requestAnimationFrame(animateCannonball);
+        };
+
+        animateCannonball();
+    }
+
+    createMuzzleFlash(position, direction) {
+        const flashGeometry = new THREE.SphereGeometry(1.0, 8, 8);
+        const flashMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffcc00,
+            transparent: true,
+            opacity: 1.0
+        });
+        const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+        flash.position.copy(position);
+        flash.position.add(direction.clone().multiplyScalar(1.0));
+        scene.add(flash);
+
+        const startTime = getTime();
+        const animateFlash = () => {
+            const elapsedTime = (getTime() - startTime) / 1000;
+            if (elapsedTime > 0.2) {
+                scene.remove(flash);
+                return;
+            }
+            const scale = 1.0 + elapsedTime * 5.0;
+            flash.scale.set(scale, scale, scale);
+            flash.material.opacity = 1.0 - elapsedTime * 5.0;
+            requestAnimationFrame(animateFlash);
+        };
+        animateFlash();
+    }
+
+    createEnhancedSplashEffect(position, intensity = 3.0) {
+        position.y = 0;
+        const splashCount = Math.round(10 * intensity);
+        const columnGeometry = new THREE.CylinderGeometry(0.1, 0.6, intensity * 2, 8);
+        const columnMaterial = new THREE.MeshBasicMaterial({
+            color: 0xAACCFF,
+            transparent: true,
+            opacity: 0.7
+        });
+        const column = new THREE.Mesh(columnGeometry, columnMaterial);
+        column.position.copy(position);
+        column.position.y += intensity;
+        scene.add(column);
+
+        const columnStartTime = getTime();
+        const columnDuration = 0.5;
+        const animateColumn = () => {
+            const elapsedTime = (getTime() - columnStartTime) / 1000;
+            if (elapsedTime > columnDuration) {
+                scene.remove(column);
+                column.geometry.dispose();
+                column.material.dispose();
+                return;
+            }
+            const progress = elapsedTime / columnDuration;
+            column.scale.y = 1 + progress * 2;
+            column.position.y = intensity * (1 - progress * 0.5);
+            column.material.opacity = 0.7 * (1 - progress);
+            requestAnimationFrame(animateColumn);
+        };
+        animateColumn();
+
+        const splashGeometry = new THREE.SphereGeometry(0.2 * intensity, 4, 4);
+        const splashMaterial = new THREE.MeshBasicMaterial({
+            color: 0x88ccff,
+            transparent: true,
+            opacity: 0.7
+        });
+
+        for (let i = 0; i < splashCount; i++) {
+            const splash = new THREE.Mesh(splashGeometry, splashMaterial);
+            splash.position.copy(position);
+            splash.position.y += 0.1;
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 1.5 * intensity,
+                (Math.random() * 1.5 + 1.0) * intensity,
+                (Math.random() - 0.5) * 1.5 * intensity
+            );
+            scene.add(splash);
+
+            const startTime = getTime();
+            const splashDuration = 1 + Math.random() * 0.5;
+            const animateSplash = () => {
+                const elapsedTime = (getTime() - startTime) / 1000;
+                if (elapsedTime > splashDuration) {
+                    scene.remove(splash);
+                    splash.geometry.dispose();
+                    splash.material.dispose();
+                    return;
+                }
+                velocity.y -= 0.1 * intensity;
+                splash.position.add(velocity.clone().multiplyScalar(0.1));
+                if (splash.position.y <= 0 && velocity.y < 0) {
+                    splash.position.y = 0;
+                    velocity.y = Math.abs(velocity.y) * 0.3;
+                    splash.material.opacity *= 0.7;
+                }
+                splash.material.opacity = 0.7 * (1 - elapsedTime / splashDuration);
+                requestAnimationFrame(animateSplash);
+            };
+            animateSplash();
+        }
+
+        const rippleGeometry = new THREE.RingGeometry(0.2, 2 * intensity, 32);
+        const rippleMaterial = new THREE.MeshBasicMaterial({
+            color: 0xaaddff,
+            transparent: true,
+            opacity: 0.6,
+            side: THREE.DoubleSide
+        });
+        const ripple = new THREE.Mesh(rippleGeometry, rippleMaterial);
+        ripple.rotation.x = -Math.PI / 2;
+        ripple.position.copy(position);
+        ripple.position.y = 0.05;
+        scene.add(ripple);
+
+        const rippleStartTime = getTime();
+        const rippleDuration = 1.0 * intensity;
+        const animateRipple = () => {
+            const rippleElapsedTime = (getTime() - rippleStartTime) / 1000;
+            if (rippleElapsedTime > rippleDuration) {
+                scene.remove(ripple);
+                ripple.geometry.dispose();
+                ripple.material.dispose();
+                return;
+            }
+            const scale = 1 + rippleElapsedTime * 5 * intensity;
+            ripple.scale.set(scale, scale, 1);
+            ripple.material.opacity = 0.6 * (1 - rippleElapsedTime / rippleDuration);
+            requestAnimationFrame(animateRipple);
+        };
+        animateRipple();
+    }
+
+    // Re-use the createCannonSmoke function, but make sure it's self-contained
+    createCannonSmoke(cannonPosition) {
+        if (!boat) return;
+
+        const positionConfig = {
+            leftFront: { x: -2.5, z: -3 },
+            leftRear: { x: -2.5, z: 3 },
+            rightFront: { x: 2.5, z: -3 },
+            rightRear: { x: 2.5, z: 3 }
+        }[cannonPosition];
+
+        if (!positionConfig) return;
+
+        const cannonWorldPosition = new THREE.Vector3(
+            positionConfig.x,
+            1.5, // Height above deck
+            positionConfig.z
+        );
+        cannonWorldPosition.applyMatrix4(boat.matrixWorld);
+        console.log("Cannon world position for smoke:", cannonWorldPosition);
+
+        const cannonDirection = new THREE.Vector3();
+        if (positionConfig.x < 0) {
+            cannonDirection.set(-0.7, 0, positionConfig.z < 0 ? -0.7 : 0.7);
+        } else {
+            cannonDirection.set(0.7, 0, positionConfig.z < 0 ? -0.7 : 0.7);
+        }
+        cannonDirection.applyQuaternion(boat.quaternion);
+        console.log("Cannon direction for smoke:", cannonDirection);
+
+        const smokeCount = 45;
+        const smokeGeometries = [
+            new THREE.SphereGeometry(0.4, 8, 8),
+            new THREE.SphereGeometry(0.6, 8, 8),
+            new THREE.SphereGeometry(0.8, 8, 8)
+        ];
+
+        const blastGeometry = new THREE.SphereGeometry(1.0, 10, 10);
+        const blastMaterial = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(0.9, 0.8, 0.6),
+            transparent: true,
+            opacity: 0.9
+        });
+        const blastCloud = new THREE.Mesh(blastGeometry, blastMaterial);
+        blastCloud.position.copy(cannonWorldPosition);
+        blastCloud.position.add(cannonDirection.clone().multiplyScalar(1.2));
+        scene.add(blastCloud);
+
+        const blastStartTime = getTime();
+        const animateBlast = () => {
+            const elapsed = (getTime() - blastStartTime) / 1000;
+            if (elapsed > 0.4) {
+                scene.remove(blastCloud);
+                blastCloud.geometry.dispose();
+                blastCloud.material.dispose();
+                return;
+            }
+            const scale = 1 + elapsed * 8;
+            blastCloud.scale.set(scale, scale, scale);
+            blastCloud.material.opacity = 0.9 * (1 - elapsed / 0.4);
+            requestAnimationFrame(animateBlast);
+        };
+        animateBlast();
+
+        for (let i = 0; i < smokeCount; i++) {
+            const brightness = 0.3 + Math.random() * 0.4;
+            const smokeMaterial = new THREE.MeshBasicMaterial({
+                color: new THREE.Color(brightness, brightness, brightness),
+                transparent: true,
+                opacity: 0.8 + Math.random() * 0.2
+            });
+
+            const geometryIndex = Math.floor(Math.random() * smokeGeometries.length);
+            const smoke = new THREE.Mesh(smokeGeometries[geometryIndex], smokeMaterial);
+            const smokePosition = cannonWorldPosition.clone();
+            smokePosition.add(cannonDirection.clone().multiplyScalar(1.0 + Math.random() * 1.0));
+            smokePosition.x += (Math.random() - 0.5) * 1.0;
+            smokePosition.y += (Math.random() - 0.5) * 0.8;
+            smokePosition.z += (Math.random() - 0.5) * 1.0;
+            smoke.position.copy(smokePosition);
+
+            const smokeVelocity = cannonDirection.clone().multiplyScalar(0.2 + Math.random() * 0.8);
+            smokeVelocity.x += (Math.random() - 0.5) * 0.7;
+            smokeVelocity.y += 0.6 + Math.random() * 1.2;
+            smokeVelocity.z += (Math.random() - 0.5) * 0.7;
+            scene.add(smoke);
+
+            const smokeStartTime = getTime();
+            const smokeDuration = 2.5 + Math.random() * 2.0;
+            const animateSmoke = () => {
+                const smokeElapsedTime = (getTime() - smokeStartTime) / 1000;
+                if (smokeElapsedTime > smokeDuration) {
+                    scene.remove(smoke);
+                    smoke.geometry.dispose();
+                    smoke.material.dispose();
+                    return;
+                }
+                smoke.position.add(smokeVelocity.clone().multiplyScalar(0.06));
+                smokeVelocity.multiplyScalar(0.98);
+                const windEffect = Math.sin(getTime() * 0.001 + smoke.position.x * 0.1) * 0.006;
+                smoke.position.x += windEffect;
+                smoke.position.z += windEffect * 0.5;
+                const normalizedTime = smokeElapsedTime / smokeDuration;
+                if (normalizedTime < 0.7) {
+                    smoke.material.opacity = 1.0 - normalizedTime * 0.3;
+                } else {
+                    smoke.material.opacity = 0.79 - (normalizedTime - 0.7) * 2.5;
+                }
+                const scale = 1 + smokeElapsedTime * (1.0 + Math.random() * 0.5);
+                smoke.scale.set(scale, scale, scale);
+                requestAnimationFrame(animateSmoke);
+            };
+            animateSmoke();
+        }
+    }
+}
+
+export default CannonShot; 

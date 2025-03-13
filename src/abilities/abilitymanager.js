@@ -1,4 +1,5 @@
 import AbilityCrosshair from './abilitycrosshair.js';
+import CannonShot from './cannonshot.js';
 
 /**
  * Central manager for all game abilities
@@ -30,6 +31,10 @@ class AbilityManager {
 
         // Register a test ability (THIS IS NEW)
         this.registerTestAbility();
+
+        // Register CannonShot ability (NEW)
+        //this.registerCannonShot(); // Keep CannonShot registered with 'c'
+        this.registerAbility('cannonShot', new CannonShot(), 'q'); // Explicitly register with 'c'
     }
 
     /**
@@ -91,6 +96,14 @@ class AbilityManager {
         };
 
         this.registerAbility(testAbility.id, testAbility, 'q');
+    }
+
+    /**
+     * Registers the CannonShot ability.
+     */
+    registerCannonShot() {
+        const cannonShot = new CannonShot();
+        this.registerAbility(cannonShot.id, cannonShot, 'c'); // Bind to 'c' key
     }
 
     /**
@@ -255,6 +268,11 @@ class AbilityManager {
                 ability.update(deltaTime);
             }
         });
+
+        // Check if testAbility is active and log a message
+        if (this.isAbilityActive('testAbility')) {
+            console.log("Test Ability is currently active!");
+        }
     }
 
     /**
@@ -264,6 +282,15 @@ class AbilityManager {
         document.removeEventListener('keydown', this.handleKeyDown);
         document.removeEventListener('keyup', this.handleKeyUp);
         document.removeEventListener('mousedown', this.handleMouseDown);
+    }
+
+    /**
+     * Check if a specific ability is currently active.
+     * @param {string} abilityId - The ID of the ability to check.
+     * @returns {boolean} True if the ability is active, false otherwise.
+     */
+    isAbilityActive(abilityId) {
+        return this.activeAbility !== null && this.activeAbility.id === abilityId;
     }
 }
 

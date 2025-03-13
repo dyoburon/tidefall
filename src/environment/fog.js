@@ -48,7 +48,7 @@ export function setupFog(config = {}) {
     // Add fog to scene
     scene.fog = sceneFog;
 
-    console.log("Exponential fog system initialized:", fogConfig);
+    //console.log("Exponential fog system initialized:", fogConfig);
 
     return sceneFog;
 }
@@ -130,7 +130,7 @@ export function toggleFog(fadeIn) {
     if (fadeIn !== undefined) {
         // Check if this is already our target state
         if (fadeIn === targetFogState) {
-            console.log(`Fog is already ${fadeIn ? 'fading in/on' : 'fading out/off'}, ignoring redundant call`);
+            //console.log(`Fog is already ${fadeIn ? 'fading in/on' : 'fading out/off'}, ignoring redundant call`);
             return targetFogState;
         }
 
@@ -139,7 +139,7 @@ export function toggleFog(fadeIn) {
 
         // Interruption handling: Cancel any ongoing effects in the opposite direction
         if (fadeIn && isFadingOut) {
-            console.log("Interrupting fade-out to start fade-in");
+            //console.log("Interrupting fade-out to start fade-in");
             isFadingOut = false;
         } else if (!fadeIn && isFadingIn) {
             console.log("Interrupting fade-in to start fade-out");
@@ -148,7 +148,7 @@ export function toggleFog(fadeIn) {
 
         if (fadeIn) {
             // Explicitly fade in
-            console.log("Explicit fade in triggered");
+            //console.log("Explicit fade in triggered");
 
             // Create new fog with zero density if it doesn't exist
             if (!scene.fog) {
@@ -399,7 +399,7 @@ export function toggleFogEffect() {
  */
 function updateFogSettings(settings) {
     if (!scene) {
-        console.warn("Scene not available for fog settings update");
+        //console.warn("Scene not available for fog settings update");
         return;
     }
 
@@ -408,7 +408,7 @@ function updateFogSettings(settings) {
     // Apply to existing fog
     if (scene.fog) {
 
-        console.log("test 2");
+        // console.log("test 2");
         // Update color regardless of fog type
         if (settings.color) {
             scene.fog.color.copy(settings.color);
@@ -416,9 +416,9 @@ function updateFogSettings(settings) {
 
         // Update other properties based on fog type
         if (scene.fog.isFogExp2) {
-            console.log("test 3");
+            //console.log("test 3");
             if (settings.density !== undefined) {
-                console.log("test 4");
+                //console.log("test 4");
                 scene.fog.density = settings.density;
             }
         } else {
@@ -509,7 +509,7 @@ function interpolateValue(a, b, progress) {
  * @param {number} duration - Transition duration in milliseconds
  */
 function transitionFogType(fromType, toType, duration = 8000) {
-    console.log(`Transitioning fog: ${fromType} → ${toType} over ${duration}ms`);
+    // console.log(`Transitioning fog: ${fromType} → ${toType} over ${duration}ms`);
 
     // Get settings for both fog types
     const fromSettings = getFogSettingsForType(fromType);
@@ -577,7 +577,7 @@ function transitionFogType(fromType, toType, duration = 8000) {
             // Reset the interpolation flag
             isInterpolatingFog = false;
 
-            console.log(`Fog transition to ${toType} complete`);
+            //console.log(`Fog transition to ${toType} complete`);
         }
     }, 16); // Update roughly every frame at 60fps
 }
