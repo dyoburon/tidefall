@@ -151,13 +151,20 @@ class AbilityManager {
             console.log(`Key '${key}' is bound to ability '${abilityId}'`); // Debug log
 
             if (ability) {
-                // Prevent starting an ability if one is already active
-                if (this.activeAbility && this.activeAbility !== ability) {
-                    console.log(`Ability ${abilityId} triggered, but ${this.activeAbility.id} is already active`);
+                // Check if this ability is already active - if so, cancel it (toggle behavior)
+                if (this.activeAbility && this.activeAbility.id === ability.id) {
+                    console.log(`${abilityId} is already active - cancelling (toggle off)`);
+                    this.cancelActiveAbility();
                     return;
                 }
 
-                // Start aiming with this ability
+                // If another ability is active, cancel it first
+                if (this.activeAbility) {
+                    console.log(`Cancelling active ability ${this.activeAbility.id} before activating ${abilityId}`);
+                    this.cancelActiveAbility();
+                }
+
+                // Start aiming with this ability (toggle on)
                 this.startAbilityAiming(ability);
             }
         } else {
@@ -170,19 +177,8 @@ class AbilityManager {
      * @param {KeyboardEvent} event - The keyboard event
      */
     handleKeyUp(event) {
-        // Skip if no active ability
-        if (!this.activeAbility) return;
-
-        const key = event.key.toLowerCase();
-
-        // If key released was for the active ability, cancel it
-        if (this.keyBindings.has(key) &&
-            this.keyBindings.get(key) === this.activeAbility.id) {
-            // Only cancel if the ability supports cancellation
-            if (this.activeAbility.canCancel) {
-                this.cancelActiveAbility();
-            }
-        }
+        // With toggle mode, we don't need to cancel on key up
+        // This function is kept for future expansion or alternative modes
     }
 
     /**

@@ -88,22 +88,35 @@ class AbilityCrosshair {
     /**
      * Activates the crosshair for aiming
      */
-    startAiming() {
+    startAiming(event) {
         if (this.isActive) return;
 
         this.isActive = true;
+
+        // Get current mouse position from the most recent event or browser API
+        if (!this.screenPosition) {
+            // If we don't have a position yet, use the current cursor position
+            this.screenPosition = {
+                x: event?.clientX || window.mouseX || window.innerWidth / 2,
+                y: event?.clientY || window.mouseY || window.innerHeight / 2
+            };
+
+            // Update normalized coordinates for raycasting
+            this.mousePosition.x = (this.screenPosition.x / window.innerWidth) * 2 - 1;
+            this.mousePosition.y = -(this.screenPosition.y / window.innerHeight) * 2 + 1;
+        }
+
+        // Update crosshair position before showing it
+        this.updateCrosshairPosition();
+
+        // Now show the crosshair at the correct position
         this.crosshairElement.style.display = 'block';
-        console.log("Crosshair element display:", this.crosshairElement.style.display); // Check display
-        console.log("Crosshair element:", this.crosshairElement); // Log the element itself
 
         // Change cursor style
         document.body.style.cursor = 'none';
 
         // Add mouse move listener
         document.addEventListener('mousemove', this.onMouseMove);
-
-        // Position crosshair at current mouse position
-        this.updateCrosshairPosition();
     }
 
     /**
@@ -126,7 +139,17 @@ class AbilityCrosshair {
      * Mouse move event handler
      */
     onMouseMove(event) {
-        // Update normalized mouse position (-1 to 1)
+        // Store actual screen coordinates
+        this.screenPosition = {
+            x: event.clientX,
+            y: event.clientY
+        };
+
+        // Also update window-level tracking for initial positioning
+        window.mouseX = event.clientX;
+        window.mouseY = event.clientY;
+
+        // Update normalized mouse position (-1 to 1) for raycasting
         this.mousePosition.x = (event.clientX / window.innerWidth) * 2 - 1;
         this.mousePosition.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -140,13 +163,11 @@ class AbilityCrosshair {
     updateCrosshairPosition() {
         if (!this.isActive) return;
 
-        // Position crosshair at mouse position
-        this.crosshairElement.style.left = `${this.mousePosition.x * window.innerWidth / 2 + window.innerWidth / 2}px`;
-        this.crosshairElement.style.top = `${-this.mousePosition.y * window.innerHeight / 2 + window.innerHeight / 2}px`;
-
-        console.log("Crosshair position:", this.crosshairElement.style.left, this.crosshairElement.style.top); // Log position
-        console.log("Crosshair visibility:", this.crosshairElement.style.visibility); // Check visibility
-        console.log("Crosshair offsetWidth:", this.crosshairElement.offsetWidth, "offsetHeight:", this.crosshairElement.offsetHeight); // Check dimensions
+        // Position crosshair directly at screen position
+        if (this.screenPosition) {
+            this.crosshairElement.style.left = `${this.screenPosition.x}px`;
+            this.crosshairElement.style.top = `${this.screenPosition.y}px`;
+        }
     }
 
     /**
