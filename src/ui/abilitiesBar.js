@@ -77,38 +77,9 @@ class AbilitiesBar {
         // Add parchment-like texture to icon backgrounds
         iconPlaceholder.style.backgroundImage = 'radial-gradient(circle at center, rgba(225, 205, 170, 0.1) 0%, rgba(200, 180, 150, 0.1) 100%)';
 
-        // Adjust the coloring for 6 slots instead of 8, keeping similar themes
-        let colorIndex = index;
-        // Skip the "W" and "R" elements in the original coloring order
-        if (index >= 1) colorIndex += 1; // Skip W (old index 1)
-        if (index >= 2) colorIndex += 1; // Skip R (old index 3)
-
-        // Add unique styling for each ability placeholder based on the theme but with nautical colors
-        switch (colorIndex) {
-            case 0: // Fire - reddish brown (Q)
-                iconPlaceholder.style.backgroundColor = 'rgba(120, 50, 30, 0.6)';
-                iconPlaceholder.style.boxShadow = 'inset 0 0 8px rgba(180, 80, 30, 0.5)';
-                break;
-            case 2: // Lightning - purple with brown tint (E)
-                iconPlaceholder.style.backgroundColor = 'rgba(80, 60, 90, 0.6)';
-                iconPlaceholder.style.boxShadow = 'inset 0 0 8px rgba(120, 100, 140, 0.5)';
-                break;
-            case 4: // Blade - steel/gray with brown tint (1)
-                iconPlaceholder.style.backgroundColor = 'rgba(100, 100, 90, 0.6)';
-                iconPlaceholder.style.boxShadow = 'inset 0 0 8px rgba(140, 140, 120, 0.5)';
-                break;
-            case 5: // Shield - bronze/gold (2)
-                iconPlaceholder.style.backgroundColor = 'rgba(110, 90, 50, 0.6)';
-                iconPlaceholder.style.boxShadow = 'inset 0 0 8px rgba(180, 140, 60, 0.5)';
-                break;
-            case 6: // Poison - mossy green (3)
-                iconPlaceholder.style.backgroundColor = 'rgba(60, 80, 40, 0.6)';
-                iconPlaceholder.style.boxShadow = 'inset 0 0 8px rgba(90, 120, 60, 0.5)';
-                break;
-            case 7: // Wind - muted blue-gray (4)
-                iconPlaceholder.style.backgroundColor = 'rgba(80, 100, 110, 0.6)';
-                iconPlaceholder.style.boxShadow = 'inset 0 0 8px rgba(120, 140, 150, 0.5)';
-                break;
+        // Set image for Q
+        if (this.keyBindings[index] === 'Q') {
+            iconPlaceholder.style.backgroundImage = 'url("./cannonshotability.jpeg")';
         }
 
         // Create key binding label with nautical styling

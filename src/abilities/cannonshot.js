@@ -11,7 +11,7 @@ class CannonShot {
         this.name = 'Cannon Shot';
         this.canCancel = true;
         this.staysActiveAfterExecution = false;
-        this.cannonballSpeed = 18; // Adjust as needed
+        this.cannonballSpeed = 18;
         this.gravity = 100;      // Adjust as needed.  Increased significantly.
 
         this.cannonPositions = [
@@ -88,7 +88,7 @@ class CannonShot {
     }
 
     createCannonball(position, direction) {
-        const cannonballGeometry = new THREE.SphereGeometry(2.0, 16, 16);
+        const cannonballGeometry = new THREE.SphereGeometry(2.0 / 3, 16, 16); // Reduced size
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
         const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
         cannonball.position.copy(position);
@@ -134,7 +134,7 @@ class CannonShot {
 
             if (cannonball.position.y <= 0) {
                 console.log("Cannonball hit water. Creating splash and removing.");
-                this.createEnhancedSplashEffect(cannonball.position.clone());
+                this.createEnhancedSplashEffect(cannonball.position.clone(), 2.0 / 3.0); //Adjusted intensity
                 scene.remove(cannonball);
                 return;
             }
@@ -158,18 +158,36 @@ class CannonShot {
         scene.add(flash);
 
         const startTime = getTime();
+        let animationId;
+
         const animateFlash = () => {
             const elapsedTime = (getTime() - startTime) / 1000;
-            if (elapsedTime > 0.2) {
+            console.log("Flash elapsed time:", elapsedTime);
+
+            if (elapsedTime >= 0.2) { // Flash duration: 0.2 seconds, use >=
+                console.log("Flash duration exceeded. Removing. Elapsed time:", elapsedTime);
                 scene.remove(flash);
+                cancelAnimationFrame(animationId); // Ensure we cancel the animation frame
                 return;
             }
+
             const scale = 1.0 + elapsedTime * 5.0;
             flash.scale.set(scale, scale, scale);
             flash.material.opacity = 1.0 - elapsedTime * 5.0;
-            requestAnimationFrame(animateFlash);
+            animationId = requestAnimationFrame(animateFlash);
         };
-        animateFlash();
+
+        // Start the animation
+        animationId = requestAnimationFrame(animateFlash);
+
+        // Backup timer in case animation frame doesn't trigger properly
+        setTimeout(() => {
+            if (scene.children.includes(flash)) {
+                console.log("Flash removal backup triggered after 0.5 seconds");
+                scene.remove(flash);
+                cancelAnimationFrame(animationId);
+            }
+        }, 500); // Half a second is more than enough
     }
 
     createEnhancedSplashEffect(position, intensity = 3.0) {
@@ -188,6 +206,8 @@ class CannonShot {
 
         const columnStartTime = getTime();
         const columnDuration = 0.5;
+        let columnAnimationId;
+
         const animateColumn = () => {
             const elapsedTime = (getTime() - columnStartTime) / 1000;
             if (elapsedTime > columnDuration) {
@@ -200,9 +220,20 @@ class CannonShot {
             column.scale.y = 1 + progress * 2;
             column.position.y = intensity * (1 - progress * 0.5);
             column.material.opacity = 0.7 * (1 - progress);
-            requestAnimationFrame(animateColumn);
+            columnAnimationId = requestAnimationFrame(animateColumn);
         };
-        animateColumn();
+
+        columnAnimationId = requestAnimationFrame(animateColumn);
+
+        // Backup timer for column
+        setTimeout(() => {
+            if (scene.children.includes(column)) {
+                console.log("Column removal backup triggered");
+                scene.remove(column);
+                column.geometry.dispose();
+                column.material.dispose();
+            }
+        }, 1000);
 
         const splashGeometry = new THREE.SphereGeometry(0.2 * intensity, 4, 4);
         const splashMaterial = new THREE.MeshBasicMaterial({
@@ -211,6 +242,7 @@ class CannonShot {
             opacity: 0.7
         });
 
+        const splashes = [];
         for (let i = 0; i < splashCount; i++) {
             const splash = new THREE.Mesh(splashGeometry, splashMaterial);
             splash.position.copy(position);
@@ -221,9 +253,12 @@ class CannonShot {
                 (Math.random() - 0.5) * 1.5 * intensity
             );
             scene.add(splash);
+            splashes.push(splash);
 
             const startTime = getTime();
             const splashDuration = 1 + Math.random() * 0.5;
+            let splashAnimationId;
+
             const animateSplash = () => {
                 const elapsedTime = (getTime() - startTime) / 1000;
                 if (elapsedTime > splashDuration) {
@@ -240,10 +275,22 @@ class CannonShot {
                     splash.material.opacity *= 0.7;
                 }
                 splash.material.opacity = 0.7 * (1 - elapsedTime / splashDuration);
-                requestAnimationFrame(animateSplash);
+                splashAnimationId = requestAnimationFrame(animateSplash);
             };
-            animateSplash();
+
+            splashAnimationId = requestAnimationFrame(animateSplash);
         }
+
+        // Backup timer for splashes
+        setTimeout(() => {
+            splashes.forEach(splash => {
+                if (scene.children.includes(splash)) {
+                    scene.remove(splash);
+                    splash.geometry.dispose();
+                    splash.material.dispose();
+                }
+            });
+        }, 2000);
 
         const rippleGeometry = new THREE.RingGeometry(0.2, 2 * intensity, 32);
         const rippleMaterial = new THREE.MeshBasicMaterial({
@@ -260,6 +307,8 @@ class CannonShot {
 
         const rippleStartTime = getTime();
         const rippleDuration = 1.0 * intensity;
+        let rippleAnimationId;
+
         const animateRipple = () => {
             const rippleElapsedTime = (getTime() - rippleStartTime) / 1000;
             if (rippleElapsedTime > rippleDuration) {
@@ -271,9 +320,19 @@ class CannonShot {
             const scale = 1 + rippleElapsedTime * 5 * intensity;
             ripple.scale.set(scale, scale, 1);
             ripple.material.opacity = 0.6 * (1 - rippleElapsedTime / rippleDuration);
-            requestAnimationFrame(animateRipple);
+            rippleAnimationId = requestAnimationFrame(animateRipple);
         };
-        animateRipple();
+
+        rippleAnimationId = requestAnimationFrame(animateRipple);
+
+        // Backup timer for ripple
+        setTimeout(() => {
+            if (scene.children.includes(ripple)) {
+                scene.remove(ripple);
+                ripple.geometry.dispose();
+                ripple.material.dispose();
+            }
+        }, 2000);
     }
 
     // Re-use the createCannonSmoke function, but make sure it's self-contained
@@ -325,9 +384,12 @@ class CannonShot {
         scene.add(blastCloud);
 
         const blastStartTime = getTime();
+        let blastAnimationId;
+
         const animateBlast = () => {
             const elapsed = (getTime() - blastStartTime) / 1000;
-            if (elapsed > 0.4) {
+            if (elapsed > 0.4) { // Blast duration: 0.4 seconds (unchanged, already short)
+                console.log("Blast duration exceeded. Removing.");
                 scene.remove(blastCloud);
                 blastCloud.geometry.dispose();
                 blastCloud.material.dispose();
@@ -336,10 +398,22 @@ class CannonShot {
             const scale = 1 + elapsed * 8;
             blastCloud.scale.set(scale, scale, scale);
             blastCloud.material.opacity = 0.9 * (1 - elapsed / 0.4);
-            requestAnimationFrame(animateBlast);
+            blastAnimationId = requestAnimationFrame(animateBlast);
         };
-        animateBlast();
 
+        blastAnimationId = requestAnimationFrame(animateBlast);
+
+        // Backup timer for blast cloud
+        setTimeout(() => {
+            if (scene.children.includes(blastCloud)) {
+                console.log("Blast cloud removal backup triggered");
+                scene.remove(blastCloud);
+                blastCloud.geometry.dispose();
+                blastCloud.material.dispose();
+            }
+        }, 1000);
+
+        const smokeElements = [];
         for (let i = 0; i < smokeCount; i++) {
             const brightness = 0.3 + Math.random() * 0.4;
             const smokeMaterial = new THREE.MeshBasicMaterial({
@@ -356,6 +430,7 @@ class CannonShot {
             smokePosition.y += (Math.random() - 0.5) * 0.8;
             smokePosition.z += (Math.random() - 0.5) * 1.0;
             smoke.position.copy(smokePosition);
+            smokeElements.push(smoke);
 
             const smokeVelocity = cannonDirection.clone().multiplyScalar(0.2 + Math.random() * 0.8);
             smokeVelocity.x += (Math.random() - 0.5) * 0.7;
@@ -364,10 +439,13 @@ class CannonShot {
             scene.add(smoke);
 
             const smokeStartTime = getTime();
-            const smokeDuration = 2.5 + Math.random() * 2.0;
+            const smokeDuration = 1.5 + Math.random() * 0.5; // Max smoke duration: 2 seconds
+            let smokeAnimationId;
+
             const animateSmoke = () => {
                 const smokeElapsedTime = (getTime() - smokeStartTime) / 1000;
                 if (smokeElapsedTime > smokeDuration) {
+                    console.log(`Smoke particle ${i} removed after ${smokeElapsedTime}s`);
                     scene.remove(smoke);
                     smoke.geometry.dispose();
                     smoke.material.dispose();
@@ -386,10 +464,23 @@ class CannonShot {
                 }
                 const scale = 1 + smokeElapsedTime * (1.0 + Math.random() * 0.5);
                 smoke.scale.set(scale, scale, scale);
-                requestAnimationFrame(animateSmoke);
+                smokeAnimationId = requestAnimationFrame(animateSmoke);
             };
-            animateSmoke();
+
+            smokeAnimationId = requestAnimationFrame(animateSmoke);
         }
+
+        // Backup timer for all smoke elements
+        setTimeout(() => {
+            smokeElements.forEach((smoke, index) => {
+                if (scene.children.includes(smoke)) {
+                    console.log(`Backup: Removing smoke particle ${index} that wasn't removed by animation`);
+                    scene.remove(smoke);
+                    smoke.geometry.dispose();
+                    smoke.material.dispose();
+                }
+            });
+        }, 3000); // Ensure all smoke is gone after 3 seconds
     }
 }
 
