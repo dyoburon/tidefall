@@ -1,0 +1,270 @@
+import AbilityCrosshair from './abilitycrosshair.js';
+
+/**
+ * Central manager for all game abilities
+ * Handles registration, activation, and updates for all abilities
+ */
+class AbilityManager {
+    constructor(scene, camera, player) {
+        this.scene = scene;
+        this.camera = camera;
+        this.player = player;
+
+        // Create the shared crosshair
+        this.crosshair = new AbilityCrosshair(camera, scene);
+
+        // Initialize ability collections
+        this.abilities = new Map();  // All registered abilities
+        this.keyBindings = new Map(); // Key -> ability mapping
+
+        // Track currently active ability
+        this.activeAbility = null;
+
+        // Bind methods
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleKeyUp = this.handleKeyUp.bind(this);
+        this.handleMouseDown = this.handleMouseDown.bind(this);
+
+        // Initialize input handlers
+        this.setupInputHandlers();
+
+        // Register a test ability (THIS IS NEW)
+        this.registerTestAbility();
+    }
+
+    /**
+     * Set up event listeners for inputs
+     */
+    setupInputHandlers() {
+        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener('keyup', this.handleKeyUp);
+        document.addEventListener('mousedown', this.handleMouseDown);
+    }
+
+    /**
+     * Register a new ability with the manager
+     * @param {string} id - Unique identifier for the ability
+     * @param {Object} ability - The ability object to register
+     * @param {string} keyBinding - Key that activates this ability
+     */
+    registerAbility(id, ability, keyBinding) {
+        // Store the ability
+        this.abilities.set(id, ability);
+
+        // Set up key binding if provided
+        if (keyBinding) {
+            this.keyBindings.set(keyBinding.toLowerCase(), id);
+        }
+
+        console.log(`Ability '${id}' registered with key binding '${keyBinding}'`);
+
+        return ability;
+    }
+
+    /**
+     * Registers a test ability for demonstration purposes.
+     */
+    registerTestAbility() {
+        const testAbility = {
+            id: 'testAbility',
+            name: 'Test Ability',
+            canCancel: true, // Allow canceling with key release
+            staysActiveAfterExecution: false, // Don't stay active
+
+            onAimStart: (crosshair) => {
+                console.log('Test Ability Aiming Started');
+                // You could change crosshair appearance here if needed
+            },
+
+            onExecute: (targetPosition) => {
+                console.log('Test Ability Executed at:', targetPosition);
+                // This is where you'd implement the ability's effect
+            },
+
+            onCancel: () => {
+                console.log('Test Ability Canceled');
+            },
+
+            update: (deltaTime) => {
+                //  Any continuous updates for the ability (if needed)
+            }
+        };
+
+        this.registerAbility(testAbility.id, testAbility, 'q');
+    }
+
+    /**
+     * Get an ability by ID
+     * @param {string} id - The ability ID
+     * @returns {Object} The ability object or undefined
+     */
+    getAbility(id) {
+        return this.abilities.get(id);
+    }
+
+    /**
+     * Handle keydown events
+     * @param {KeyboardEvent} event - The keyboard event
+     */
+    handleKeyDown(event) {
+        // Skip if chat or any text input is focused
+        if (window.chatInputActive ||
+            (document.activeElement &&
+                (document.activeElement.tagName === 'INPUT' ||
+                    document.activeElement.tagName === 'TEXTAREA' ||
+                    document.activeElement.isContentEditable))) {
+            return;
+        }
+
+        const key = event.key.toLowerCase();
+
+        // Check if this key is bound to an ability
+        if (this.keyBindings.has(key)) {
+            const abilityId = this.keyBindings.get(key);
+            const ability = this.abilities.get(abilityId);
+
+            if (ability) {
+                // Prevent starting an ability if one is already active
+                if (this.activeAbility && this.activeAbility !== ability) {
+                    console.log(`Ability ${abilityId} triggered, but ${this.activeAbility.id} is already active`);
+                    return;
+                }
+
+                // Start aiming with this ability
+                this.startAbilityAiming(ability);
+            }
+        }
+    }
+
+    /**
+     * Handle keyup events
+     * @param {KeyboardEvent} event - The keyboard event
+     */
+    handleKeyUp(event) {
+        // Skip if no active ability
+        if (!this.activeAbility) return;
+
+        const key = event.key.toLowerCase();
+
+        // If key released was for the active ability, cancel it
+        if (this.keyBindings.has(key) &&
+            this.keyBindings.get(key) === this.activeAbility.id) {
+            // Only cancel if the ability supports cancellation
+            if (this.activeAbility.canCancel) {
+                this.cancelActiveAbility();
+            }
+        }
+    }
+
+    /**
+     * Handle mouse click events
+     * @param {MouseEvent} event - The mouse event
+     */
+    handleMouseDown(event) {
+        // Skip if no active ability
+        if (!this.activeAbility) return;
+
+        // If left mouse button clicked and we're aiming
+        if (event.button === 0 && this.crosshair.isActive) {
+            // Get target position
+            const targetPosition = this.crosshair.getTargetPosition();
+
+            // Execute the ability
+            this.executeActiveAbility(targetPosition);
+        }
+    }
+
+    /**
+     * Start the aiming process for an ability
+     * @param {Object} ability - The ability to activate
+     */
+    startAbilityAiming(ability) {
+        console.log(`Starting ability aiming for: ${ability.id}`);
+
+        // Set as active ability
+        this.activeAbility = ability;
+
+        // Start aiming with crosshair
+        this.crosshair.startAiming();
+
+        // Call ability's onAimStart if available
+        if (ability.onAimStart) {
+            ability.onAimStart(this.crosshair);
+        }
+    }
+
+    /**
+     * Cancel the currently active ability
+     */
+    cancelActiveAbility() {
+        if (!this.activeAbility) return;
+
+        console.log(`Cancelling ability: ${this.activeAbility.id}`);
+
+        // Call ability's onCancel if available
+        if (this.activeAbility.onCancel) {
+            this.activeAbility.onCancel();
+        }
+
+        // Stop crosshair aiming
+        this.crosshair.stopAiming();
+
+        // Clear active ability
+        this.activeAbility = null;
+    }
+
+    /**
+     * Execute the currently active ability
+     * @param {THREE.Vector3} targetPosition - World position to target
+     */
+    executeActiveAbility(targetPosition) {
+        if (!this.activeAbility) return;
+
+        console.log(`Executing ability: ${this.activeAbility.id}`);
+
+        // Call ability's onExecute function
+        if (this.activeAbility.onExecute) {
+            this.activeAbility.onExecute(targetPosition);
+        }
+
+        // Stop aiming
+        this.crosshair.stopAiming();
+
+        // Clear active ability if it doesn't stay active
+        if (!this.activeAbility.staysActiveAfterExecution) {
+            this.activeAbility = null;
+        }
+    }
+
+    /**
+     * Main update function called from game loop
+     * @param {number} deltaTime - Time elapsed since last frame
+     */
+    update(deltaTime) {
+        // Update crosshair
+        this.crosshair.update();
+
+        // Update active ability if present
+        if (this.activeAbility && this.activeAbility.update) {
+            this.activeAbility.update(deltaTime);
+        }
+
+        // Update all abilities that need continuous updates
+        this.abilities.forEach(ability => {
+            if (ability.alwaysUpdate && ability.update && ability !== this.activeAbility) {
+                ability.update(deltaTime);
+            }
+        });
+    }
+
+    /**
+     * Clean up event listeners
+     */
+    dispose() {
+        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener('keyup', this.handleKeyUp);
+        document.removeEventListener('mousedown', this.handleMouseDown);
+    }
+}
+
+export default AbilityManager; 

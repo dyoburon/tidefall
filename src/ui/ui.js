@@ -9,6 +9,7 @@ import { setWaterStyle } from '../environment/water.js';
 import { areShoreEffectsEnabled } from '../world/islands.js';
 import playerList from './playerList.js';
 import { initGameTerminal } from './gameTerminal.js';
+import AbilitiesBar from './abilitiesBar.js'; // Import the new AbilitiesBar component
 
 // Create a UI class to manage all interface elements
 class GameUI {
@@ -74,6 +75,10 @@ class GameUI {
         this.selfMarker.style.borderRadius = '50%';
         this.selfMarker.style.transform = 'translate(-50%, -50%)';
         this.miniMapContainer.appendChild(this.selfMarker);
+
+        // Initialize the abilities bar
+        this.abilitiesBar = new AbilitiesBar();
+        this.abilitiesBar.enableKeyboardShortcuts();
 
         // Initialize the chat system
         this.chat = initChat();
@@ -777,6 +782,15 @@ class GameUI {
 
         // Update FPS counter
         this.updateFPS();
+
+        // Add ability-related updates if needed
+        if (data.abilityCooldowns) {
+            data.abilityCooldowns.forEach((cooldown, index) => {
+                if (cooldown > 0) {
+                    this.abilitiesBar.startCooldown(index, cooldown);
+                }
+            });
+        }
     }
 
     getCardinalDirection(degrees) {

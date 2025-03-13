@@ -52,6 +52,8 @@ import { initCollisionResponse, updateCollisionResponse, isBoatAirborne } from '
 import { getPlayerInventory, playerHasItem } from './network.js';
 import SpatialAudioSystem from '../audio/spatialAudio.js';
 import { dissipateFog, updateFogEffects } from '../environment/fog.js';
+import AbilityManager from '../abilities/abilitymanager.js';
+
 
 // Define these variables at the file level scope (outside any functions)
 // so they're accessible throughout the file
@@ -79,6 +81,9 @@ const water = setupWater('cartoony');
 
 // Initialize biome
 initializeChunkSystem();
+
+
+const abilityManager = new AbilityManager(scene, camera, boat);
 
 //const spatialAudio = new SpatialAudioSystem(camera, scene);
 
@@ -855,6 +860,10 @@ function animate() {
 
     // Update sail animation
     animateSail(deltaTime);
+
+
+    abilityManager.update(deltaTime);
+
 
     applyWindInfluence();
 
