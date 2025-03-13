@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { boat, boatVelocity, keys, getWindData, getTime } from './gameState.js';
+import { checkAllIslandCollisions } from '../world/islands.js';
+
 
 
 // Add this near your other exports

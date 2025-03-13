@@ -253,12 +253,13 @@ function updateBirdState(bird, index) {
 
             if (goal.type === 'island') {
                 bird.state = 'approach_island';
+                bird.goalTimer = 20 + Math.random() * 40; // 20-60 seconds
             } else {
                 bird.state = 'approach_boat';
+                bird.goalTimer = 1 + Math.random() * 4; // 1-5 seconds for boat
             }
 
             bird.goalIndex = goalIndex;
-            bird.goalTimer = 20 + Math.random() * 40; // 20-60 seconds
         }
     }
 }
