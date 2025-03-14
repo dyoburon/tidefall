@@ -2,6 +2,7 @@ import AbilityCrosshair from './abilitycrosshair.js';
 import CannonShot from './cannonshot.js';
 import HarpoonShot from './harpoonshot.js';
 import ScatterShot from './scattershot.js';
+import Sprint from './sprint.js';
 
 /**
  * Central manager for all game abilities
@@ -38,6 +39,7 @@ class AbilityManager {
         this.registerAbility('cannonShot', new CannonShot(), 'q');
         this.registerHarpoonShot(); // Added dedicated method for consistency
         this.registerScatterShot(); // Register the new scatter shot ability
+        this.registerSprint(); // Register the new Sprint ability
     }
 
     /**
@@ -129,6 +131,15 @@ class AbilityManager {
     }
 
     /**
+     * Registers the Sprint ability.
+     */
+    registerSprint() {
+        const sprint = new Sprint();
+        this.registerAbility(sprint.id, sprint, 'shift'); // Bind to 'shift' key
+        console.log("Sprint ability registered with key binding 'shift'");
+    }
+
+    /**
      * Get an ability by ID
      * @param {string} id - The ability ID
      * @returns {Object} The ability object or undefined
@@ -153,6 +164,33 @@ class AbilityManager {
 
         const key = event.key.toLowerCase();
         console.log(`Key pressed: '${event.key}', looking up as '${key}'`); // Debug log
+
+        // Special handling for shift key (sprinting)
+        if (key === 'shift') {
+            const sprintId = 'sprint';
+            const sprint = this.abilities.get(sprintId);
+
+            if (sprint) {
+                // Toggle sprint state
+                if (this.activeAbility && this.activeAbility.id === sprintId) {
+                    console.log(`${sprintId} is already active - cancelling (toggle off)`);
+                    this.cancelActiveAbility();
+                } else {
+                    // If another ability is active, cancel it first
+                    if (this.activeAbility) {
+                        console.log(`Cancelling active ability ${this.activeAbility.id} before activating ${sprintId}`);
+                        this.cancelActiveAbility();
+                    }
+
+                    // Start sprint (toggle on)
+                    this.startAbilityAiming(sprint);
+
+                    // Execute immediately since sprint doesn't need aiming
+                    this.executeActiveAbility(null);
+                }
+            }
+            return;
+        }
 
         // Check if this key is bound to an ability
         if (this.keyBindings.has(key)) {

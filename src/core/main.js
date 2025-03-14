@@ -575,19 +575,19 @@ const keydownHandler = (event) => {
     }
 
     switch (event.key) {
-        case 'w': case 'ArrowUp':
+        case 'w': case 'W': case 'ArrowUp':
             keys.forward = true;
             console.log("⌨️ KEYDOWN: W/UP pressed - keys.forward set to:", keys.forward);
             break;
-        case 's': case 'ArrowDown':
+        case 's': case 'S': case 'ArrowDown':
             keys.backward = true;
             console.log("⌨️ KEYDOWN: S/DOWN pressed - keys.backward set to:", keys.backward);
             break;
-        case 'a': case 'ArrowLeft':
+        case 'a': case 'A': case 'ArrowLeft':
             keys.left = true;
             console.log("⌨️ KEYDOWN: A/LEFT pressed - keys.left set to:", keys.left);
             break;
-        case 'd': case 'ArrowRight':
+        case 'd': case 'D': case 'ArrowRight':
             keys.right = true;
             console.log("⌨️ KEYDOWN: D/RIGHT pressed - keys.right set to:", keys.right);
             break;
@@ -628,19 +628,19 @@ const keyupHandler = (event) => {
     }
 
     switch (event.key) {
-        case 'w': case 'ArrowUp':
+        case 'w': case 'W': case 'ArrowUp':
             keys.forward = false;
             console.log("⌨️ KEYUP: W/UP released - keys.forward set to:", keys.forward);
             break;
-        case 's': case 'ArrowDown':
+        case 's': case 'S': case 'ArrowDown':
             keys.backward = false;
             console.log("⌨️ KEYUP: S/DOWN released - keys.backward set to:", keys.backward);
             break;
-        case 'a': case 'ArrowLeft':
+        case 'a': case 'A': case 'ArrowLeft':
             keys.left = false;
             console.log("⌨️ KEYUP: A/LEFT released - keys.left set to:", keys.left);
             break;
-        case 'd': case 'ArrowRight':
+        case 'd': case 'D': case 'ArrowRight':
             keys.right = false;
             console.log("⌨️ KEYUP: D/RIGHT released - keys.right set to:", keys.right);
             break;
@@ -824,8 +824,8 @@ function animate() {
         lastLeaderboardUpdate = time;
     }
 
-    // Camera positioning
-    //updateCamera();
+    // Update camera - now updateCameraPosition handles zooming internally
+    updateCameraPosition();
 
     // Network and UI updates
     Network.updatePlayerPosition();
@@ -846,14 +846,6 @@ function animate() {
 
     // Update fishing
     updateFishing();
-
-    updateCameraPosition();
-
-    updateVillagers(activeIslands);
-
-    // Update cannons
-    //updateCannons(deltaTime);
-
 
     // Update chunks
     updateChunkSystem(deltaTime);

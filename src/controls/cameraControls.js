@@ -6,7 +6,7 @@ const ORBIT_SENSITIVITY = 0.01; // Rotation sensitivity
 const MIN_POLAR_ANGLE = 0.1; // Minimum angle (don't go completely overhead)
 const MAX_POLAR_ANGLE = Math.PI / 2 - 0.1; // Maximum angle (don't go below horizon)
 const MIN_DISTANCE = 5; // Minimum distance from boat
-const MAX_DISTANCE = 100; // Maximum distance from boat
+const MAX_DISTANCE = 500; // Maximum distance from boat
 const DEFAULT_DISTANCE = 50; // Increased default distance (was 15)
 
 // Camera state
@@ -17,6 +17,11 @@ let cameraOrbitPosition = {
     phi: Math.PI / 4, // Polar angle (up/down)
     theta: Math.PI    // Azimuthal angle (left/right) - initialized to PI to start behind boat
 };
+
+// Track if we're currently in a zoom transition
+let isZooming = false;
+let zoomTarget = 120;
+let zoomSpeed = 150.0; // How fast to zoom (units per second)
 
 // Initialize camera controls
 export function initCameraControls() {
@@ -46,6 +51,9 @@ export function updateCameraPosition() {
 
     if (!boat) return;
 
+    // Handle camera zoom update first
+    handleCameraZoom();
+
     // Calculate camera position in spherical coordinates
     const x = boat.position.x + cameraOrbitPosition.distance * Math.sin(cameraOrbitPosition.phi) * Math.cos(cameraOrbitPosition.theta);
     const y = boat.position.y + cameraOrbitPosition.distance * Math.cos(cameraOrbitPosition.phi);
@@ -56,6 +64,28 @@ export function updateCameraPosition() {
 
     // Look at the boat
     camera.lookAt(boat.position);
+}
+
+// Function that handles camera zoom in a single frame
+function handleCameraZoom() {
+    if (!isZooming) return;
+
+    const currentDistance = cameraOrbitPosition.distance;
+    const distanceDifference = zoomTarget - currentDistance;
+
+    // If we're close enough to target, snap to it and end zooming
+    if (Math.abs(distanceDifference) < 0.1) {
+        cameraOrbitPosition.distance = zoomTarget;
+        isZooming = false;
+        return;
+    }
+
+    // Get time since last frame - fallback to 1/60 if not available
+    const deltaTime = window.lastFrameDeltaTime || (1 / 60);
+
+    // Otherwise, move towards target at zoomSpeed
+    const step = Math.sign(distanceDifference) * zoomSpeed * deltaTime;
+    cameraOrbitPosition.distance += step;
 }
 
 // Event handlers
@@ -165,4 +195,31 @@ export function resetCameraPosition() {
         theta: Math.PI // PI radians = 180 degrees = behind boat
     };
     updateCameraPosition();
+}
+
+// Function to smoothly zoom camera to a specific distance
+export function zoomCameraTo(targetDistance) {
+    zoomTarget = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, targetDistance));
+    isZooming = true;
+    console.log(`Camera zooming to: ${zoomTarget}`);
+}
+
+// Function to reset zoom to default distance
+export function resetZoom() {
+    zoomCameraTo(DEFAULT_DISTANCE);
+}
+
+// Function to zoom out for fast movement
+export function zoomOutForSpeed() {
+    // Zoom out to 80% of max distance for dramatic effect
+    zoomCameraTo(MAX_DISTANCE * 0.8);
+}
+
+// Update function to handle smooth zooming - now for external calling
+export function updateCameraZoom(deltaTime) {
+    // Store the delta time for use in handleCameraZoom
+    window.lastFrameDeltaTime = deltaTime;
+
+    // No longer needs to do anything here since handleCameraZoom is called inside updateCameraPosition
+    return isZooming; // Just return if we're currently zooming
 } 

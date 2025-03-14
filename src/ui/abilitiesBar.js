@@ -10,7 +10,7 @@ class AbilitiesBar {
         this.container.style.bottom = '20px';
         this.container.style.left = '50%';
         this.container.style.transform = 'translateX(-50%)';
-        this.container.style.width = '490px'; // Increased width to accommodate 7 abilities
+        this.container.style.width = '550px'; // Increased width to accommodate 8 abilities
         this.container.style.height = '80px';
         this.container.style.backgroundColor = 'rgba(30, 25, 20, 0.9)'; // Darker brown background
         this.container.style.borderRadius = '8px';
@@ -25,19 +25,19 @@ class AbilitiesBar {
         // Add wood grain texture to the bar
         this.container.style.backgroundImage = 'linear-gradient(to bottom, rgba(60, 40, 20, 0.9), rgba(40, 25, 15, 0.9))';
 
-        // Define key bindings (added T between E and 1)
-        this.keyBindings = ['Q', 'R', 'T', '1', '2', '3', '4'];
+        // Define key bindings (added Shift at the beginning)
+        this.keyBindings = ['SHIFT', 'Q', 'R', 'T', '1', '2', '3', '4'];
 
-        // Fantasy ability names (now 7 abilities with Scattershot moved to T position)
+        // Fantasy ability names (now 8 abilities with Sprint at the beginning)
         this.abilityNames = [
-            'Cannonshot', 'Harpoon', 'Scattershot',
+            'Sprint', 'Cannonshot', 'Harpoon', 'Scattershot',
             'Arcane Shield', 'Poison Cloud', 'Windslash', 'Waterspout'
         ];
 
-        // Create ability slots (7 instead of 6)
+        // Create ability slots (8 instead of 7)
         this.abilitySlots = [];
 
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 8; i++) {
             this.abilitySlots.push(this.createAbilitySlot(i));
         }
 
@@ -78,8 +78,22 @@ class AbilitiesBar {
         // Add parchment-like texture to icon backgrounds
         iconPlaceholder.style.backgroundImage = 'radial-gradient(circle at center, rgba(225, 205, 170, 0.1) 0%, rgba(200, 180, 150, 0.1) 100%)';
 
-        // Set image for Q, E, and T
-        if (this.keyBindings[index] === 'Q') {
+        // Set image based on ability key
+        if (this.keyBindings[index] === 'SHIFT') {
+            iconPlaceholder.style.backgroundImage = 'url("./sprintability.jpeg")';
+            // If image doesn't exist yet, create a Sprint icon with CSS
+            /*
+            if (!imageExists('./sprintability.jpeg')) {
+                iconPlaceholder.style.backgroundImage = 'none';
+                iconPlaceholder.style.backgroundColor = 'rgba(70, 130, 180, 0.3)'; // Steel blue for sprint
+                const speedIcon = document.createElement('div');
+                speedIcon.innerHTML = '⚡'; // Lightning bolt for speed
+                speedIcon.style.fontSize = '28px';
+                speedIcon.style.color = '#FFD700'; // Gold color
+                speedIcon.style.textShadow = '0 0 5px rgba(255, 215, 0, 0.7)';
+                iconPlaceholder.appendChild(speedIcon);
+            }*/
+        } else if (this.keyBindings[index] === 'Q') {
             iconPlaceholder.style.backgroundImage = 'url("./cannonshotability.jpeg")';
         } else if (this.keyBindings[index] === 'R') {
             iconPlaceholder.style.backgroundImage = 'url("./harpoonshotability.jpeg")';
@@ -99,11 +113,16 @@ class AbilitiesBar {
         keyLabel.style.color = '#E6C68A'; // Parchment color
         keyLabel.style.padding = '2px 6px';
         keyLabel.style.borderRadius = '4px';
-        keyLabel.style.fontSize = '12px';
+        keyLabel.style.fontSize = '10px'; // Slightly smaller for "SHIFT"
         keyLabel.style.fontWeight = 'bold';
         keyLabel.style.fontFamily = 'serif'; // More nautical-looking font
         keyLabel.style.boxShadow = '0 0 4px rgba(0, 0, 0, 0.5)';
         keyLabel.style.border = '1px solid #B8860B'; // Dark goldenrod border
+
+        // Make SHIFT key text smaller to fit
+        if (this.keyBindings[index] === 'SHIFT') {
+            keyLabel.style.fontSize = '9px';
+        }
 
         // Cooldown overlay (hidden by default) - nautical styled
         const cooldownOverlay = document.createElement('div');
@@ -219,6 +238,12 @@ class AbilitiesBar {
     // Check for key presses to activate abilities
     enableKeyboardShortcuts() {
         document.addEventListener('keydown', (event) => {
+            // Handle the Shift key separately
+            if (event.key === 'Shift') {
+                this.activateAbility(0); // Sprint is at index 0
+                return;
+            }
+
             const key = event.key.toUpperCase();
             const index = this.keyBindings.indexOf(key);
 
@@ -227,6 +252,13 @@ class AbilitiesBar {
             }
         });
     }
+}
+
+// Helper function to check if an image exists
+function imageExists(url) {
+    const img = new Image();
+    img.src = url;
+    return img.height !== 0;
 }
 
 // Export the class
