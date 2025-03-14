@@ -10,7 +10,7 @@ class AbilitiesBar {
         this.container.style.bottom = '20px';
         this.container.style.left = '50%';
         this.container.style.transform = 'translateX(-50%)';
-        this.container.style.width = '420px'; // Adjusted width for 6 abilities
+        this.container.style.width = '490px'; // Increased width to accommodate 7 abilities
         this.container.style.height = '80px';
         this.container.style.backgroundColor = 'rgba(30, 25, 20, 0.9)'; // Darker brown background
         this.container.style.borderRadius = '8px';
@@ -25,18 +25,19 @@ class AbilitiesBar {
         // Add wood grain texture to the bar
         this.container.style.backgroundImage = 'linear-gradient(to bottom, rgba(60, 40, 20, 0.9), rgba(40, 25, 15, 0.9))';
 
-        // Define key bindings (modified to only include Q, E, 1, 2, 3, 4)
-        this.keyBindings = ['Q', 'E', '1', '2', '3', '4'];
+        // Define key bindings (added T between E and 1)
+        this.keyBindings = ['Q', 'R', 'T', '1', '2', '3', '4'];
 
-        // Fantasy ability names (reduced to 6)
+        // Fantasy ability names (now 7 abilities with Scattershot moved to T position)
         this.abilityNames = [
-            'Fireball', 'Lightning Strike',
-            'Spectral Blade', 'Arcane Shield', 'Poison Cloud', 'Windslash'
+            'Cannonshot', 'Harpoon', 'Scattershot',
+            'Arcane Shield', 'Poison Cloud', 'Windslash', 'Waterspout'
         ];
 
-        // Create ability slots (6 instead of 8)
+        // Create ability slots (7 instead of 6)
         this.abilitySlots = [];
-        for (let i = 0; i < 6; i++) {
+
+        for (let i = 0; i < 7; i++) {
             this.abilitySlots.push(this.createAbilitySlot(i));
         }
 
@@ -77,11 +78,13 @@ class AbilitiesBar {
         // Add parchment-like texture to icon backgrounds
         iconPlaceholder.style.backgroundImage = 'radial-gradient(circle at center, rgba(225, 205, 170, 0.1) 0%, rgba(200, 180, 150, 0.1) 100%)';
 
-        // Set image for Q
+        // Set image for Q, E, and T
         if (this.keyBindings[index] === 'Q') {
             iconPlaceholder.style.backgroundImage = 'url("./cannonshotability.jpeg")';
-        } else if (this.keyBindings[index] === 'E') {
+        } else if (this.keyBindings[index] === 'R') {
             iconPlaceholder.style.backgroundImage = 'url("./harpoonshotability.jpeg")';
+        } else if (this.keyBindings[index] === 'T') {
+            iconPlaceholder.style.backgroundImage = 'url("./scattershotability.jpeg")';
         }
 
         // Create key binding label with nautical styling

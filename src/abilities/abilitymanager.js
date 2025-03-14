@@ -1,6 +1,7 @@
 import AbilityCrosshair from './abilitycrosshair.js';
 import CannonShot from './cannonshot.js';
 import HarpoonShot from './harpoonshot.js';
+import ScatterShot from './scattershot.js';
 
 /**
  * Central manager for all game abilities
@@ -36,6 +37,7 @@ class AbilityManager {
         // Register abilities
         this.registerAbility('cannonShot', new CannonShot(), 'q');
         this.registerHarpoonShot(); // Added dedicated method for consistency
+        this.registerScatterShot(); // Register the new scatter shot ability
     }
 
     /**
@@ -113,8 +115,17 @@ class AbilityManager {
      */
     registerHarpoonShot() {
         const harpoonShot = new HarpoonShot();
-        this.registerAbility(harpoonShot.id, harpoonShot, 'E'); // Explicitly bind to 'E' key
-        console.log("Harpoon Shot registered with key binding 'E'");
+        this.registerAbility(harpoonShot.id, harpoonShot, 'R'); // Explicitly bind to 'E' key
+        console.log("Harpoon Shot registered with key binding 'R'");
+    }
+
+    /**
+     * Registers the ScatterShot ability.
+     */
+    registerScatterShot() {
+        const scatterShot = new ScatterShot();
+        this.registerAbility(scatterShot.id, scatterShot, 't'); // Bind to 't' key
+        console.log("Scatter Shot registered with key binding 't'");
     }
 
     /**
