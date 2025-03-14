@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { getWindData, boatVelocity, boat, getTime } from '../core/gameState.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { loadShipModel } from './boatLoader.js';
 // Instead of importing waterShader, we'll use a reference to it from the window object
 
 // Add these variables near the top with your other boat variables
@@ -215,6 +216,7 @@ export function applyWoodTextureToColoredParts(boatObject) {
 
 // Add a small Minecraft-style character to the front of the boat
 export function addCharacterToBoat(boat) {
+    /*
     // Create a group for the character
     const character = new THREE.Group();
 
@@ -277,7 +279,7 @@ export function addCharacterToBoat(boat) {
     // Add the character to the boat
     boat.add(character);
 
-    return character;
+    return character;*/
 }
 
 // Create a damage overlay instead of changing materials
@@ -334,19 +336,19 @@ export function flashBoatDamage() {
     damageOverlay.visible = true;
 }
 
-// Modify createBoat to initialize the damage overlay
+// Modify createBoat to use the new ship loading system
 export function createBoat(scene) {
     // Create a group to hold the boat
     let boat = new THREE.Group();
 
-    // Call loadGLBModel directly here, passing the boat group
-    loadGLBModel(boat);
+    // Use the dynamic ship loader instead of the hardcoded loadGLBModel
+    loadShipFromPlayerSelection(boat);
 
     // Position the boat
     boat.position.set(0, 0.5, 0);
 
     // Add a small Minecraft-style character to the boat
-    addCharacterToBoat(boat);
+    //addCharacterToBoat(boat);
 
     // Create the damage overlay
     createDamageOverlay(boat);
@@ -355,6 +357,28 @@ export function createBoat(scene) {
     scene.add(boat);
 
     return boat;
+}
+
+// New function to load the ship based on player selection
+function loadShipFromPlayerSelection(boat) {
+    // Set loading flag to prevent concurrent load attempts
+    boatModelLoading = true;
+
+    // Use the loadShipModel function from boatLoader.js
+    loadShipModel(boat);
+
+    // Set up a callback to run after the model is loaded (if possible)
+    // Since loadShipModel doesn't provide a direct callback, we'll check in updateBoatRocking
+
+    // Mark as loaded after a short delay (assuming it succeeded)
+    setTimeout(() => {
+        boatModelLoaded = true;
+        boatModelLoading = false;
+        console.log("✅ Boat model loading process completed");
+
+        // Apply wood texture overlay to colorable parts
+        applyWoodTextureToColoredParts(boat);
+    }, 2000);
 }
 
 // Original geometric boat creation (commented out but preserved as fallback)
@@ -574,11 +598,6 @@ export function updateBoatRocking(deltaTime) {
     const currentYRotation = boat.rotation.y;
     boat.rotation.set(boatRockAngleX, currentYRotation, boatRockAngleZ);
 
-    // Only attempt to load the model once and only if not already loaded/loading
-    if (!boatModelLoaded && !boatModelLoading) {
-        loadGLBModel(boat);
-    }
-
     // Update damage flash effect
     updateDamageFlash(deltaTime);
 }
@@ -701,97 +720,6 @@ export function updateDamageFlash(deltaTime) {
         }
         isDamageFlashing = false;
     }
-}
-
-// Update the loadGLBModel function to position and rotate the model correctly
-function loadGLBModel(boat) {
-    // Don't load if already loaded or currently loading
-    if (boatModelLoaded || boatModelLoading) return;
-
-    // Set loading flag to prevent concurrent load attempts
-    boatModelLoading = true;
-
-    // Create a GLTF loader
-    const loader = new GLTFLoader();
-
-    // Use a relative path to the GLB file in the assets directory
-    const modelUrl = './boat.glb';
-
-    console.log(`Loading boat model from local path: ${modelUrl}`);
-
-    loader.load(
-        modelUrl,
-        // Success callback
-        function (gltf) {
-            console.log("✅ GLB model loaded successfully!");
-            const model = gltf.scene;
-
-            // Add LOD system
-            const lod = new THREE.LOD();
-
-            // Add highest detail model
-            model.scale.set(20, 20, 20);
-            model.rotation.y = Math.PI;
-            model.position.set(0, 7, 0);
-            lod.addLevel(model, 0);  // Highest detail at close range
-
-            // Create simplified version for distance
-            const simplifiedModel = model.clone();
-            simplifiedModel.traverse(child => {
-                if (child.isMesh && child.geometry) {
-                    // Remove unnecessary details for distant view
-                    if (child.name.includes('detail') || child.name.includes('accessory')) {
-                        child.visible = false;
-                    }
-                }
-            });
-            lod.addLevel(simplifiedModel, 100);  // Medium detail
-
-            // Add very simplified version for far distance
-            const boxGeometry = new THREE.BoxGeometry(6, 2, 12);
-            const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x8b4513 });
-            const boxModel = new THREE.Mesh(boxGeometry, boxMaterial);
-            boxModel.position.set(0, 7, 0);
-            lod.addLevel(boxModel, 500);  // Low detail at far range
-
-            // Add LOD to boat
-            boat.add(lod);
-
-            // Handle animations if present
-            if (gltf.animations && gltf.animations.length) {
-                const mixer = new THREE.AnimationMixer(model);
-                const animation = mixer.clipAction(gltf.animations[0]);
-                animation.play();
-
-                model.userData.mixer = mixer;
-
-                if (!window.modelMixers) window.modelMixers = [];
-                window.modelMixers.push(mixer);
-            }
-
-            // Set flags to indicate model is loaded and no longer loading
-            boatModelLoaded = true;
-            boatModelLoading = false;
-        },
-        // Progress callback
-        function (xhr) {
-            if (xhr.lengthComputable) {
-                const percentComplete = xhr.loaded / xhr.total * 100;
-                console.log(`Model loading: ${Math.round(percentComplete)}%`);
-            }
-        },
-        // Error callback
-        function (error) {
-            console.error("❌ Error loading boat model:", error);
-            console.log("Falling back to geometric boat model");
-
-            // Reset loading flag but don't mark as loaded
-            boatModelLoading = false;
-
-            // Fallback to geometric boat model
-            createGeometricBoat(boat);
-        }
-    );
 }
 
 // If you have an animation loop, add this to update the animations

@@ -308,7 +308,7 @@ async function initializeFirebaseAuth() {
             }
 
             // Your showLoginScreen function
-            if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBot')) {
+            if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
                 showLoginScreen(() => {
                     console.log('🔍 MAIN DEBUG: Login screen complete, now showing MOTD');
                     onAuthAndLoginComplete(user);
@@ -821,10 +821,24 @@ export function showLoginScreen(onComplete) {
         playerColor = colorInput.value;
         const selectedBoat = selectedBoatId; // Store the selected boat
 
-        // Save directly to localStorage here
+        // Map boat IDs to their corresponding model paths
+        const boatModelPaths = {
+            'pirate-small': './smallpirate.glb',
+            'pirate-medium': './mediumpirate.glb',
+            'pirate-large': './massivepirate.glb',
+            'colonial-small': './smallcolonial.glb',
+            'colonial-medium': './mediumcolonial.glb',
+            'colonial-large': './massivepirate.glb' // Note: This uses the same model as pirate-large
+        };
+
+        // Get the model path for the selected boat
+        const selectedBoatPath = boatModelPaths[selectedBoat] || './mediumpirate.glb'; // Default fallback
+
+        // Save to localStorage
         localStorage.setItem('playerName', playerName);
         localStorage.setItem('playerColor', playerColor);
-        localStorage.setItem('playerBoat', selectedBoat); // Save boat selection
+        localStorage.setItem('playerBoat', selectedBoat); // Save boat selection ID
+        localStorage.setItem('playerBoatModel', selectedBoatPath); // Save the actual model path
         // Add the completion flag
         localStorage.setItem('hasCompletedLogin', 'true');
 
