@@ -21,8 +21,11 @@ class AbilityManager {
         this.abilities = new Map();  // All registered abilities
         this.keyBindings = new Map(); // Key -> ability mapping
 
-        // Track currently active ability
+        // Track currently active ability (for aiming and UI)
         this.activeAbility = null;
+
+        // New property to track abilities that keep running in the background
+        this.backgroundAbilities = new Set();
 
         // Bind methods
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -40,6 +43,9 @@ class AbilityManager {
         this.registerHarpoonShot(); // Added dedicated method for consistency
         this.registerScatterShot(); // Register the new scatter shot ability
         this.registerSprint(); // Register the new Sprint ability
+
+        // Make this instance available globally for ability reset callbacks
+        window.abilityManager = this;
     }
 
     /**
@@ -200,20 +206,61 @@ class AbilityManager {
             console.log(`Key '${key}' is bound to ability '${abilityId}'`); // Debug log
 
             if (ability) {
-                // Check if this ability is already active - if so, cancel it (toggle behavior)
+                // SPECIAL HANDLING FOR HARPOON
+                if (abilityId === 'harpoonShot') {
+                    // Modified harpoon behavior
+                    if (this.isAbilityActive('harpoonShot') || this.backgroundAbilities.has(ability)) {
+                        // If harpoon is in use, call onCancel to start reeling
+                        if (ability.isHarpoonInUse && ability.isHarpoonInUse()) {
+                            console.log('Harpoon in use, starting to reel in');
+                            ability.onCancel();
+
+                            // Don't deactivate it - just let it keep running in background
+                            if (!this.backgroundAbilities.has(ability)) {
+                                this.backgroundAbilities.add(ability);
+                            }
+                        } else {
+                            // If no harpoon in use, remove from background abilities
+                            this.backgroundAbilities.delete(ability);
+                            if (this.activeAbility === ability) {
+                                this.activeAbility = null;
+                            }
+                        }
+                    } else {
+                        // If harpoon is not active, start aiming
+                        this.startAbilityAiming(ability);
+                    }
+                    return;
+                }
+
+                // HANDLING FOR OTHER ABILITIES
+                // Check if this ability is already active - if so, toggle it off
                 if (this.activeAbility && this.activeAbility.id === ability.id) {
                     console.log(`${abilityId} is already active - cancelling (toggle off)`);
                     this.cancelActiveAbility();
                     return;
                 }
 
-                // If another ability is active, cancel it first
-                if (this.activeAbility) {
-                    console.log(`Cancelling active ability ${this.activeAbility.id} before activating ${abilityId}`);
-                    this.cancelActiveAbility();
+                // Deactivate the current active ability for UI/aiming, but don't cancel background abilities
+                if (this.activeAbility && this.activeAbility !== ability) {
+                    const currentActive = this.activeAbility;
+
+                    // If the current active is a persistent ability (like harpoon), keep it running
+                    if (currentActive.id === 'harpoonShot' && currentActive.isHarpoonInUse()) {
+                        // Add to background instead of cancelling
+                        console.log(`Moving ${currentActive.id} to background and activating ${abilityId}`);
+                        this.backgroundAbilities.add(currentActive);
+                    } else {
+                        // Otherwise, cancel it normally
+                        console.log(`Cancelling ${currentActive.id} and activating ${abilityId}`);
+                        this.cancelAbility(currentActive);
+                    }
+
+                    // Clear active ability but don't call cancel on it
+                    this.activeAbility = null;
                 }
 
-                // Start aiming with this ability (toggle on)
+                // Start aiming with this ability
                 this.startAbilityAiming(ability);
             }
         } else {
@@ -268,23 +315,35 @@ class AbilityManager {
     }
 
     /**
+     * Cancel a specific ability
+     * @param {Object} ability - The ability to cancel
+     */
+    cancelAbility(ability) {
+        if (!ability) return;
+
+        console.log(`Cancelling ability: ${ability.id}`);
+
+        // Call ability's onCancel if available
+        if (ability.onCancel) {
+            ability.onCancel();
+        }
+
+        // Remove from background abilities
+        this.backgroundAbilities.delete(ability);
+
+        // If this was the active ability, also stop aiming
+        if (this.activeAbility === ability) {
+            this.crosshair.stopAiming();
+            this.activeAbility = null;
+        }
+    }
+
+    /**
      * Cancel the currently active ability
      */
     cancelActiveAbility() {
         if (!this.activeAbility) return;
-
-        console.log(`Cancelling ability: ${this.activeAbility.id}`);
-
-        // Call ability's onCancel if available
-        if (this.activeAbility.onCancel) {
-            this.activeAbility.onCancel();
-        }
-
-        // Stop crosshair aiming
-        this.crosshair.stopAiming();
-
-        // Clear active ability
-        this.activeAbility = null;
+        this.cancelAbility(this.activeAbility);
     }
 
     /**
@@ -323,9 +382,19 @@ class AbilityManager {
             this.activeAbility.update(deltaTime);
         }
 
-        // Update all abilities that need continuous updates
+        // Update all background abilities
+        this.backgroundAbilities.forEach(ability => {
+            if (ability.update) {
+                ability.update(deltaTime);
+            }
+        });
+
+        // Update abilities that need continuous updates
         this.abilities.forEach(ability => {
-            if (ability.alwaysUpdate && ability.update && ability !== this.activeAbility) {
+            if (ability.alwaysUpdate &&
+                ability.update &&
+                ability !== this.activeAbility &&
+                !this.backgroundAbilities.has(ability)) {
                 ability.update(deltaTime);
             }
         });
@@ -352,6 +421,27 @@ class AbilityManager {
      */
     isAbilityActive(abilityId) {
         return this.activeAbility !== null && this.activeAbility.id === abilityId;
+    }
+
+    /**
+     * Called by abilities when they have fully reset
+     * @param {string} abilityId - The ID of the ability that has reset
+     */
+    notifyAbilityReset(abilityId) {
+        // Find the ability
+        const ability = this.abilities.get(abilityId);
+
+        // If this is the currently active ability, deactivate it
+        if (this.activeAbility && this.activeAbility.id === abilityId) {
+            console.log(`Active ability ${abilityId} has reset, deactivating it`);
+            this.activeAbility = null;
+        }
+
+        // Also remove from background abilities
+        if (ability && this.backgroundAbilities.has(ability)) {
+            console.log(`Background ability ${abilityId} has reset, removing it`);
+            this.backgroundAbilities.delete(ability);
+        }
     }
 }
 

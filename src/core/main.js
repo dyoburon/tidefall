@@ -298,7 +298,7 @@ async function initializeFirebaseAuth() {
         }
 
         // Check both Firebase displayName AND localStorage
-        if ((user && !user.name) || !localStorage.getItem('playerName')) {
+        if ((user && !user.name) || !localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
             console.log('🔍 MAIN DEBUG: User needs to set name, showing login screen');
 
             // If there's a name in localStorage, use it as default in the login screen
@@ -308,10 +308,13 @@ async function initializeFirebaseAuth() {
             }
 
             // Your showLoginScreen function
-            showLoginScreen(() => {
-                console.log('🔍 MAIN DEBUG: Login screen complete, now showing MOTD');
-                onAuthAndLoginComplete(user);
-            });
+            if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBot')) {
+                showLoginScreen(() => {
+                    console.log('🔍 MAIN DEBUG: Login screen complete, now showing MOTD');
+                    onAuthAndLoginComplete(user);
+                });
+            }
+
         } else {
             console.log('🔍 MAIN DEBUG: User already has name, going to MOTD');
             // If there's a saved name, make sure to use it
@@ -321,6 +324,13 @@ async function initializeFirebaseAuth() {
             onAuthAndLoginComplete(user);
         }
     });
+
+    if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
+        showLoginScreen(() => {
+            console.log('🔍 MAIN DEBUG: Login screen complete, now showing MOTD');
+            onAuthAndLoginComplete(user);
+        });
+    }
 }
 
 // Add this call early in your initialization sequence 
@@ -448,6 +458,340 @@ export function showLoginScreen(onComplete) {
     colorInput.style.cursor = 'pointer';
     profileContainer.appendChild(colorInput);
 
+    // BOAT SELECTION - NEW SECTION
+    const boatLabel = document.createElement('div');
+    boatLabel.textContent = 'Choose Your Vessel:';
+    boatLabel.style.display = 'block';
+    boatLabel.style.color = '#ccc';
+    boatLabel.style.marginBottom = '10px';
+    boatLabel.style.marginTop = '15px';
+    boatLabel.style.fontWeight = '500';
+    profileContainer.appendChild(boatLabel);
+
+    // Create container for boat options
+    const boatSelectionContainer = document.createElement('div');
+    boatSelectionContainer.style.display = 'grid';
+    boatSelectionContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    boatSelectionContainer.style.gap = '10px';
+    boatSelectionContainer.style.marginBottom = '15px';
+    profileContainer.appendChild(boatSelectionContainer);
+
+    // Define boat options with stats
+    const boatOptions = [
+        {
+            id: 'pirate-small',
+            name: 'Small Pirate Ship',
+            category: 'Pirate',
+            size: 'Small',
+            stats: {
+                speed: 85,
+                damage: 40,
+                health: 60,
+                maneuverability: 90
+            },
+            description: 'A swift pirate sloop that excels at outrunning enemies. Sacrifices firepower for speed and agility.'
+        },
+        {
+            id: 'pirate-medium',
+            name: 'Medium Pirate Ship',
+            category: 'Pirate',
+            size: 'Medium',
+            stats: {
+                speed: 65,
+                damage: 70,
+                health: 75,
+                maneuverability: 65
+            },
+            description: 'A balanced brigantine with a good mix of speed and firepower. Perfect for versatile captains.'
+        },
+        {
+            id: 'pirate-large',
+            name: 'Large Pirate Ship',
+            category: 'Pirate',
+            size: 'Large',
+            stats: {
+                speed: 45,
+                damage: 90,
+                health: 95,
+                maneuverability: 40
+            },
+            description: 'A powerful pirate galleon with devastating firepower. Slow but deadly in combat.'
+        },
+        {
+            id: 'colonial-small',
+            name: 'Small Colonial Ship',
+            category: 'Colonial',
+            size: 'Small',
+            stats: {
+                speed: 90,
+                damage: 35,
+                health: 55,
+                maneuverability: 95
+            },
+            description: 'A nimble cutter built for speed and scouting. Highly maneuverable but lightly armed.'
+        },
+        {
+            id: 'colonial-medium',
+            name: 'Medium Colonial Ship',
+            category: 'Colonial',
+            size: 'Medium',
+            stats: {
+                speed: 70,
+                damage: 65,
+                health: 70,
+                maneuverability: 70
+            },
+            description: 'A well-rounded frigate with balanced capabilities. Adaptable to various naval situations.'
+        },
+        {
+            id: 'colonial-large',
+            name: 'Large Colonial Ship',
+            category: 'Colonial',
+            size: 'Large',
+            stats: {
+                speed: 40,
+                damage: 95,
+                health: 100,
+                maneuverability: 35
+            },
+            description: 'A massive man-of-war with unmatched firepower. Slow but nearly unstoppable in battle.'
+        }
+    ];
+
+    // Track selected boat
+    let selectedBoatId = 'pirate-medium'; // Default selected boat
+
+    // Add tooltip container to the document
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.display = 'none';
+    tooltip.style.backgroundColor = 'rgba(5, 20, 40, 0.95)';
+    tooltip.style.border = '1px solid #4285f4';
+    tooltip.style.borderRadius = '5px';
+    tooltip.style.padding = '10px';
+    tooltip.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.5)';
+    tooltip.style.color = 'white';
+    tooltip.style.fontSize = '12px';
+    tooltip.style.zIndex = '10000';
+    tooltip.style.maxWidth = '250px';
+    tooltip.style.pointerEvents = 'none'; // Ensure tooltip doesn't interfere with mouse events
+    tooltip.style.transition = 'opacity 0.2s ease'; // Smooth opacity transition
+    tooltip.style.opacity = '0'; // Start hidden
+    document.body.appendChild(tooltip);
+
+    // Add a global variable to track tooltip state
+    let tooltipTimeout = null;
+    let currentTooltipCard = null;
+
+    // Create boat selection cards
+    boatOptions.forEach(boat => {
+        const boatCard = document.createElement('div');
+        boatCard.className = 'boat-option';
+        boatCard.dataset.boatId = boat.id;
+        boatCard.style.backgroundColor = boat.id === selectedBoatId ? 'rgba(66, 133, 244, 0.3)' : 'rgba(20, 40, 70, 0.5)';
+        boatCard.style.border = boat.id === selectedBoatId ? '2px solid #4285f4' : '1px solid rgba(100, 140, 200, 0.3)';
+        boatCard.style.borderRadius = '6px';
+        boatCard.style.padding = '8px';
+        boatCard.style.textAlign = 'center';
+        boatCard.style.cursor = 'pointer';
+        boatCard.style.transition = 'all 0.2s';
+        boatCard.style.position = 'relative';
+        boatCard.style.overflow = 'hidden';
+        boatCard.style.height = '90px';
+        boatCard.style.display = 'flex';
+        boatCard.style.flexDirection = 'column';
+        boatCard.style.justifyContent = 'space-between';
+
+        // Add ship image placeholder
+        const shipImage = document.createElement('div');
+        shipImage.style.height = '50px';
+        shipImage.style.margin = '0 auto 5px';
+        shipImage.style.display = 'flex';
+        shipImage.style.alignItems = 'center';
+        shipImage.style.justifyContent = 'center';
+
+        // Use simple ship icon as placeholder
+        const shipIcon = document.createTextNode(boat.category === 'Pirate' ? '🏴‍☠️' : '⛵');
+        shipIcon.textContent = boat.category === 'Pirate' ? '🏴‍☠️' : '⛵';
+        shipImage.appendChild(shipIcon);
+        shipImage.style.fontSize = boat.size === 'Small' ? '24px' : boat.size === 'Medium' ? '28px' : '32px';
+
+        boatCard.appendChild(shipImage);
+
+        // Add ship name
+        const shipName = document.createElement('div');
+        shipName.textContent = boat.name;
+        shipName.style.color = '#ddd';
+        shipName.style.fontSize = '11px';
+        shipName.style.fontWeight = 'bold';
+        boatCard.appendChild(shipName);
+
+        // Add category badge
+        const categoryBadge = document.createElement('div');
+        categoryBadge.textContent = boat.category;
+        categoryBadge.style.position = 'absolute';
+        categoryBadge.style.top = '5px';
+        categoryBadge.style.right = '5px';
+        categoryBadge.style.fontSize = '8px';
+        categoryBadge.style.backgroundColor = boat.category === 'Pirate' ? 'rgba(200, 50, 50, 0.7)' : 'rgba(50, 120, 200, 0.7)';
+        categoryBadge.style.color = 'white';
+        categoryBadge.style.padding = '2px 4px';
+        categoryBadge.style.borderRadius = '4px';
+        categoryBadge.style.fontWeight = 'bold';
+        boatCard.appendChild(categoryBadge);
+
+        // Make sure the click event is properly defined
+        boatCard.addEventListener('click', () => {
+            console.log(`Boat selected: ${boat.id}`); // Add debug logging
+
+            // Update selected boat
+            selectedBoatId = boat.id;
+
+            // Update UI to show selected boat
+            document.querySelectorAll('.boat-option').forEach(card => {
+                if (card.dataset.boatId === selectedBoatId) {
+                    card.style.backgroundColor = 'rgba(66, 133, 244, 0.3)';
+                    card.style.border = '2px solid #4285f4';
+                    card.style.transform = 'scale(1.05)';
+                } else {
+                    card.style.backgroundColor = 'rgba(20, 40, 70, 0.5)';
+                    card.style.border = '1px solid rgba(100, 140, 200, 0.3)';
+                    card.style.transform = 'scale(1)';
+                }
+            });
+        });
+
+        // Ensure the mouseover event doesn't interfere with clicking
+        boatCard.addEventListener('mouseover', (event) => {
+            // Clear any existing timeout to prevent flickering
+            if (tooltipTimeout) {
+                clearTimeout(tooltipTimeout);
+                tooltipTimeout = null;
+            }
+
+            // Track current card to prevent duplicate shows
+            currentTooltipCard = boatCard;
+
+            // Highlight card if not already selected
+            if (boat.id !== selectedBoatId) {
+                boatCard.style.backgroundColor = 'rgba(40, 80, 140, 0.5)';
+                boatCard.style.transform = 'scale(1.03)';
+            }
+
+            // Create tooltip content
+            tooltip.innerHTML = `
+                <div style="font-weight: bold; color: #4285f4; margin-bottom: 5px; font-size: 14px; text-align: center; border-bottom: 1px solid #4285f4; padding-bottom: 5px;">
+                    ${boat.name}
+                </div>
+                <div style="margin: 5px 0; font-style: italic; font-size: 11px; color: #aaccff;">
+                    ${boat.description}
+                </div>
+                <div style="margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Speed:</span>
+                        <div style="width: 100px; background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin-left: 10px; overflow: hidden;">
+                            <div style="width: ${boat.stats.speed}%; height: 100%; background: linear-gradient(to right, #00ff00, #aaff00); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Damage:</span>
+                        <div style="width: 100px; background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin-left: 10px; overflow: hidden;">
+                            <div style="width: ${boat.stats.damage}%; height: 100%; background: linear-gradient(to right, #ff0000, #ff7700); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Health:</span>
+                        <div style="width: 100px; background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin-left: 10px; overflow: hidden;">
+                            <div style="width: ${boat.stats.health}%; height: 100%; background: linear-gradient(to right, #0077ff, #00ffff); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Maneuver:</span>
+                        <div style="width: 100px; background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin-left: 10px; overflow: hidden;">
+                            <div style="width: ${boat.stats.maneuverability}%; height: 100%; background: linear-gradient(to right, #aa00ff, #ff00ff); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 10px; text-align: right; color: #aaa; font-style: italic;">
+                    ${boat.category} Class - ${boat.size} Size
+                </div>
+            `;
+
+            // Position tooltip
+            const rect = boatCard.getBoundingClientRect();
+            const tooltipWidth = 250;
+
+            // Important: Make sure tooltip doesn't overlap the card
+            tooltip.style.width = `${tooltipWidth}px`;
+            tooltip.style.top = `${rect.top - 10 - tooltip.offsetHeight}px`;
+            tooltip.style.left = `${rect.left + (rect.width / 2) - (tooltipWidth / 2)}px`;
+
+            // Ensure pointerEvents is none
+            tooltip.style.pointerEvents = 'none';
+
+            // Make sure the tooltip is displayed
+            tooltip.style.display = 'block';
+
+            // Set a small timeout before showing to prevent flickering
+            tooltipTimeout = setTimeout(() => {
+                tooltip.style.opacity = '1';
+            }, 50);
+        });
+
+        // Make sure the mouseout handler preserves the correct styling for selected cards
+        boatCard.addEventListener('mouseout', (event) => {
+            // Only reset styling if not the selected card
+            if (boat.id !== selectedBoatId) {
+                boatCard.style.backgroundColor = 'rgba(20, 40, 70, 0.5)';
+                boatCard.style.transform = 'scale(1)';
+            } else {
+                // Maintain selected card appearance
+                boatCard.style.backgroundColor = 'rgba(66, 133, 244, 0.3)';
+                boatCard.style.transform = 'scale(1.05)';
+            }
+
+            // Handle tooltip hiding
+            if (currentTooltipCard === boatCard) {
+                if (tooltipTimeout) {
+                    clearTimeout(tooltipTimeout);
+                }
+
+                tooltipTimeout = setTimeout(() => {
+                    if (currentTooltipCard === boatCard) {
+                        tooltip.style.opacity = '0';
+
+                        setTimeout(() => {
+                            if (currentTooltipCard === boatCard) {
+                                tooltip.style.display = 'none';
+                                currentTooltipCard = null;
+                            }
+                        }, 200);
+                    }
+                }, 50);
+            }
+        });
+
+        // Add debugging for events - uncomment if needed
+        /*
+        boatCard.addEventListener('mousedown', (e) => {
+            console.log(`Mouse down on ${boat.id}`);
+        });
+        
+        boatCard.addEventListener('mouseup', (e) => {
+            console.log(`Mouse up on ${boat.id}`);
+        });
+        */
+
+        // Make sure card is properly styled initially
+        if (boat.id === selectedBoatId) {
+            boatCard.style.backgroundColor = 'rgba(66, 133, 244, 0.3)';
+            boatCard.style.border = '2px solid #4285f4';
+            boatCard.style.transform = 'scale(1.05)';
+        }
+
+        boatSelectionContainer.appendChild(boatCard);
+    });
+
     // Submit button
     const submitButton = document.createElement('button');
     submitButton.textContent = 'Start Sailing';
@@ -471,14 +815,16 @@ export function showLoginScreen(onComplete) {
         submitButton.style.backgroundColor = '#4285f4';
     });
 
-    // Handle form submission - KEEPING ORIGINAL FUNCTIONALITY
+    // Handle form submission - MODIFIED TO INCLUDE BOAT SELECTION
     submitButton.addEventListener('click', () => {
         playerName = nameInput.value.trim() || nameInput.value;
         playerColor = colorInput.value;
+        const selectedBoat = selectedBoatId; // Store the selected boat
 
         // Save directly to localStorage here
         localStorage.setItem('playerName', playerName);
         localStorage.setItem('playerColor', playerColor);
+        localStorage.setItem('playerBoat', selectedBoat); // Save boat selection
         // Add the completion flag
         localStorage.setItem('hasCompletedLogin', 'true');
 
@@ -492,6 +838,11 @@ export function showLoginScreen(onComplete) {
         if (onComplete && typeof onComplete === 'function') {
             console.log("🔔 Main: Login screen completed, calling callback");
             onComplete();
+        }
+
+        // Clean up tooltip
+        if (tooltip && tooltip.parentNode) {
+            tooltip.parentNode.removeChild(tooltip);
         }
     });
 

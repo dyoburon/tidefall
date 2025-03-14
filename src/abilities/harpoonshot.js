@@ -21,9 +21,21 @@ class HarpoonShot {
         this.attachedEnemy = null;
         this.firingPosition = null;
         this.isAttached = false;
+        this.isReeling = false;  // Track if we're reeling in the harpoon
+        this.isPersisting = false; // Track if harpoon is in persistence state
+        this.isReset = true; // Track if harpoon is in ready state
+
+        // Reeling speed (units per second)
+        this.reelingSpeed = 30;
 
         // Fixed position on the boat front where the harpoon is fired from
         this.harpoonPosition = { x: 0, y: 2, z: -4 }; // Front of boat
+
+        // Make sure this ability is updated even when not active
+        this.alwaysUpdate = true;
+
+        // Flag to help with background execution
+        this.isExecuting = false;
     }
 
     onAimStart(crosshair) {
@@ -37,6 +49,16 @@ class HarpoonShot {
     }
 
     onExecute(targetPosition) {
+        // If we're already reeling, don't fire again
+        if (this.isReeling) return true;
+
+        // If harpoon is already fired but not reeling, start reeling instead of firing again
+        if (this.harpoon && !this.isReset) {
+            console.log('Harpoon already fired, starting reeling...');
+            this.startReeling();
+            return true;
+        }
+
         console.log('Harpoon Shot Executed at:', targetPosition);
 
         // Get harpoon firing position (from front of boat)
@@ -49,24 +71,63 @@ class HarpoonShot {
 
         // Create and fire the harpoon
         this.fireHarpoon(this.firingPosition, direction, targetPosition);
+
+        // Mark as executing - this helps with background tracking
+        this.isExecuting = true;
+        this.isReset = false;
+
+        return true;
     }
 
     onCancel() {
         console.log('Harpoon Shot Canceled');
-        // If we implement a way to detach the harpoon manually, it would go here
+
+        // Only do something if harpoon exists and we're not already reeling
+        if (!this.harpoon || this.isReeling) return true;
+
+        // Start reeling in the harpoon
+        if (this.isAttached || this.isPersisting) {
+            console.log('Reeling in harpoon...');
+            this.startReeling();
+        }
+
+        return false; // Don't fully cancel yet - wait until reeling is complete
     }
 
     update(deltaTime) {
-        // Update the harpoon line if attached
-        if (this.isAttached && this.harpoon && this.harpoonLine) {
-            // Update the line's start position (should follow the boat)
+        // IMPORTANT: Always update the harpoon line if it exists, regardless of state
+        if (this.harpoonLine) {
+            // Get current boat position where the harpoon is attached
             const startPos = this.getHarpoonFiringPosition();
-            this.updateHarpoonLine(startPos, this.harpoon.position);
+
+            // Get end position (either harpoon position or attached enemy)
+            let endPos;
+            if (this.harpoon) {
+                endPos = this.harpoon.position;
+            } else {
+                // If somehow harpoon is missing but line exists, use the boat position
+                // This should not happen but prevents errors
+                endPos = startPos.clone();
+            }
+
+            // Update the line EVERY frame
+            this.updateHarpoonLine(startPos, endPos);
 
             // If attached to an enemy, update position to follow enemy
-            if (this.attachedEnemy) {
+            if (this.isAttached && this.attachedEnemy) {
                 this.harpoon.position.copy(this.attachedEnemy.mesh.position);
             }
+
+            // Handle reeling in the harpoon
+            if (this.isReeling && this.harpoon) {
+                this.updateReeling(deltaTime);
+            }
+        }
+
+        // If harpoon exists but somehow there's no line, recreate the line
+        if (this.harpoon && !this.harpoonLine) {
+            console.log("Harpoon exists but line is missing, recreating line");
+            this.createHarpoonLine(this.getHarpoonFiringPosition(), this.harpoon.position);
         }
     }
 
@@ -107,27 +168,14 @@ class HarpoonShot {
 
         // Animate the harpoon
         const startTime = getTime();
-        const maxDistance = 150; // Maximum travel distance
         const initialPosition = position.clone();
         let verticalVelocity = 0; // Simple vertical velocity, starts at 0
 
         const animateHarpoon = () => {
             if (!this.harpoon) return; // Safety check
 
-            const elapsedTime = (getTime() - startTime) / 1000;
-            console.log("Harpoon elapsed time:", elapsedTime, "seconds");
-
-            if (this.isAttached) {
-                // Harpoon is attached, stop animation
-                return;
-            }
-
-            // Move harpoon
-            const distanceTraveled = this.harpoon.position.distanceTo(initialPosition);
-            if (distanceTraveled > maxDistance) {
-                console.log("Harpoon reached max distance. Will remove in 1 second.");
-                // Add a 1 second delay before removing
-                setTimeout(() => this.removeHarpoon(), 1000);
+            if (this.isAttached || this.isReeling) {
+                // Harpoon is attached or reeling, stop animation
                 return;
             }
 
@@ -136,25 +184,24 @@ class HarpoonShot {
             this.harpoon.position.add(direction.clone().multiplyScalar(moveStep));
 
             // Apply very simple gravity
-            verticalVelocity -= this.gravity * 0.16; // Increase downward velocity each frame
-            this.harpoon.position.y += verticalVelocity; // Apply vertical velocity to position
+            verticalVelocity -= this.gravity * 0.16;
+            this.harpoon.position.y += verticalVelocity;
 
-            // Update the line
-            this.updateHarpoonLine(this.getHarpoonFiringPosition(), this.harpoon.position);
+            // Note: We don't need to update the line here anymore since the main update() does it
 
             // Check for enemy collisions
             this.checkEnemyCollisions();
 
             // Check for water collision
             if (this.harpoon.position.y <= 0) {
-                console.log("Harpoon hit water. Will remove in 1 second.");
-                // Add a 1 second delay before removing
-                setTimeout(() => this.removeHarpoon(), 1000);
+                console.log("Harpoon hit water, persisting until R is pressed again.");
+                this.isPersisting = true;
+                this.harpoon.position.y = 0.1; // Keep slightly above water
                 return;
             }
 
-            // Continue animation if not attached
-            if (!this.isAttached) {
+            // Continue animation unless attached
+            if (!this.isAttached && !this.isReeling) {
                 requestAnimationFrame(animateHarpoon);
             }
         };
@@ -164,43 +211,53 @@ class HarpoonShot {
     }
 
     createHarpoonLine(startPos, endPos) {
-        // Create line geometry
-        const lineGeometry = new THREE.BufferGeometry();
-        const lineMaterial = new THREE.LineBasicMaterial({
-            color: 0x444444,
-            linewidth: 2 // Note: line width may not work on all renderers
+        // First remove any existing line
+        if (this.harpoonLine) {
+            scene.remove(this.harpoonLine);
+            if (this.harpoonLine.geometry) this.harpoonLine.geometry.dispose();
+            if (this.harpoonLine.material) this.harpoonLine.material.dispose();
+            this.harpoonLine = null;
+        }
+
+        // REPLACE SIMPLE LINE WITH TUBE GEOMETRY
+        // Calculate direction and length
+        const direction = new THREE.Vector3().subVectors(endPos, startPos);
+        const length = direction.length();
+
+        // Create a tube geometry instead of a line
+        // This will be visible from all angles
+        const tubeRadius = 0.1; // Thickness of the rope/tube
+        const tubeRadialSegments = 8; // Level of detail around the tube
+        const path = new THREE.LineCurve3(startPos, endPos);
+        const tubeGeometry = new THREE.TubeGeometry(
+            path,
+            1,         // Path segments - just 1 for a straight line
+            tubeRadius,
+            tubeRadialSegments,
+            false      // Closed - false for an open tube
+        );
+
+        // Create a bright material that will be visible from all angles
+        const tubeMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFF4444,
+            side: THREE.DoubleSide, // Important: render both sides
+            transparent: true,
+            opacity: 0.8
         });
 
-        // Set line points
-        const points = [
-            new THREE.Vector3(startPos.x, startPos.y, startPos.z),
-            new THREE.Vector3(endPos.x, endPos.y, endPos.z)
-        ];
-        lineGeometry.setFromPoints(points);
+        // Create the tube/rope mesh
+        this.harpoonLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+        this.harpoonLine.name = "HarpoonRope";
 
-        // Create line and add to scene
-        this.harpoonLine = new THREE.Line(lineGeometry, lineMaterial);
+        // Add to scene
         scene.add(this.harpoonLine);
+        console.log("Created new harpoon rope using tube geometry");
     }
 
     updateHarpoonLine(startPos, endPos) {
-        if (!this.harpoonLine) return;
-
-        // Update line positions
-        const positions = this.harpoonLine.geometry.attributes.position.array;
-
-        // Start point
-        positions[0] = startPos.x;
-        positions[1] = startPos.y;
-        positions[2] = startPos.z;
-
-        // End point
-        positions[3] = endPos.x;
-        positions[4] = endPos.y;
-        positions[5] = endPos.z;
-
-        // Flag the attribute for update
-        this.harpoonLine.geometry.attributes.position.needsUpdate = true;
+        // For tube geometry, it's easier to just recreate it
+        // when the positions change rather than updating vertices
+        this.createHarpoonLine(startPos, endPos);
     }
 
     checkEnemyCollisions() {
@@ -249,6 +306,55 @@ class HarpoonShot {
         }
     }
 
+    startReeling() {
+        // Start reeling in the harpoon
+        this.isReeling = true;
+
+        // If attached to an enemy, detach
+        if (this.attachedEnemy) {
+            console.log("Detaching from enemy");
+
+            // Flash the monster to indicate detachment
+            flashMonsterRed(this.attachedEnemy, false);
+
+            this.isAttached = false;
+            this.attachedEnemy = null;
+        }
+
+        // Change line color to indicate reeling
+        if (this.harpoonLine.material) {
+            this.harpoonLine.material.color.set(0x00ff00); // Green when reeling
+        }
+    }
+
+    updateReeling(deltaTime) {
+        if (!this.harpoon || !this.isReeling) return;
+
+        const boatPosition = this.getHarpoonFiringPosition();
+        const direction = new THREE.Vector3().subVectors(boatPosition, this.harpoon.position);
+        const distance = direction.length();
+
+        // SIMPLIFIED: Only remove harpoon when it's very close to the boat
+        if (distance < 3) {
+            console.log("Harpoon reeled in completely");
+            this.removeHarpoon();
+            return;
+        }
+
+        // Normalize direction and move harpoon toward boat
+        direction.normalize();
+
+        // Move at reeling speed, scaled by deltaTime for frame rate independence
+        const moveAmount = this.reelingSpeed * (deltaTime || 0.016);
+        this.harpoon.position.add(direction.multiplyScalar(moveAmount));
+
+        // Update harpoon rotation to point along movement direction
+        this.harpoon.quaternion.setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0), // Default cone points up
+            direction.clone().negate() // Point toward movement direction
+        );
+    }
+
     removeHarpoon() {
         // Clean up harpoon and line
         if (this.harpoon) {
@@ -260,13 +366,34 @@ class HarpoonShot {
 
         if (this.harpoonLine) {
             scene.remove(this.harpoonLine);
-            this.harpoonLine.geometry.dispose();
-            this.harpoonLine.material.dispose();
+            if (this.harpoonLine.geometry) this.harpoonLine.geometry.dispose();
+            if (this.harpoonLine.material) this.harpoonLine.material.dispose();
             this.harpoonLine = null;
         }
 
         this.isAttached = false;
+        this.isReeling = false;
+        this.isPersisting = false;
         this.attachedEnemy = null;
+
+        // Mark as no longer executing
+        this.isExecuting = false;
+        this.isReset = true;
+
+        // Let the AbilityManager know we're fully reset
+        if (window.abilityManager) {
+            window.abilityManager.notifyAbilityReset(this.id);
+        }
+    }
+
+    // Convenience method to check if harpoon is in use
+    isHarpoonInUse() {
+        return !this.isReset;
+    }
+
+    // Utility to check if this ability should stay active in background
+    shouldKeepActive() {
+        return this.isExecuting && !this.isReset;
     }
 }
 
