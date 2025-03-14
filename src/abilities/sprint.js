@@ -1,4 +1,4 @@
-import { shipSpeedConfig } from '../core/shipController.js';
+import { shipSpeedConfig, preserveMomentum } from '../core/shipController.js';
 import FastShipEffect from '../animations/fastShipEffect.js';
 import { zoomOutForSpeed, resetZoom } from '../controls/cameraControls.js';
 
@@ -29,6 +29,9 @@ class Sprint {
         // Fast ship effect reference (initialized on first activation)
         this.speedEffect = null;
         this.effectInitialized = false;
+
+        // Add momentum settings
+        this.momentumDuration = 1.5;  // How long momentum lasts after sprint ends
     }
 
     /**
@@ -111,8 +114,9 @@ class Sprint {
      * Called both from manual cancel and auto-timeout
      */
     deactivateSprint() {
-        // Restore original speed
-        shipSpeedConfig.speedMultiplier = this.originalMultiplier;
+        // Preserve momentum instead of immediately resetting speed
+        const currentMultiplier = shipSpeedConfig.speedMultiplier;
+        preserveMomentum(currentMultiplier, this.originalMultiplier, this.momentumDuration);
 
         // Set inactive state
         this.isActive = false;
@@ -122,10 +126,14 @@ class Sprint {
             this.speedEffect.deactivate();
         }
 
-        // Reset camera zoom back to default
-        resetZoom();
+        // Reset camera zoom back to default - but with a slight delay to match momentum
+        // This creates a more natural feel where the camera stays zoomed out briefly
+        // as the ship maintains momentum
+        setTimeout(() => {
+            resetZoom();
+        }, this.momentumDuration * 500); // Half the momentum duration in milliseconds
 
-        console.log('Sprint ended');
+        console.log('Sprint ended with momentum preservation');
     }
 
     /**

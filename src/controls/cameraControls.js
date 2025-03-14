@@ -6,7 +6,7 @@ const ORBIT_SENSITIVITY = 0.01; // Rotation sensitivity
 const MIN_POLAR_ANGLE = 0.1; // Minimum angle (don't go completely overhead)
 const MAX_POLAR_ANGLE = Math.PI / 2 - 0.1; // Maximum angle (don't go below horizon)
 const MIN_DISTANCE = 5; // Minimum distance from boat
-const MAX_DISTANCE = 500; // Maximum distance from boat
+const MAX_DISTANCE = 250; // Maximum distance from boat
 const DEFAULT_DISTANCE = 50; // Increased default distance (was 15)
 
 // Camera state
@@ -21,7 +21,7 @@ let cameraOrbitPosition = {
 // Track if we're currently in a zoom transition
 let isZooming = false;
 let zoomTarget = 120;
-let zoomSpeed = 150.0; // How fast to zoom (units per second)
+let zoomSpeed = 350.0; // How fast to zoom (units per second)
 
 // Initialize camera controls
 export function initCameraControls() {

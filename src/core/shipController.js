@@ -47,6 +47,32 @@ const SHIP_CONFIG = {
     windDriftStrength: 0.00003      // Affected by wind due to light weight
 };
 
+// Update the momentum variables at the top
+let momentumActive = false;
+let momentumMultiplier = 1.0;
+let momentumDecayRate = 0.5;
+let originalSpeedMultiplier = 1.0; // Store original multiplier
+
+/**
+ * Preserves current momentum by gradually decreasing speed from current value
+ * @param {number} fromMultiplier - The speed multiplier we're coming from
+ * @param {number} toMultiplier - The target multiplier to decay to
+ * @param {number} decayDuration - How long the decay should take (seconds)
+ */
+export function preserveMomentum(fromMultiplier, toMultiplier, decayDuration = 1.5) {
+    // Store the current and target speed multipliers
+    momentumMultiplier = fromMultiplier;
+    originalSpeedMultiplier = toMultiplier;
+
+    // Calculate decay rate based on the difference and duration
+    momentumDecayRate = (fromMultiplier - toMultiplier) / decayDuration;
+
+    // Activate momentum preservation
+    momentumActive = true;
+
+    console.log(`🚀 Preserving momentum: ${fromMultiplier.toFixed(2)} → ${toMultiplier.toFixed(2)} over ${decayDuration.toFixed(1)}s`);
+}
+
 export function updateShipMovement(deltaTime) {
     // Get wind info for sailing mechanics
     const windData = getWindData();
@@ -120,6 +146,24 @@ export function updateShipMovement(deltaTime) {
     // Apply acceleration with force multiplier
     boatVelocity.add(acceleration.multiplyScalar(deltaTime * 60 *
         (shipSpeedConfig.speedMultiplier > 1.0 ? Math.sqrt(shipSpeedConfig.speedMultiplier) : 1.0)));
+
+    // Process momentum decay if active
+    if (momentumActive) {
+        // Decay the momentum multiplier
+        momentumMultiplier -= momentumDecayRate * deltaTime;
+
+        // Check if we've reached or gone below the target multiplier
+        if (momentumMultiplier <= originalSpeedMultiplier) {
+            // End momentum and restore original multiplier
+            momentumActive = false;
+            momentumMultiplier = originalSpeedMultiplier;
+            shipSpeedConfig.speedMultiplier = originalSpeedMultiplier;
+            console.log("🚀 Momentum fully decayed, speed restored to", originalSpeedMultiplier.toFixed(2));
+        } else {
+            // Set the current speed multiplier to the decaying momentum value
+            shipSpeedConfig.speedMultiplier = momentumMultiplier;
+        }
+    }
 
     // Maximum speed logic
     const playerMaxSpeed = shipSpeedConfig.basePlayerSpeed * shipSpeedConfig.speedMultiplier;
