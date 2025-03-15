@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { boat, scene, getTime } from '../core/gameState.js';
-import { getMonsters, flashMonsterRed } from '../entities/seaMonsters.js';
-
+import { flashMonsterRed } from '../entities/seaMonsters.js';
+import { getAllMonsters } from '../entities/monsterManager.js';
 /**
  * Harpoon Shot ability - Fires a harpoon towards the target location.
  * If it hits an enemy, it attaches to them.
@@ -264,7 +264,7 @@ class HarpoonShot {
         if (!this.harpoon || this.isAttached) return;
 
         // Get monsters from seaMonsters.js
-        const monsters = getMonsters();
+        const monsters = getAllMonsters();
 
         if (monsters && monsters.length > 0) {
             for (const monster of monsters) {

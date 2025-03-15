@@ -6,6 +6,8 @@ import {
     maxViewDistance
 } from './chunkControl.js';
 import { boat, scene } from '../core/gameState.js';
+// Import monster manager for spawning
+import { createMonster, getAllMonsters } from '../entities/monsterManager.js';
 
 // Entity tracking by type and chunk
 const entityChunkMap = {
@@ -18,6 +20,9 @@ const inactiveEntityStates = {
     birds: new Map(),     // Maps chunk key → array of entity states
     monsters: new Map(),
 };
+
+// Track which chunks have already been populated with entities
+const populatedChunks = new Set();
 
 /**
  * Register an entity with the chunk system
@@ -156,13 +161,79 @@ export function getVisibleChunks() {
 }
 
 /**
- * Update all entity types
+ * Update all entity types and handle spawning in new chunks
  */
 export function updateAllEntityChunks() {
     const visibleChunks = getVisibleChunks();
 
-    // Individual entity systems will call updateEntityVisibility with their specific handlers
-    // This function mainly exists as a central update point if needed
+    // Check for newly visible chunks that need population
+    visibleChunks.forEach(chunkKey => {
+        if (!populatedChunks.has(chunkKey) && !inactiveEntityStates.monsters.has(chunkKey)) {
+            // This is a new chunk with no saved monsters - populate it
+            populateChunkWithEntities(chunkKey);
+            populatedChunks.add(chunkKey);
+        }
+    });
 
     return visibleChunks; // Return for use by entity systems
+}
+
+/**
+ * Populate a chunk with appropriate entities
+ * @param {string} chunkKey - Key of the chunk to populate
+ */
+function populateChunkWithEntities(chunkKey) {
+    // Extract chunk coordinates from key
+    const [chunkX, chunkZ] = chunkKey.split(',').map(Number);
+
+    // BIRDS: Birds are handled separately in birds.js
+
+    // MONSTERS: Spawn monsters in this chunk
+    populateChunkWithMonsters(chunkKey, chunkX, chunkZ);
+}
+
+/**
+ * Populate a chunk with monsters
+ * @param {string} chunkKey - Chunk key 
+ * @param {number} chunkX - Chunk X coordinate
+ * @param {number} chunkZ - Chunk Z coordinate
+ */
+function populateChunkWithMonsters(chunkKey, chunkX, chunkZ) {
+    // First check if this chunk already has monsters (from entity map)
+    let chunkHasMonsters = false;
+    entityChunkMap.monsters.forEach((existingChunkKey, monster) => {
+        if (existingChunkKey === chunkKey) {
+            chunkHasMonsters = true;
+        }
+    });
+
+    // Skip if already has monsters
+    if (chunkHasMonsters) return;
+
+    // Random chance to have monsters in this chunk (70%)
+    if (Math.random() < 0.7) {
+        // Determine how many monsters to spawn (1-3)
+        const monstersToSpawn = 1 + Math.floor(Math.random() * 2);
+
+        // Available monster types (hardcoded for now, could be made configurable)
+        const monsterTypes = ['yellowBeast']; // Add more as they're implemented
+
+        for (let i = 0; i < monstersToSpawn; i++) {
+            // Select random monster type
+            const monsterType = monsterTypes[Math.floor(Math.random() * monsterTypes.length)];
+
+            // Calculate position within chunk (add some randomness)
+            const posX = chunkX * chunkSize + Math.random() * chunkSize;
+            const posZ = chunkZ * chunkSize + Math.random() * chunkSize;
+
+            // Create monster via the monster manager
+            const monster = createMonster(monsterType);
+            if (monster) {
+                // Position the monster
+                monster.mesh.position.set(posX, -20, posZ); // -20 = underwater
+
+                console.log(`Populated chunk ${chunkKey} with ${monsterType} at ${posX.toFixed(0)}, -20, ${posZ.toFixed(0)}`);
+            }
+        }
+    }
 } 
