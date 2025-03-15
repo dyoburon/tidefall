@@ -6,20 +6,27 @@ import { flashBoatDamage } from '../entities/character.js'; // Add this import
 import { getFishInventory } from '../gameplay/fishing.js'; // Import the fish inventory
 import { createTreasureDrop, updateTreasures, initTreasureSystem } from '../gameplay/treasure.js';
 import { applyOutline, removeOutline } from '../theme/outlineStyles.js';
+import {
+    YELLOW_BEAST_TYPE,
+    YELLOW_BEAST_HEALTH,
+    createYellowBeastMonster as createYellowBeast,
+    animateTentacles,
+    applyYellowBeastStyle
+} from './monsters/yellowBeastMonster.js';
 
 // Sea monster configuration
-const MONSTER_COUNT = 0;
+const MONSTER_COUNT = 5;
 const MONSTER_TYPES = {
-    YELLOW_BEAST: 'yellowBeast',   // Original monster
+    YELLOW_BEAST: YELLOW_BEAST_TYPE,   // Use the imported constant
     KRAKEN: 'kraken',              // New octopus-like monster
     SEA_SERPENT: 'seaSerpent',     // New serpent monster
     PHANTOM_JELLYFISH: 'phantomJellyfish' // New jellyfish monster
 };
 const MONSTER_TYPE_WEIGHTS = {
-    [MONSTER_TYPES.YELLOW_BEAST]: 0.4,    // 40% chance
-    [MONSTER_TYPES.KRAKEN]: 0.2,          // 20% chance
-    [MONSTER_TYPES.SEA_SERPENT]: 0.2,     // 20% chance 
-    [MONSTER_TYPES.PHANTOM_JELLYFISH]: 0.2 // 20% chance
+    [MONSTER_TYPES.YELLOW_BEAST]: 1.0,    // 40% chance
+    [MONSTER_TYPES.KRAKEN]: 0.0,          // 20% chance
+    [MONSTER_TYPES.SEA_SERPENT]: 0.0,     // 20% chance 
+    [MONSTER_TYPES.PHANTOM_JELLYFISH]: 0.0 // 20% chance
 };
 const MONSTER_SPEED = 0.11;
 const MONSTER_DETECTION_RANGE = 200;
@@ -78,13 +85,13 @@ export function setupSeaMonsters(boat) {
             // Create monster based on type
             switch (monsterType) {
                 case MONSTER_TYPES.KRAKEN:
-                    createKrakenMonster();
+                    //createKrakenMonster();
                     break;
                 case MONSTER_TYPES.SEA_SERPENT:
                     //createSeaSerpentMonster();
                     break;
                 case MONSTER_TYPES.PHANTOM_JELLYFISH:
-                    createPhantomJellyfishMonster();
+                    //createPhantomJellyfishMonster();
                     break;
                 case MONSTER_TYPES.YELLOW_BEAST:
                 default:
@@ -338,10 +345,9 @@ export function updateSeaMonsters(deltaTime) {
             // Apply special behaviors based on monster type
             updateSpecialMonsterBehaviors(monster, deltaTime);
 
-            // Only run default tentacle animation for original yellow monster
-            // (other monsters handle their own animations in updateSpecialMonsterBehaviors)
+            // Only run Yellow Beast tentacle animation for original yellow monster
             if (monster.monsterType === MONSTER_TYPES.YELLOW_BEAST) {
-                animateTentacles(monster, deltaTime);
+                animateTentacles(monster, deltaTime, getTime());
             }
 
             // Ensure monster stays within world bounds
@@ -733,100 +739,18 @@ export function getMonsters() {
 }
 
 function createYellowBeastMonster() {
-    // Create monster group
-    const monster = new THREE.Group();
+    // Get the monster components from the module
+    const yellowBeast = createYellowBeast();
 
-    // Create body with bright yellow color
-    const bodyGeometry = new THREE.ConeGeometry(5, 20, 8);
-    bodyGeometry.rotateX(-Math.PI / 2); // Point forward
-
-    const bodyMaterial = new THREE.MeshPhongMaterial({
-        color: 0xffff00, // Bright yellow
-        specular: 0xffffaa,
-        shininess: 50
-    });
-
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    monster.add(body);
-
-    // Create eyes - red for contrast with yellow body
-    const eyeGeometry = new THREE.SphereGeometry(1, 8, 8);
-    const eyeMaterial = new THREE.MeshPhongMaterial({
-        color: 0xff0000,
-        emissive: 0xaa0000
-    });
-
-    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    leftEye.position.set(-2, 2, -8);
-    monster.add(leftEye);
-
-    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    rightEye.position.set(2, 2, -8);
-    monster.add(rightEye);
-
-    // Create tentacles - also yellow
-    const tentacleGeometry = new THREE.CylinderGeometry(1, 0.2, 15, 8);
-    const tentacleMaterial = new THREE.MeshPhongMaterial({
-        color: 0xffff00, // Bright yellow
-        specular: 0xffffaa,
-        shininess: 30
-    });
-
-    const tentaclePositions = [
-        [-3, -2, 5],
-        [3, -2, 5],
-        [-5, -2, 0],
-        [5, -2, 0],
-        [-3, -2, -5],
-        [3, -2, -5]
-    ];
-
-    const tentacles = [];
-
-    tentaclePositions.forEach((pos, index) => {
-        const tentacle = new THREE.Mesh(tentacleGeometry, tentacleMaterial);
-        tentacle.position.set(pos[0], pos[1], pos[2]);
-
-        // Rotate tentacles to hang down
-        tentacle.rotation.x = Math.PI / 2;
-
-        // Add some random rotation
-        tentacle.rotation.z = Math.random() * Math.PI * 2;
-
-        monster.add(tentacle);
-        tentacles.push(tentacle);
-    });
-
-    // Add prominent dorsal fin that sticks out of water
-    const finGeometry = new THREE.BoxGeometry(12, 1, 8);
-    finGeometry.translate(0, 5, 0); // Move up so it sticks out of water
-
-    const finMaterial = new THREE.MeshPhongMaterial({
-        color: 0xffff00, // Bright yellow
-        specular: 0xffffaa,
-        shininess: 50
-    });
-
-    const dorsalFin = new THREE.Mesh(finGeometry, finMaterial);
-    dorsalFin.position.set(0, 8, 0); // Position high on the monster
-    dorsalFin.rotation.y = Math.PI / 2; // Orient correctly
-    monster.add(dorsalFin);
-
-    // Add side fins that also stick out
-    const leftFin = new THREE.Mesh(finGeometry, finMaterial);
-    leftFin.position.set(-6, 2, 0);
-    leftFin.rotation.z = Math.PI / 4; // Angle outward
-    leftFin.scale.set(0.7, 0.7, 0.7); // Slightly smaller
-    monster.add(leftFin);
-
-    const rightFin = new THREE.Mesh(finGeometry, finMaterial);
-    rightFin.position.set(6, 2, 0);
-    rightFin.rotation.z = -Math.PI / 4; // Angle outward
-    rightFin.scale.set(0.7, 0.7, 0.7); // Slightly smaller
-    monster.add(rightFin);
-
-    // Position and configure monster
-    setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, MONSTER_TYPES.YELLOW_BEAST);
+    // Position monster 
+    setupMonsterPosition(
+        yellowBeast.mesh,
+        yellowBeast.tentacles,
+        yellowBeast.dorsalFin,
+        yellowBeast.leftFin,
+        yellowBeast.rightFin,
+        MONSTER_TYPES.YELLOW_BEAST
+    );
 }
 
 function setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, monsterType) {
@@ -896,8 +820,9 @@ function getMonsterHealth(monsterType) {
         case MONSTER_TYPES.PHANTOM_JELLYFISH:
             return 3; // Fragile but dangerous
         case MONSTER_TYPES.YELLOW_BEAST:
+            return YELLOW_BEAST_HEALTH; // Use the imported health value
         default:
-            return 3; // Original monster health
+            return 3; // Default health
     }
 }
 
@@ -1563,49 +1488,22 @@ export function handleMonsterTreasureDrop(monster) {
 function applyMonsterStyle(monster) {
     const monsterType = monster.monsterType;
 
-    // Define style options based on monster type
-    const styleOptions = {
-        recursive: true,  // Apply to all meshes in the monster
-        scale: 1.07       // Default outline thickness
-    };
-
-    // Customize style per monster type
+    // Apply style based on monster type
     switch (monsterType) {
-        case MONSTER_TYPES.KRAKEN:
-            styleOptions.material = new THREE.MeshBasicMaterial({
-                color: 0x000000,  // Dark red outline for Kraken
-                side: THREE.BackSide
-            });
-            break;
-
-        case MONSTER_TYPES.PHANTOM_JELLYFISH:
-            styleOptions.material = new THREE.MeshBasicMaterial({
-                color: 0x000000,  // Purple outline for jellyfish
-                side: THREE.BackSide,
-                transparent: true
-            });
-            styleOptions.scale = 1.09;  // Slightly thicker outline
-            break;
-
-        case MONSTER_TYPES.SEA_SERPENT:
-            styleOptions.material = new THREE.MeshBasicMaterial({
-                color: 0x000000,  // Dark green outline for serpent
-                side: THREE.BackSide
-            });
-            break;
-
         case MONSTER_TYPES.YELLOW_BEAST:
+            applyYellowBeastStyle(monster);
+            break;
+
+        case MONSTER_TYPES.KRAKEN:
+            // ... existing code ...
+            break;
+
+        // ... other monster types ...
+
         default:
-            styleOptions.material = new THREE.MeshBasicMaterial({
-                color: 0x000000,  // Black outline for yellow beast
-                side: THREE.BackSide
-            });
-            styleOptions.scale = 1.05;  // Slightly thinner outline
+            // ... existing default code ...
             break;
     }
-
-    // Apply the outline
-    applyOutline(monster.mesh, styleOptions);
 }
 
 // Export function to remove monster outline

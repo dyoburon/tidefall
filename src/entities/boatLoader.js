@@ -32,7 +32,7 @@ export const SHIP_MODELS = {
         path: '/mediumpirate.glb',
         scale: 20.0,
         position: [0, 7, 0],
-        rotation: [0, 0, 0],  // Change to 0 rotation (no rotation)
+        rotation: [0, Math.PI, 0],  // Change to 0 rotation (no rotation)
         // Gameplay attributes
         speed: 0.9,         // Balanced speed
         turnRate: 0.8,      // Balanced turning
