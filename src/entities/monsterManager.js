@@ -6,10 +6,22 @@ import {
     updateEntityVisibility,
     getVisibleChunks
 } from '../world/chunkEntityController.js';
+import { registerSeaMonsterTypes } from './seaMonsters.js';
 
 // Central registry of monster types
 const monsterTypes = new Map();
 const activeMonsters = []; // All active monsters
+
+/**
+ * Initialize the monster manager
+ * Register all monster types
+ */
+export function initMonsterManager() {
+    // Register all sea monster types
+    registerSeaMonsterTypes();
+
+    console.log("Monster manager initialized with all monster types");
+}
 
 /**
  * Register a monster type with the system
@@ -37,24 +49,102 @@ export function createMonster(typeId, options = {}) {
         return null;
     }
 
-    // Call the type's creation function
-    const monster = typeInfo.createFn(options);
+    // Debug output to help diagnose issues
+    console.log(`Creating monster of type: ${typeId} with options:`, options);
 
-    // Set common properties
-    monster.typeId = typeId;
-    monster.createdAt = getTime();
+    try {
+        // Call the type's creation function
+        const monster = typeInfo.createFn(options);
 
-    // Add to scene
-    scene.add(monster.mesh);
+        // Safety check - if creation function didn't return a valid monster
+        if (!monster || !monster.mesh) {
+            console.error(`Creation function for ${typeId} did not return a valid monster object`);
+            return null;
+        }
 
-    // Register with entity chunk system
-    registerEntity('monsters', monster, monster.mesh.position);
+        // Set common properties
+        monster.typeId = typeId;
+        monster.createdAt = getTime();
 
-    // Add to active lists
-    activeMonsters.push(monster);
-    typeInfo.activeInstances.push(monster);
+        // Set monster health based on type
+        if (!monster.health) {
+            monster.health = getMonsterTypeHealth(typeId);
+        }
 
-    return monster;
+        // Add to scene
+        scene.add(monster.mesh);
+
+        // Register with entity chunk system
+        registerEntity('monsters', monster, monster.mesh.position);
+
+        // Add to active lists
+        activeMonsters.push(monster);
+        typeInfo.activeInstances.push(monster);
+
+        console.log(`Successfully created ${typeId} monster`);
+        return monster;
+    } catch (error) {
+        console.error(`Error creating monster of type ${typeId}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Get standard health value for a monster type
+ * @param {string} typeId - Type of monster
+ * @returns {number} Base health value
+ */
+function getMonsterTypeHealth(typeId) {
+    switch (typeId) {
+        case 'kraken':
+            return 6; // Tougher than regular monster
+        case 'seaSerpent':
+            return 4; // Average toughness
+        case 'phantomJellyfish':
+            return 3; // Fragile but dangerous
+        case 'yellowBeast':
+        default:
+            return 3; // Original monster health
+    }
+}
+
+/**
+ * Spawn monsters in a specific chunk
+ * @param {string} chunkKey - Chunk key
+ * @param {number} chunkX - Chunk X coordinate
+ * @param {number} chunkZ - Chunk Z coordinate 
+ * @param {Object} options - Additional spawn options
+ */
+export function spawnMonstersInChunk(chunkKey, chunkX, chunkZ, options = {}) {
+    // Reduce spawn chance to 30% (from 70%) to have fewer monsters
+    const spawnChance = 0.3;
+
+    // Random check - 70% of chunks will have no monsters at all
+    if (Math.random() > spawnChance) {
+        return; // Skip this chunk for spawning
+    }
+
+    // SIMPLIFIED: Only ever spawn ONE monster per chunk
+    const monstersToSpawn = 1;
+
+    // SIMPLIFIED: Always spawn the Yellow Beast
+    const selectedType = 'yellowBeast';
+
+    // Calculate position within chunk (add some randomness)
+    const posX = chunkX * (options.chunkSize || 500) + Math.random() * (options.chunkSize || 500);
+    const posZ = chunkZ * (options.chunkSize || 500) + Math.random() * (options.chunkSize || 500);
+    const depth = options.depth || -20; // Default underwater depth
+
+    // Create single Yellow Beast monster with options
+    const monster = createMonster(selectedType, {
+        position: new THREE.Vector3(posX, depth, posZ),
+        state: 'lurking',
+        stateTimer: 30 + Math.random() * 30
+    });
+
+    if (monster) {
+        console.log(`TEST MODE: Spawned exactly ONE Yellow Beast in chunk ${chunkKey} at ${posX.toFixed(0)}, ${depth}, ${posZ.toFixed(0)}`);
+    }
 }
 
 /**

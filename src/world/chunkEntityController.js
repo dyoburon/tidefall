@@ -7,7 +7,7 @@ import {
 } from './chunkControl.js';
 import { boat, scene } from '../core/gameState.js';
 // Import monster manager for spawning
-import { createMonster, getAllMonsters } from '../entities/monsterManager.js';
+import { createMonster, getAllMonsters, spawnMonstersInChunk } from '../entities/monsterManager.js';
 
 // Entity tracking by type and chunk
 const entityChunkMap = {
@@ -210,30 +210,18 @@ function populateChunkWithMonsters(chunkKey, chunkX, chunkZ) {
     // Skip if already has monsters
     if (chunkHasMonsters) return;
 
-    // Random chance to have monsters in this chunk (70%)
-    if (Math.random() < 0.7) {
-        // Determine how many monsters to spawn (1-3)
-        const monstersToSpawn = 1 + Math.floor(Math.random() * 2);
-
-        // Available monster types (hardcoded for now, could be made configurable)
-        const monsterTypes = ['yellowBeast']; // Add more as they're implemented
-
-        for (let i = 0; i < monstersToSpawn; i++) {
-            // Select random monster type
-            const monsterType = monsterTypes[Math.floor(Math.random() * monsterTypes.length)];
-
-            // Calculate position within chunk (add some randomness)
-            const posX = chunkX * chunkSize + Math.random() * chunkSize;
-            const posZ = chunkZ * chunkSize + Math.random() * chunkSize;
-
-            // Create monster via the monster manager
-            const monster = createMonster(monsterType);
-            if (monster) {
-                // Position the monster
-                monster.mesh.position.set(posX, -20, posZ); // -20 = underwater
-
-                console.log(`Populated chunk ${chunkKey} with ${monsterType} at ${posX.toFixed(0)}, -20, ${posZ.toFixed(0)}`);
-            }
+    // Use the enhanced monster manager to spawn monsters in this chunk
+    spawnMonstersInChunk(chunkKey, chunkX, chunkZ, {
+        chunkSize: chunkSize,
+        depth: -20, // Underwater depth
+        spawnChance: 0.5, // CHANGED: 50% chance (reduced from 70%)
+        minCount: 1,
+        maxCount: 1, // CHANGED: Exactly 1 monster per chunk
+        typeWeights: {
+            'yellowBeast': 1.0,
+            'kraken': 0.0,
+            'seaSerpent': 0.0,
+            'phantomJellyfish': 0.0
         }
-    }
+    });
 } 

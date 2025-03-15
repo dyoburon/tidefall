@@ -54,7 +54,7 @@ import SpatialAudioSystem from '../audio/spatialAudio.js';
 import { dissipateFog, updateFogEffects } from '../environment/fog.js';
 import AbilityManager from '../abilities/abilitymanager.js';
 import { updateAllEntityChunks } from '../world/chunkEntityController.js';
-
+import { initMonsterManager, updateAllMonsters } from '../entities/monsterManager.js';
 
 
 // Define these variables at the file level scope (outside any functions)
@@ -83,6 +83,7 @@ const water = setupWater('cartoony');
 
 // Initialize biome
 initializeChunkSystem();
+initMonsterManager();
 
 
 const abilityManager = new AbilityManager(scene, camera, boat);
@@ -1216,6 +1217,8 @@ function animate() {
     // Update fishing
     updateFishing();
 
+    updateAllMonsters(deltaTime);
+
     // Update chunks
     updateChunkSystem(deltaTime);
 
@@ -1394,7 +1397,7 @@ const clouds = setupClouds();
 const birds = setupBirds(activeIslands, boat);
 
 // Initialize sea monsters
-const seaMonsters = setupSeaMonsters(boat);
+//const seaMonsters = setupSeaMonsters(boat);
 
 // Initialize fishing system
 initFishing(boat);

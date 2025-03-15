@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { scene, getTime, boatVelocity, addToScene, removeFromScene, isInScene } from '../core/gameState.js';
+import { scene, getTime, boatVelocity, addToScene, removeFromScene, isInScene, boat } from '../core/gameState.js';
 import { applyShipKnockback } from '../core/shipController.js';
 import { getTimeOfDay } from '../environment/skybox.js'; // Import time of day function
 import { flashBoatDamage } from '../entities/character.js'; // Add this import
 import { getFishInventory } from '../gameplay/fishing.js'; // Import the fish inventory
 import { createTreasureDrop, updateTreasures, initTreasureSystem } from '../gameplay/treasure.js';
 import { applyOutline, removeOutline } from '../theme/outlineStyles.js';
+import { registerMonsterType, createMonster, getAllMonsters, spawnMonstersInChunk } from '../entities/monsterManager.js';
 
 // Sea monster configuration
 const MONSTER_COUNT = 5;
@@ -21,7 +22,7 @@ const MONSTER_TYPE_WEIGHTS = {
     [MONSTER_TYPES.SEA_SERPENT]: 0.0,     // 20% chance 
     [MONSTER_TYPES.PHANTOM_JELLYFISH]: 0.0 // 20% chance
 };
-const MONSTER_SPEED = 0.11;
+const MONSTER_SPEED = 0.05;
 const MONSTER_DETECTION_RANGE = 200;
 const MONSTER_ATTACK_RANGE = 50;
 const MONSTER_DEPTH = -20;
@@ -43,7 +44,6 @@ const MONSTER_STATE = {
 
 // Monster state
 let monsters = [];
-let playerBoat = null;
 let lastNightSpawn = false; // Track if we've already spawned monsters this night
 let lastTimeOfDay = ""; // Track the previous time of day
 let treasureDrops = [];
@@ -62,37 +62,16 @@ let lastBoatCollisionTime = -999;       // Timer for collision cooldown
 
 export function setupSeaMonsters(boat) {
     try {
-        playerBoat = boat;
-
         // Initialize the treasure system with the same boat reference
         initTreasureSystem(boat);
 
         // Reset hit cooldown to ensure monsters can hit on first approach
         lastHitTime = -999; // Set to a very negative value to ensure first hit works
 
-        // Create monsters
-        for (let i = 0; i < MONSTER_COUNT; i++) {
-            // Determine monster type using weighted random selection
-            const monsterType = selectRandomMonsterType();
+        // FULLY DISABLED: Do not spawn any monsters here
+        /* Original spawning code removed */
 
-            // Create monster based on type
-            switch (monsterType) {
-                case MONSTER_TYPES.KRAKEN:
-                    createKrakenMonster();
-                    break;
-                case MONSTER_TYPES.SEA_SERPENT:
-                    //createSeaSerpentMonster();
-                    break;
-                case MONSTER_TYPES.PHANTOM_JELLYFISH:
-                    createPhantomJellyfishMonster();
-                    break;
-                case MONSTER_TYPES.YELLOW_BEAST:
-                default:
-                    createYellowBeastMonster(); // Original monster
-                    break;
-            }
-        }
-
+        console.log("Monster spawning disabled in seaMonsters.js - using chunk system instead");
         return monsters;
     } catch (error) {
         console.error("Error in setupSeaMonsters:", error);
@@ -100,6 +79,11 @@ export function setupSeaMonsters(boat) {
     }
 }
 
+// Also completely disable the night respawning
+function respawnMonstersAtNight() {
+    // FULLY DISABLED: Do not spawn any monsters here
+    return;
+}
 
 export function flashMonsterRed(monster, hadGreenLine = false) {
     // Ensure monster has the damage flash property to track state
@@ -282,21 +266,24 @@ export function updateSeaMonsters(deltaTime) {
             deltaTime = 0.016; // Default to ~60fps
         }
 
-        if (!playerBoat) return;
+        if (!boat) return;
 
         // Get current time of day from skybox.js
         const currentTimeOfDay = getTimeOfDay();
 
+        // DISABLED: Night respawning code
+        /*
         // Check if night has just started (transition from another time to night)
         if (currentTimeOfDay === "Night" && lastTimeOfDay !== "Night") {
             console.log("Night has fallen - preparing to respawn sea monsters");
             respawnMonstersAtNight();
         }
+        */
 
         // Update last time of day
         lastTimeOfDay = currentTimeOfDay;
 
-        // NEW: Check for boat collisions with monsters
+        // Check for boat collisions with monsters
         checkBoatMonsterCollisions();
 
         // Update existing monsters
@@ -391,8 +378,8 @@ export function updateLurkingMonster(monster, deltaTime) {
         monster.velocity.z = (Math.random() - 0.5) * MONSTER_SPEED;
     }
 
-    // Check if player is in detection range
-    const distanceToPlayer = monster.mesh.position.distanceTo(playerBoat.position);
+    // Check if player is in detection range - use boat from gameState instead of playerBoat
+    const distanceToPlayer = monster.mesh.position.distanceTo(boat.position);
     if (distanceToPlayer < MONSTER_DETECTION_RANGE) {
         // 20% chance to start hunting when player is detected
         if (Math.random() < 0.2) {
@@ -412,7 +399,7 @@ export function updateLurkingMonster(monster, deltaTime) {
 export function updateHuntingMonster(monster, deltaTime) {
     // Move toward player underwater
     const directionToPlayer = new THREE.Vector3()
-        .subVectors(playerBoat.position, monster.mesh.position)
+        .subVectors(boat.position, monster.mesh.position)
         .normalize();
 
     // Keep at depth while hunting
@@ -422,7 +409,7 @@ export function updateHuntingMonster(monster, deltaTime) {
     monster.velocity.copy(directionToPlayer.multiplyScalar(MONSTER_SPEED * 1.5));
 
     // Check if close enough to attack
-    const distanceToPlayer = monster.mesh.position.distanceTo(playerBoat.position);
+    const distanceToPlayer = monster.mesh.position.distanceTo(boat.position);
     if (distanceToPlayer < MONSTER_ATTACK_RANGE) {
         monster.state = MONSTER_STATE.SURFACING;
         monster.stateTimer = 3; // Faster surfacing when attacking
@@ -448,10 +435,10 @@ export function updateSurfacingMonster(monster, deltaTime) {
     monster.velocity.y = MONSTER_SURFACING_SPEED;
 
     // Continue moving toward player if in attack range
-    const distanceToPlayer = monster.mesh.position.distanceTo(playerBoat.position);
+    const distanceToPlayer = monster.mesh.position.distanceTo(boat.position);
     if (distanceToPlayer < MONSTER_ATTACK_RANGE * 2) {
         const directionToPlayer = new THREE.Vector3()
-            .subVectors(playerBoat.position, monster.mesh.position)
+            .subVectors(boat.position, monster.mesh.position)
             .normalize();
 
         // Keep y component for surfacing using dedicated speed, but move toward player on xz plane with regular speed
@@ -482,7 +469,7 @@ export function updateAttackingMonster(monster, deltaTime) {
     monster.mesh.position.y = Math.sin(getTime() * 0.5) * 0.5;
     monster.velocity.y = 0;
 
-    const distanceToPlayer = monster.mesh.position.distanceTo(playerBoat.position);
+    const distanceToPlayer = monster.mesh.position.distanceTo(boat.position);
 
     // Check if monster can hit the boat
     const currentTime = getTime() / 1000; // Convert to seconds
@@ -497,7 +484,7 @@ export function updateAttackingMonster(monster, deltaTime) {
 
         // Add some physical impact - push boat slightly
         const hitDirection = new THREE.Vector3()
-            .subVectors(playerBoat.position, monster.mesh.position)
+            .subVectors(boat.position, monster.mesh.position)
             .normalize();
 
         // Use the imported boatVelocity directly instead of window.boatVelocity
@@ -508,7 +495,7 @@ export function updateAttackingMonster(monster, deltaTime) {
 
     if (monster.attackSubState === 'charging') {
         // Set charge target as player position
-        monster.chargeTarget.copy(playerBoat.position);
+        monster.chargeTarget.copy(boat.position);
 
         // Calculate direction to the charge target
         const directionToTarget = new THREE.Vector3()
@@ -520,7 +507,7 @@ export function updateAttackingMonster(monster, deltaTime) {
         monster.velocity.z = directionToTarget.z * MONSTER_SPEED * 3;
 
         // Check if we've passed the player (dot product becomes negative)
-        const toPlayer = new THREE.Vector3().subVectors(playerBoat.position, monster.mesh.position);
+        const toPlayer = new THREE.Vector3().subVectors(boat.position, monster.mesh.position);
         const movingDirection = new THREE.Vector3(monster.velocity.x, 0, monster.velocity.z).normalize();
         const dotProduct = toPlayer.dot(movingDirection);
 
@@ -536,14 +523,14 @@ export function updateAttackingMonster(monster, deltaTime) {
 
             // Calculate direction away from player
             const awayFromPlayerDir = new THREE.Vector3()
-                .subVectors(monster.mesh.position, playerBoat.position)
+                .subVectors(monster.mesh.position, boat.position)
                 .normalize();
 
             // Set the target position to swim away to
             monster.chargeTarget.set(
-                playerBoat.position.x + awayFromPlayerDir.x * swimAwayDistance,
+                boat.position.x + awayFromPlayerDir.x * swimAwayDistance,
                 0,
-                playerBoat.position.z + awayFromPlayerDir.z * swimAwayDistance
+                boat.position.z + awayFromPlayerDir.z * swimAwayDistance
             );
         }
     } else { // repositioning
@@ -732,7 +719,7 @@ export function getMonsters() {
     return monsters;
 }
 
-function createYellowBeastMonster() {
+function createYellowBeastMonster(options = {}) {
     // Create monster group
     const monster = new THREE.Group();
 
@@ -827,6 +814,22 @@ function createYellowBeastMonster() {
 
     // Position and configure monster
     setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, MONSTER_TYPES.YELLOW_BEAST);
+
+    // VERY IMPORTANT: Return the monster object structure that matches what monsterManager expects
+    return {
+        mesh: monster, // The THREE.js object/group
+        velocity: new THREE.Vector3(0, 0, 0),
+        tentacles: tentacles || [],
+        dorsalFin: dorsalFin,
+        leftFin: leftFin,
+        rightFin: rightFin,
+        state: options.state || 'lurking',
+        stateTimer: options.stateTimer || 30,
+        targetPosition: new THREE.Vector3(),
+        eyeGlow: 0,
+        monsterType: 'yellowBeast',
+        health: 3
+    };
 }
 
 function setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, monsterType) {
@@ -1261,12 +1264,12 @@ export function updateKrakenBehavior(monster, deltaTime) {
 
     // Kraken can periodically lunge at player when close enough
     if (monster.state === MONSTER_STATE.ATTACKING) {
-        const distanceToPlayer = monster.mesh.position.distanceTo(playerBoat.position);
+        const distanceToPlayer = monster.mesh.position.distanceTo(boat.position);
 
         if (distanceToPlayer < MONSTER_ATTACK_RANGE * 0.7 && Math.random() < 0.01) {
             // Lunge toward player
             const directionToPlayer = new THREE.Vector3()
-                .subVectors(playerBoat.position, monster.mesh.position)
+                .subVectors(boat.position, monster.mesh.position)
                 .normalize();
 
             monster.velocity.copy(directionToPlayer.multiplyScalar(MONSTER_SPEED * 4));
@@ -1300,12 +1303,12 @@ export function updateSeaSerpentBehavior(monster, deltaTime) {
 
     // If attacking, serpent can occasionally do a quick strike
     if (monster.state === MONSTER_STATE.ATTACKING) {
-        const distanceToPlayer = monster.mesh.position.distanceTo(playerBoat.position);
+        const distanceToPlayer = monster.mesh.position.distanceTo(boat.position);
 
         if (distanceToPlayer < MONSTER_ATTACK_RANGE * 1.5 && Math.random() < 0.005) {
             // Quick strike - sudden acceleration toward player
             const directionToPlayer = new THREE.Vector3()
-                .subVectors(playerBoat.position, monster.mesh.position)
+                .subVectors(boat.position, monster.mesh.position)
                 .normalize();
 
             monster.velocity.copy(directionToPlayer.multiplyScalar(MONSTER_SPEED * 5));
@@ -1349,7 +1352,7 @@ export function updateJellyfishBehavior(monster, deltaTime) {
         // When attacking, gradually charge up
         if (!monster.chargeLevel) monster.chargeLevel = 0;
 
-        const distanceToPlayer = monster.mesh.position.distanceTo(playerBoat.position);
+        const distanceToPlayer = monster.mesh.position.distanceTo(boat.position);
 
         if (distanceToPlayer < MONSTER_ATTACK_RANGE) {
             // Charge up faster when closer to player
@@ -1481,24 +1484,9 @@ function createElectricDischargeEffect(position) {
 
 // Respawn monsters at night until we reach the maximum count
 function respawnMonstersAtNight() {
-    // Count how many monsters to spawn
-    const monstersToSpawn = MONSTER_COUNT - monsters.length;
-
-    if (monstersToSpawn <= 0) {
-        console.log("Monster population is already at maximum capacity");
-        return;
-    }
-
-    console.log(`Night has fallen. Respawning ${monstersToSpawn} sea monsters...`);
-
-    // Spawn monsters in positions away from the player
-    for (let i = 0; i < monstersToSpawn; i++) {
-        const monsterType = selectRandomMonsterType();
-        const spawnPosition = getRandomSpawnPosition();
-        createMonsterByType(monsterType, spawnPosition);
-    }
-
-    console.log(`Sea monsters have respawned (${monsters.length}/${MONSTER_COUNT})`);
+    // DISABLED: Don't spawn monsters at night from here
+    console.log("Night respawning disabled in seaMonsters.js - chunk system will handle monster spawning");
+    return;
 }
 
 // Helper function to create a monster by type
@@ -1535,9 +1523,9 @@ function getRandomSpawnPosition() {
     const distance = 300 + Math.random() * 500;
     const spawnPosition = new THREE.Vector3();
 
-    // If playerBoat exists, spawn relative to it
-    if (playerBoat) {
-        spawnPosition.copy(playerBoat.position);
+    // If boat exists, spawn relative to it
+    if (boat) {
+        spawnPosition.copy(boat.position);
         spawnPosition.add(direction.multiplyScalar(distance));
     } else {
         // Fallback if no player boat
@@ -1617,7 +1605,7 @@ export function removeMonsterOutline(monster) {
 
 // Add this simple function to handle boat-monster collisions
 function checkBoatMonsterCollisions() {
-    if (!playerBoat) return;
+    if (!boat) return;  // Updated this line
 
     const currentTime = getTime() / 1000; // Convert to seconds
 
@@ -1645,7 +1633,7 @@ function checkBoatMonsterCollisions() {
         if (monster.mesh.position.y < BOAT_SURFACE_THRESHOLD) return;
 
         // Check distance between boat and monster
-        const distanceToMonster = playerBoat.position.distanceTo(monster.mesh.position);
+        const distanceToMonster = boat.position.distanceTo(monster.mesh.position);
 
         // Log distance for monsters near collision range
         if (distanceToMonster < BOAT_COLLISION_RANGE * 1.5) {
@@ -1672,7 +1660,7 @@ function checkBoatMonsterCollisions() {
 
             // Calculate impact direction (from monster to player)
             const impactDirection = new THREE.Vector3()
-                .subVectors(playerBoat.position, monster.mesh.position)
+                .subVectors(boat.position, monster.mesh.position)
                 .normalize();
 
             // Apply knockback force proportional to boat speed
@@ -1689,7 +1677,7 @@ function checkBoatMonsterCollisions() {
             });
 
             // Add direct position shift for immediate feedback
-            playerBoat.position.add(impactDirection.multiplyScalar(1.5));
+            boat.position.add(impactDirection.multiplyScalar(1.5));
 
             // Check if monster is defeated
             if (monster.health <= 0) {
@@ -1778,5 +1766,120 @@ function createBiggerSplashEffect(position) {
 
         animateSplash();
     }
+}
+
+export function registerSeaMonsterTypes() {
+    // Register all sea monster types with the monster manager
+
+    // Yellow Beast (original monster)
+    registerMonsterType(MONSTER_TYPES.YELLOW_BEAST, {
+        createFn: createYellowBeastMonster,
+        updateFn: updateYellowBeastMonster,
+        getStateFn: getMonsterState,
+        respawnFn: respawnMonster,
+        cleanupFn: cleanupMonster
+    });
+
+    // Kraken monster
+    registerMonsterType(MONSTER_TYPES.KRAKEN, {
+        createFn: createKrakenMonster,
+        updateFn: updateKrakenMonster,
+        getStateFn: getMonsterState,
+        respawnFn: respawnMonster,
+        cleanupFn: cleanupMonster
+    });
+
+    // Phantom Jellyfish monster
+    registerMonsterType(MONSTER_TYPES.PHANTOM_JELLYFISH, {
+        createFn: createPhantomJellyfishMonster,
+        updateFn: updateJellyfishBehavior,
+        getStateFn: getMonsterState,
+        respawnFn: respawnMonster,
+        cleanupFn: cleanupMonster
+    });
+
+    // More monster types can be added similarly
+}
+
+// Create a general monster state getter
+function getMonsterState(monster) {
+    return {
+        position: monster.mesh.position.clone(),
+        rotation: monster.mesh.rotation.clone(),
+        velocity: monster.velocity.clone(),
+        health: monster.health,
+        state: monster.state,
+        stateTimer: monster.stateTimer,
+        monsterType: monster.monsterType
+    };
+}
+
+// Generic respawn function to use with monster manager
+function respawnMonster(states, chunkKey) {
+    states.forEach(state => {
+        if (!state || !state.monsterType) return;
+
+        createMonster(state.monsterType, {
+            position: state.position,
+            rotation: state.rotation,
+            velocity: state.velocity,
+            health: state.health,
+            state: state.state,
+            stateTimer: state.stateTimer
+        });
+    });
+}
+
+// Cleanup function for monster manager
+function cleanupMonster(monster) {
+    // Remove from scene
+    scene.remove(monster.mesh);
+
+    // Any additional cleanup like removing event listeners, etc.
+}
+
+// Update functions for specific monster types
+function updateYellowBeastMonster(monster, deltaTime) {
+    // Call appropriate update function based on state
+    switch (monster.state) {
+        case MONSTER_STATE.LURKING:
+            updateLurkingMonster(monster, deltaTime);
+            break;
+        case MONSTER_STATE.HUNTING:
+            updateHuntingMonster(monster, deltaTime);
+            break;
+        case MONSTER_STATE.SURFACING:
+            updateSurfacingMonster(monster, deltaTime);
+            break;
+        case MONSTER_STATE.ATTACKING:
+            updateAttackingMonster(monster, deltaTime);
+            break;
+        case MONSTER_STATE.DIVING:
+            updateDivingMonster(monster, deltaTime);
+            break;
+        case MONSTER_STATE.DYING:
+            updateDyingMonster(monster, deltaTime);
+            break;
+    }
+
+    // Common yellow beast behaviors
+    animateTentacles(monster, deltaTime);
+
+    // Apply velocity to position
+    monster.mesh.position.add(monster.velocity);
+
+    // Make monster face direction of travel
+    if (monster.velocity.length() > 0.01) {
+        const lookTarget = monster.mesh.position.clone().add(monster.velocity);
+        monster.mesh.lookAt(lookTarget);
+    }
+}
+
+function updateKrakenMonster(monster, deltaTime) {
+    // Base updates like yellowBeast
+    updateYellowBeastMonster(monster, deltaTime);
+
+    // Additional kraken-specific behavior
+    updateKrakenBehavior(monster, deltaTime);
 }
 
