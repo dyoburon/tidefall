@@ -15,7 +15,7 @@ import { registerOpenUI, unregisterOpenUI } from './ui.js';
 
 class PlayerList {
     constructor() {
-        console.log("📋 PLAYERLIST: Initializing player list component");
+
 
         // Create container for the player list UI
         this.container = document.createElement('div');
@@ -92,40 +92,40 @@ class PlayerList {
         // Fix circular dependency by using dynamic import for network
         setTimeout(() => this.initNetworkListeners(), 100);
 
-        console.log("📋 PLAYERLIST: Initialization complete");
+
     }
 
     initNetworkListeners() {
-        console.log("📋 PLAYERLIST: Setting up network listeners");
+
 
         // Try to access socket from multiple possible sources
         let socketConnection = null;
 
         // First try window.socket
         if (window.socket) {
-            console.log("📋 PLAYERLIST: Found socket on window object");
+
             socketConnection = window.socket;
         }
         // Then try to import from network.js
         else {
             try {
                 import('../core/network.js').then(network => {
-                    console.log("📋 PLAYERLIST: Attempting to get socket from network module");
+
                     if (network.socket) {
-                        console.log("📋 PLAYERLIST: Found socket in network module");
+
                         this.setupSocketListeners(network.socket);
                         return;
                     } else {
-                        console.warn("📋 PLAYERLIST: Socket not found in network module");
+
                         this.showFallbackPlayerList();
                     }
                 }).catch(err => {
-                    console.error("📋 PLAYERLIST: Error importing network module:", err);
+
                     this.showFallbackPlayerList();
                 });
                 return; // Return early as we're handling this asynchronously
             } catch (err) {
-                console.warn("📋 PLAYERLIST: Error accessing network module:", err);
+
             }
         }
 
@@ -133,7 +133,7 @@ class PlayerList {
         if (socketConnection) {
             this.setupSocketListeners(socketConnection);
         } else {
-            console.warn("📋 PLAYERLIST: No socket connection available from any source");
+
             this.statusIndicator.textContent = "No server connection - showing local data only";
             this.statusIndicator.style.color = "#ffaa00";
             this.statusIndicator.style.borderColor = "#ffaa00";
@@ -145,13 +145,13 @@ class PlayerList {
 
     // Updated method to set up socket listeners with the provided socket
     setupSocketListeners(socket) {
-        console.log("📋 PLAYERLIST: Setting up socket listeners with valid socket");
+
         this.statusIndicator.textContent = "Connected to game server";
         this.statusIndicator.style.color = "#00ff00";
         this.statusIndicator.style.borderColor = "#00ff00";
 
         socket.on('all_players', (players) => {
-            console.log("📋 PLAYERLIST: Received player data", players);
+
             // Update both the UI and the gameState's allPlayers array
             updateAllPlayers(players);
             this.updatePlayerList(players);
@@ -159,7 +159,7 @@ class PlayerList {
 
         // Add listener for player_joined events
         socket.on('player_joined', (player) => {
-            console.log("📋 PLAYERLIST: Player joined", player);
+
             // Update gameState's allPlayers array by adding the new player
             const currentPlayers = getAllPlayers();
             const updatedPlayers = [...currentPlayers];
@@ -180,7 +180,7 @@ class PlayerList {
 
         // Add listener for player_left events
         socket.on('player_left', (playerId) => {
-            console.log("📋 PLAYERLIST: Player left", playerId);
+
             // Update gameState's allPlayers array by removing the player
             const currentPlayers = getAllPlayers();
             const updatedPlayers = currentPlayers.filter(p => p.id !== playerId);
@@ -200,12 +200,12 @@ class PlayerList {
 
     // Updated to create interactive player entries with teleport functionality
     updatePlayerList(players) {
-        console.log("📋 PLAYERLIST: Updating player list");
+
 
         // If no players are passed directly, try to use gameState's allPlayers
         if (!players || players.length === 0) {
             players = getAllPlayers();
-            console.log("📋 PLAYERLIST: Using players from gameState:", players);
+
         }
 
         // Clear existing content
@@ -381,11 +381,11 @@ class PlayerList {
 
     // Implement the teleport functionality
     teleportToPlayer(targetPlayer) {
-        console.log("🧭 PLAYERLIST: Teleporting to player:", targetPlayer.name);
+
 
         // Check if the target player has position data
         if (!targetPlayer.position) {
-            console.warn("🧭 PLAYERLIST: Cannot teleport - target player has no position data");
+
 
             // Show error message
             const errorMsg = document.createElement('div');
@@ -449,10 +449,10 @@ class PlayerList {
                 // Show success message
                 this.showTeleportSuccessMessage(targetPlayer.name);
             } else {
-                console.error("🧭 PLAYERLIST: Failed to teleport - boat or position is undefined");
+
             }
         }).catch(err => {
-            console.error("🧭 PLAYERLIST: Error during teleport:", err);
+
         });
     }
 
@@ -483,7 +483,7 @@ class PlayerList {
     showTeleportEffect(fromX, fromZ, toX, toZ) {
         // This is a placeholder for a visual effect you might want to add
         // For example, you could create particles, a flash, or an animation
-        console.log("🧭 PLAYERLIST: Teleport effect triggered");
+
 
         // You might want to add a simple flash effect to indicate teleportation
         const flash = document.createElement('div');
@@ -514,13 +514,13 @@ class PlayerList {
 
     // Fallback function when socket isn't available - now uses gameState's allPlayers
     showFallbackPlayerList() {
-        console.log("📋 PLAYERLIST: Using fallback player data from gameState");
+
 
         // First check if we have players in gameState
         const storedPlayers = getAllPlayers();
 
         if (storedPlayers && storedPlayers.length > 0) {
-            console.log("📋 PLAYERLIST: Using cached players from gameState:", storedPlayers);
+
             // We have players in gameState, use them
             this.updatePlayerList(storedPlayers);
             return;
@@ -578,9 +578,9 @@ class PlayerList {
             // Add the single player to allPlayers
             updateAllPlayers([player]);
 
-            console.log("📋 PLAYERLIST: Fallback data displayed successfully");
+
         } catch (error) {
-            console.error("📋 PLAYERLIST: Error showing fallback data:", error);
+
 
             // Display error message in the player list
             const errorMsg = document.createElement('div');
@@ -594,73 +594,73 @@ class PlayerList {
 
     // Updated to check gameState first
     refreshPlayerList() {
-        console.log("📋 PLAYERLIST: Refreshing player list");
+
 
         // Try to get players from gameState first
         const storedPlayers = getAllPlayers();
         if (storedPlayers && storedPlayers.length > 0) {
-            console.log("📋 PLAYERLIST: Using players from gameState:", storedPlayers.length);
+
             this.updatePlayerList(storedPlayers);
         }
 
         // Still try to get updated data from the server
         if (this.socketConnection) {
-            console.log("📋 PLAYERLIST: Using cached socket connection");
+
             this.socketConnection.emit('get_all_players');
         } else if (window.socket) {
-            console.log("📋 PLAYERLIST: Using window.socket");
+
             window.socket.emit('get_all_players');
         } else {
             try {
                 import('../core/network.js').then(network => {
                     if (network.socket) {
-                        console.log("📋 PLAYERLIST: Using socket from network module");
+
                         network.socket.emit('get_all_players');
                     } else if (network.getAllPlayers && typeof network.getAllPlayers === 'function') {
-                        console.log("📋 PLAYERLIST: Using getAllPlayers function from network module");
+
                         network.getAllPlayers();
                     } else {
-                        console.log("📋 PLAYERLIST: No socket available, using fallback");
+
                         this.showFallbackPlayerList();
                     }
                 }).catch(err => {
-                    console.error("📋 PLAYERLIST: Error importing network module:", err);
+
                     this.showFallbackPlayerList();
                 });
             } catch (error) {
-                console.log("📋 PLAYERLIST: No socket connection, using fallback");
+
                 this.showFallbackPlayerList();
             }
         }
     }
 
     show() {
-        console.log("📋 PLAYERLIST: show() method called");
+
         this.container.style.display = 'block';
-        console.log("📋 PLAYERLIST: Set container display to 'block'");
+
         this.refreshPlayerList();
-        console.log("📋 PLAYERLIST: refreshPlayerList() called");
+
         registerOpenUI(this);
-        console.log("📋 PLAYERLIST: Registered as open UI");
+
     }
 
     toggle() {
-        console.log("📋 PLAYERLIST: toggle() method called");
+
         if (this.container.style.display === 'none') {
-            console.log("📋 PLAYERLIST: Container is hidden, showing it now");
+
             this.show();
         } else {
-            console.log("📋 PLAYERLIST: Container is visible, hiding it now");
+
             this.close();
         }
-        console.log("📋 PLAYERLIST: toggle() completed");
+
     }
 
     close() {
-        console.log("📋 PLAYERLIST: close() method called");
+
         this.container.style.display = 'none';
         unregisterOpenUI(this);
-        console.log("📋 PLAYERLIST: Closed and unregistered");
+
     }
 }
 

@@ -49,7 +49,7 @@ let fogCheckCooldown = 0; // Cooldown between fog checks
  * @param {number} seed - Seed for biome distribution
  */
 function initializeBiomeSystem() {
-    console.log("Initializing biome system...");
+
     clearBiomeCache();
     currentPlayerBiome = null;
 }
@@ -64,7 +64,7 @@ function registerBiome(biomeImplementation) {
 
     // Prevent duplicate registration
     if (biomeMap.has(id)) {
-        console.warn(`Biome with ID ${id} is already registered. Skipping.`);
+
         return biomeMap.get(id);
     }
 
@@ -83,7 +83,7 @@ function registerBiome(biomeImplementation) {
         defaultBiome = biomeImplementation;
     }
 
-    console.log(`Registered biome: ${biomeImplementation.name} (${id})`);
+
     return registeredBiome;
 }
 
@@ -177,12 +177,12 @@ function getBiomePropertiesForChunk(chunkX, chunkZ) {
  */
 function processChunk(chunkX, chunkZ, scene, seed) {
     const biome = getBiomeForChunk(chunkX, chunkZ);
-    console.log("is in processChunk", chunkX, chunkZ, biome.name);
+
 
     if (!biome && !(getPlayerBiome().name === biome.name)) return [];
 
 
-    //console.log("is in processChunk", chunkX, chunkZ, biome.name);
+    //
 
     return biome.processChunk(chunkX, chunkZ, chunkSize, scene, seed);
 }
@@ -231,7 +231,7 @@ function updateAllBiomes(deltaTime, playerPosition) {
 
     // Update current biome reference if needed
     if (!currentPlayerBiome || (playerBiome && playerBiome.name !== currentPlayerBiome.name)) {
-        console.log(`Biome change detected: ${currentPlayerBiome?.name || 'none'} -> ${playerBiome.name}`);
+
         currentPlayerBiome = playerBiome;
     }
 
@@ -275,7 +275,7 @@ function updateAllBiomes(deltaTime, playerPosition) {
 function checkAndUpdateFogState(currentBiome) {
     // Make sure we have a valid biome with properties
     if (!currentBiome || !currentBiome.getProperties) {
-        console.error("Invalid biome passed to checkAndUpdateFogState:", currentBiome);
+
         return;
     }
 
@@ -286,17 +286,17 @@ function checkAndUpdateFogState(currentBiome) {
     const biomeWantsFog = properties.hasFog || false;
     const fogType = biomeWantsFog ? (properties.fogType || 'default') : null;
 
-    console.log(`Checking fog state:`);
-    console.log(`- Biome: ${currentBiome.name}`);
-    console.log(`- Properties:`, properties);
-    console.log(`- hasFog: ${biomeWantsFog}`);
-    console.log(`- fogType: ${fogType}`);
-    console.log(`- Current fog state: ${currentFogState}`);
-    console.log(`- Current fog biome: ${fogStateBiome?.name || 'none'}`);
+
+
+
+
+
+
+
 
     // Case 1: No fog → Fog (fade in)
     if (biomeWantsFog && currentFogState === FOG_STATE.INACTIVE) {
-        console.log(`✅ CONDITION 1 MET: Activating ${fogType} fog for ${currentBiome.name}`);
+
         currentFogState = FOG_STATE.FADING_IN;
         fogStateBiome = currentBiome;
         currentBiome.handleFogTransition(true, boat, fogType);
@@ -304,7 +304,7 @@ function checkAndUpdateFogState(currentBiome) {
     }
     // Case 2: Fog → No Fog (fade out)
     else if (!biomeWantsFog && currentFogState === FOG_STATE.ACTIVE) {
-        console.log(`✅ CONDITION 2 MET: Deactivating fog from ${fogStateBiome.name}`);
+
         currentFogState = FOG_STATE.FADING_OUT;
         const oldFogType = fogStateBiome.getProperties().fogType || 'default';
         fogStateBiome.handleFogTransition(false, boat, oldFogType);
@@ -314,17 +314,17 @@ function checkAndUpdateFogState(currentBiome) {
     else if (biomeWantsFog && currentFogState === FOG_STATE.ACTIVE && fogStateBiome) {
         const currentFogType = fogStateBiome.getProperties().fogType || 'default';
         if (fogType !== currentFogType) {
-            console.log(`✅ CONDITION 3 MET: Transitioning fog: ${currentFogType} → ${fogType}`);
+
             currentFogState = FOG_STATE.TRANSITIONING;
             handleFogTypeTransition(currentFogType, fogType, currentBiome);
             fogStateTimer = 500; // 8 seconds for transition
         }
     }
     else {
-        console.log(`❌ NO CONDITIONS MET - Debug info:`);
-        console.log(`- biomeWantsFog: ${biomeWantsFog}`);
-        console.log(`- currentFogState: ${currentFogState}`);
-        console.log(`- fogStateBiome: ${fogStateBiome?.name || 'none'}`);
+
+
+
+
     }
 }
 
@@ -346,11 +346,11 @@ function handleFogTypeTransition(fromType, toType, targetBiome) {
  */
 function handleFogStateCompletion() {
     if (currentFogState === FOG_STATE.FADING_IN || currentFogState === FOG_STATE.TRANSITIONING) {
-        console.log("Fog transition complete - now active");
+
         currentFogState = FOG_STATE.ACTIVE;
     }
     else if (currentFogState === FOG_STATE.FADING_OUT) {
-        console.log("Fog fade-out complete");
+
         currentFogState = FOG_STATE.INACTIVE;
         fogStateBiome = null;
     }

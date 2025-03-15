@@ -266,7 +266,7 @@ class OpenBiome extends BiomeInterface {
 
         startRain(playerPosition, intensity);
         this.isRainActive = true;
-        console.log("Starting rain in open biome");
+
     }
 
     /**
@@ -396,10 +396,10 @@ class OpenBiome extends BiomeInterface {
     handleFogTransition(isEntering, playerObject) {
         setFogProperties(OPEN_FOG_CONFIG);
         if (isEntering) {
-            console.log("Entering open biome - activating fog");
+
             toggleFog(true); // Explicitly fade in the fog
         } else {
-            console.log("Leaving open biome - dissipating fog");
+
             toggleFog(false); // Explicitly fade out the fog
         }
     }

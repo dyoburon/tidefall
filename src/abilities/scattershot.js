@@ -25,22 +25,22 @@ class ScatterShot {
     }
 
     onAimStart(crosshair) {
-        console.log('Scatter Shot Aiming Started');
+
         // Could change crosshair color/shape here if desired
     }
 
     onExecute(targetPosition) {
-        console.log('Scatter Shot Executed at:', targetPosition);
+
 
         // Find nearest cannon position
         const cannonPosition = this.getNearestCannonPosition(targetPosition);
         const cannonName = this.getCannonNameFromPosition(cannonPosition);
-        console.log("Nearest cannon position:", cannonPosition, "Cannon Name", cannonName);
+
 
         // Calculate base direction from cannon to target
         const baseDirection = new THREE.Vector3().subVectors(targetPosition, cannonPosition);
         baseDirection.normalize();
-        console.log("Base firing direction:", baseDirection);
+
 
         // Fire multiple cannonballs in a spread pattern
         this.fireScatterShot(cannonPosition, baseDirection);
@@ -53,7 +53,7 @@ class ScatterShot {
     }
 
     onCancel() {
-        console.log('Scatter Shot Canceled');
+
     }
 
     update(deltaTime) {

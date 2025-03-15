@@ -63,7 +63,7 @@ let playerBoat = null;
 export function initTreasureSystem(boat) {
     playerBoat = boat;
     treasureDrops = [];
-    console.log("Treasure system initialized");
+
     return treasureInventory;
 }
 
@@ -148,7 +148,7 @@ export function createTreasureDrop(position, monsterType) {
     addToScene(treasureGroup);
     treasureDrops.push(treasureGroup);
 
-    console.log(`Created ${treasureType.name} treasure drop. Total: ${treasureDrops.length}`);
+
 
     return treasureGroup;
 }
@@ -379,7 +379,7 @@ function collectTreasure(treasure) {
         treasureInventory[treasureName].count++;
     }
 
-    console.log(`Collected ${treasureName}!`, treasureInventory);
+
 
     // Update the inventory UI if it exists
     updateTreasureInventoryDisplay();
@@ -468,7 +468,7 @@ function playCollectionSound(treasureType) {
         try {
             window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         } catch (e) {
-            console.warn('Web Audio API not supported in this browser');
+
             return;
         }
     }

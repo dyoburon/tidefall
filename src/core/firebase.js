@@ -46,7 +46,7 @@ export async function initializeFirebase() {
 
         // Set persistence to LOCAL (persists indefinitely)
         await setPersistence(auth, browserLocalPersistence);
-        console.log("Firebase persistence set to LOCAL");
+
 
         db = getFirestore(app);
 
@@ -54,19 +54,19 @@ export async function initializeFirebase() {
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
-                console.log("User signed in:", user.displayName || user.email);
+
                 loadUserProfile(user.uid);
             } else {
-                console.log("User signed out");
+
                 userProfile = null;
             }
         });
 
         isInitialized = true;
-        console.log("Firebase initialized successfully");
+
         return true;
     } catch (error) {
-        console.error("Error initializing Firebase:", error);
+
         return false;
     }
 }
@@ -79,7 +79,7 @@ async function loadUserProfile(uid) {
     try {
         const userDoc = await getDoc(doc(db, "players", "firebase_" + uid));
         if (userDoc.exists()) {
-            console.log("User profile found:", userDoc.data());
+
             userProfile = userDoc.data();
 
             // Dispatch event for other systems to react to
@@ -90,12 +90,12 @@ async function loadUserProfile(uid) {
             return userProfile;
         } else {
             // Don't create a profile if it doesn't exist
-            console.log("User profile not found - backend will handle creation " + uid);
+
             userProfile = null;
             return null;
         }
     } catch (error) {
-        console.error("Error loading user profile:", error);
+
         return null;
     }
 }
@@ -111,9 +111,9 @@ export async function updateUserStats(stats) {
         await updateDoc(doc(db, "players", currentUser.uid), stats);
         // Update local profile
         userProfile = { ...userProfile, ...stats };
-        console.log("User stats updated:", stats);
+
     } catch (error) {
-        console.error("Error updating user stats:", error);
+
     }
 }
 
@@ -139,13 +139,13 @@ export function isUserSignedIn() {
  */
 export function showAuthPopup(onSuccess) {
     if (!isInitialized) {
-        console.error("Firebase not initialized");
+
         return;
     }
 
     // Check if user is already signed in
     if (currentUser) {
-        console.log("User already signed in from previous session");
+
         if (onSuccess && typeof onSuccess === 'function') {
             onSuccess(currentUser);
         }
@@ -278,7 +278,7 @@ export function showAuthPopup(onSuccess) {
             authSuccess(result.user);
         } catch (error) {
             showError(error.message);
-            console.error("Google sign-in error:", error);
+
         }
     });
 
@@ -303,7 +303,7 @@ export function showAuthPopup(onSuccess) {
             authSuccess(result.user);
         } catch (error) {
             showError(error.message);
-            console.error("Sign-in error:", error);
+
         }
     });
 
@@ -327,7 +327,7 @@ export function showAuthPopup(onSuccess) {
             authSuccess(result.user);
         } catch (error) {
             showError(error.message);
-            console.error("Sign-up error:", error);
+
         }
     });
 

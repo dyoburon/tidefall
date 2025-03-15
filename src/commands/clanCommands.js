@@ -8,7 +8,7 @@ import { setPlayerName, getPlayerName } from '../core/network.js';
 function sanitizePlayerName(name) {
     if (!name) return '';
 
-    console.log("Sanitizing player name:", name);
+
 
     // Step 1: Remove HTML tags and special characters that could be used for script injection
     let sanitized = name
@@ -27,17 +27,17 @@ function sanitizePlayerName(name) {
 
     // Step 3: Ensure a minimum length after sanitization
     if (sanitized.length < 2) {
-        console.log("Player name too short after sanitization:", sanitized);
+
         return '';
     }
 
     // Step 4: Limit maximum length
     if (sanitized.length > 20) {
         sanitized = sanitized.substring(0, 20);
-        console.log("Player name truncated to 20 characters:", sanitized);
+
     }
 
-    console.log("Sanitized player name:", sanitized);
+
     return sanitized;
 }
 
@@ -49,7 +49,7 @@ function sanitizePlayerName(name) {
 function sanitizeClanName(clanName) {
     if (!clanName) return '';
 
-    console.log("Sanitizing clan name:", clanName);
+
 
     // Step 1: Remove HTML tags and special characters that could be used for script injection
     let sanitized = clanName
@@ -68,17 +68,17 @@ function sanitizeClanName(clanName) {
 
     // Step 3: Ensure a minimum length after sanitization
     if (sanitized.length < 2) {
-        console.log("Clan name too short after sanitization:", sanitized);
+
         return '';
     }
 
     // Step 4: Limit maximum length
     if (sanitized.length > 15) {
         sanitized = sanitized.substring(0, 15);
-        console.log("Clan name truncated to 15 characters:", sanitized);
+
     }
 
-    console.log("Sanitized clan name:", sanitized);
+
     return sanitized;
 }
 
@@ -130,7 +130,7 @@ function extractBaseName(playerName) {
  * @param {object} chatSystem - Reference to the chat system
  */
 export function clanCommand(args, chatSystem) {
-    console.log("CLAN COMMAND EXECUTED with args:", args);
+
     // Check if any arguments were provided
     if (args.length === 0) {
         showClanCommandHelp(chatSystem);
@@ -138,7 +138,7 @@ export function clanCommand(args, chatSystem) {
     }
 
     const subcommand = args[0].toLowerCase();
-    console.log("Clan subcommand:", subcommand);
+
 
     // Handle different clan subcommands
     switch (subcommand) {
@@ -160,7 +160,7 @@ export function clanCommand(args, chatSystem) {
  * @param {object} chatSystem - Reference to the chat system
  */
 function handleClanCreate(args, chatSystem) {
-    console.log("HANDLE CLAN CREATE with args:", args);
+
 
     // Check if a clan name was provided
     if (args.length === 0) {
@@ -170,7 +170,7 @@ function handleClanCreate(args, chatSystem) {
 
     // Join all remaining arguments to form the clan name
     const rawClanName = args.join(' ').trim();
-    console.log("Raw clan name input:", rawClanName);
+
 
     // Sanitize the clan name to prevent XSS and ensure valid formatting
     const clanName = sanitizeClanName(rawClanName);
@@ -183,45 +183,45 @@ function handleClanCreate(args, chatSystem) {
 
     // Get the current player name from the network module
     let currentPlayerName = getPlayerName();
-    console.log("Retrieved current player name:", currentPlayerName);
+
 
     // Get the player's base name (without any existing clan tags)
     let baseName = currentPlayerName;
 
     // Check if the player already has a clan tag
     if (currentPlayerName.includes('[') && currentPlayerName.includes(']')) {
-        console.log("Player already has clan tag in name, extracting original name");
+
 
         // Match everything after the last closing bracket
         // This handles cases like "[OldClan] PlayerName" or just "[OldClan]"
         const matches = currentPlayerName.match(/\](.*?)$/);
-        console.log("Regex matches:", matches);
+
 
         if (matches && matches[1] && matches[1].trim().length > 0) {
             // We found text after the closing bracket - this is the actual player name
             baseName = matches[1].trim();
-            console.log("Extracted base name:", baseName);
+
         } else {
             // If we're here, the name is probably just "[Something]"
             // We need to check if we have an original name stored in Firestore
             // For now, just use a default name
             baseName = "Sailor_" + Math.floor(Math.random() * 1000);
-            console.log("Using default name:", baseName);
+
         }
     }
 
     // Final safety check - ensure we have a valid name
     if (!baseName || baseName.length === 0) {
         baseName = "Sailor_" + Math.floor(Math.random() * 1000);
-        console.log("Using fallback name:", baseName);
+
     }
 
     // Format the new player name with clan tag at the beginning
     const newPlayerName = `[${clanName}] ${baseName}`;
-    console.log("New player name with clan tag:", newPlayerName);
+
 
     // Update the player name
-    console.log("Calling setPlayerName with:", newPlayerName);
+
     setPlayerName(newPlayerName);
 
     chatSystem.addSystemMessage(`You've created and joined clan "${clanName}". Your new display name is "${newPlayerName}".`);
@@ -245,7 +245,7 @@ function showClanCommandHelp(chatSystem) {
  * @param {object} chatSystem - Reference to the chat system
  */
 export function nickCommand(args, chatSystem) {
-    console.log("NICK COMMAND EXECUTED with args:", args);
+
 
     // Check if a new nickname was provided
     if (args.length === 0) {
@@ -255,7 +255,7 @@ export function nickCommand(args, chatSystem) {
 
     // Join all arguments to form the new nickname
     const rawNickname = args.join(' ').trim();
-    console.log("Raw nickname input:", rawNickname);
+
 
     // Sanitize the nickname to prevent XSS and ensure valid formatting
     const newNickname = sanitizePlayerName(rawNickname);
@@ -268,20 +268,20 @@ export function nickCommand(args, chatSystem) {
 
     // Get the current player name
     const currentPlayerName = getPlayerName();
-    console.log("Current player name:", currentPlayerName);
+
 
     // Check for clan tag in the current name and preserve it
     const clanTag = extractClanTag(currentPlayerName);
-    console.log("Extracted clan tag:", clanTag);
+
 
     // Format the new player name, preserving clan tag if it exists
     let updatedPlayerName;
     if (clanTag) {
         updatedPlayerName = `${clanTag} ${newNickname}`;
-        console.log("New name with preserved clan tag:", updatedPlayerName);
+
     } else {
         updatedPlayerName = newNickname;
-        console.log("New name without clan tag:", updatedPlayerName);
+
     }
 
     // Update the player's name

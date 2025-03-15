@@ -23,22 +23,22 @@ class CannonShot {
     }
 
     onAimStart(crosshair) {
-        console.log('Cannon Shot Aiming Started');
+
         // Could change crosshair color/shape here if desired
     }
 
     onExecute(targetPosition) {
-        console.log('Cannon Shot Executed at:', targetPosition);
+        // 
 
         // Find nearest cannon position
         const cannonPosition = this.getNearestCannonPosition(targetPosition);
         const cannonName = this.getCannonNameFromPosition(cannonPosition);
-        console.log("Nearest cannon position:", cannonPosition, "Cannon Name", cannonName);
+
 
         // Calculate direction from cannon to target
         const direction = new THREE.Vector3().subVectors(targetPosition, cannonPosition);
         direction.normalize();
-        console.log("Firing direction:", direction);
+
 
         // --- Create Cannonball (NEW LOGIC) ---
         this.createCannonball(cannonPosition, direction);
@@ -51,7 +51,7 @@ class CannonShot {
     }
 
     onCancel() {
-        console.log('Cannon Shot Canceled');
+
     }
 
     update(deltaTime) {
@@ -65,7 +65,7 @@ class CannonShot {
 
         for (const pos of this.cannonPositions) {
             const worldPosition = new THREE.Vector3(pos.x, 1.5, pos.z).applyMatrix4(boat.matrixWorld);
-            console.log("boat.matrixWorld:", boat.matrixWorld); // Log the matrix
+            // // Log the matrix
             const distance = worldPosition.distanceTo(targetPosition);
 
             if (distance < minDistance) {
@@ -73,7 +73,7 @@ class CannonShot {
                 nearestPosition = worldPosition;
             }
         }
-        console.log("getNearestCannonPosition, nearestPosition", nearestPosition)
+        //
         return nearestPosition;
     }
 
@@ -92,7 +92,7 @@ class CannonShot {
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
         const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
         cannonball.position.copy(position);
-        console.log("Cannonball created at:", cannonball.position);
+
         scene.add(cannonball);
 
         // Add a slight upward component to the direction
@@ -101,7 +101,7 @@ class CannonShot {
         firingDirection.normalize();
 
         const velocity = firingDirection.clone().multiplyScalar(this.cannonballSpeed);
-        console.log("Initial velocity:", velocity);
+
 
         // Create muzzle flash
         this.createMuzzleFlash(position, firingDirection);
@@ -112,28 +112,28 @@ class CannonShot {
 
         const animateCannonball = () => {
             const elapsedTime = (getTime() - startTime) / 1000;
-            console.log("Elapsed time:", elapsedTime, "seconds");
+
 
             const distanceTraveled = cannonball.position.distanceTo(initialPosition);
             if (distanceTraveled > maxDistance) {
-                console.log("Cannonball reached max distance. Removing.");
+
                 scene.remove(cannonball);
                 return;
             }
 
             velocity.y -= this.gravity * elapsedTime;
-            console.log("Current velocity (y):", velocity.y); // Log only y component
+            // Log only y component
 
             cannonball.position.x += velocity.x * 0.16;
             cannonball.position.y += velocity.y * 0.16;
             cannonball.position.z += velocity.z * 0.16;
-            console.log("Cannonball position (y):", cannonball.position.y); // Log only y component
+            // Log only y component
 
             cannonball.rotation.x += 0.02;
             cannonball.rotation.z += 0.02;
 
             if (cannonball.position.y <= 0) {
-                console.log("Cannonball hit water. Creating splash and removing.");
+
                 this.createEnhancedSplashEffect(cannonball.position.clone(), 2.0 / 3.0); //Adjusted intensity
                 scene.remove(cannonball);
                 return;
@@ -162,10 +162,10 @@ class CannonShot {
 
         const animateFlash = () => {
             const elapsedTime = (getTime() - startTime) / 1000;
-            console.log("Flash elapsed time:", elapsedTime);
+
 
             if (elapsedTime >= 0.2) { // Flash duration: 0.2 seconds, use >=
-                console.log("Flash duration exceeded. Removing. Elapsed time:", elapsedTime);
+
                 scene.remove(flash);
                 cancelAnimationFrame(animationId); // Ensure we cancel the animation frame
                 return;
@@ -183,7 +183,7 @@ class CannonShot {
         // Backup timer in case animation frame doesn't trigger properly
         setTimeout(() => {
             if (scene.children.includes(flash)) {
-                console.log("Flash removal backup triggered after 0.5 seconds");
+
                 scene.remove(flash);
                 cancelAnimationFrame(animationId);
             }
@@ -228,7 +228,7 @@ class CannonShot {
         // Backup timer for column
         setTimeout(() => {
             if (scene.children.includes(column)) {
-                console.log("Column removal backup triggered");
+
                 scene.remove(column);
                 column.geometry.dispose();
                 column.material.dispose();
@@ -354,7 +354,7 @@ class CannonShot {
             positionConfig.z
         );
         cannonWorldPosition.applyMatrix4(boat.matrixWorld);
-        console.log("Cannon world position for smoke:", cannonWorldPosition);
+
 
         const cannonDirection = new THREE.Vector3();
         if (positionConfig.x < 0) {
@@ -363,7 +363,7 @@ class CannonShot {
             cannonDirection.set(0.7, 0, positionConfig.z < 0 ? -0.7 : 0.7);
         }
         cannonDirection.applyQuaternion(boat.quaternion);
-        console.log("Cannon direction for smoke:", cannonDirection);
+
 
         const smokeCount = 45;
         const smokeGeometries = [
@@ -389,7 +389,7 @@ class CannonShot {
         const animateBlast = () => {
             const elapsed = (getTime() - blastStartTime) / 1000;
             if (elapsed > 0.4) { // Blast duration: 0.4 seconds (unchanged, already short)
-                console.log("Blast duration exceeded. Removing.");
+
                 scene.remove(blastCloud);
                 blastCloud.geometry.dispose();
                 blastCloud.material.dispose();
@@ -406,7 +406,7 @@ class CannonShot {
         // Backup timer for blast cloud
         setTimeout(() => {
             if (scene.children.includes(blastCloud)) {
-                console.log("Blast cloud removal backup triggered");
+
                 scene.remove(blastCloud);
                 blastCloud.geometry.dispose();
                 blastCloud.material.dispose();
@@ -445,7 +445,7 @@ class CannonShot {
             const animateSmoke = () => {
                 const smokeElapsedTime = (getTime() - smokeStartTime) / 1000;
                 if (smokeElapsedTime > smokeDuration) {
-                    console.log(`Smoke particle ${i} removed after ${smokeElapsedTime}s`);
+
                     scene.remove(smoke);
                     smoke.geometry.dispose();
                     smoke.material.dispose();
@@ -474,7 +474,7 @@ class CannonShot {
         setTimeout(() => {
             smokeElements.forEach((smoke, index) => {
                 if (scene.children.includes(smoke)) {
-                    console.log(`Backup: Removing smoke particle ${index} that wasn't removed by animation`);
+
                     scene.remove(smoke);
                     smoke.geometry.dispose();
                     smoke.material.dispose();

@@ -309,7 +309,7 @@ export function setupSky() {
     if (camera.far < skyRadius * 2) {
         camera.far = skyRadius * 2;
         camera.updateProjectionMatrix();
-        console.log("Increased camera far plane to see sky objects:", camera.far);
+
     }
 }
 
@@ -319,7 +319,7 @@ export function updateTimeOfDay(deltaTime) {
 
     // If time of day has changed, start transition
     if (timeOfDay !== lastTimeOfDay) {
-        console.log(`Time of day changed to: ${timeOfDay}`);
+
         lastTimeOfDay = timeOfDay;
         skyboxTransitionProgress = 0;
     }
@@ -923,12 +923,12 @@ export function toggleSkySystem() {
         }
 
         // Create a new realistic sky
-        console.log("Creating realistic sky system...");
+
         const skyMesh = createRealisticSky();
 
         // Ensure sky is visible
         if (skyMesh) {
-            console.log("Sky mesh created:", skyMesh);
+
             skyMesh.visible = true;
 
             // Force update once
@@ -936,7 +936,7 @@ export function toggleSkySystem() {
 
             // Center on camera immediately
             skyMesh.position.copy(camera.position);
-            console.log("Positioned sky at camera:", camera.position);
+
 
             // Debugging
             console.log("Camera frustum:", {
@@ -946,10 +946,10 @@ export function toggleSkySystem() {
                 aspect: camera.aspect
             });
         } else {
-            console.error("Failed to create sky mesh!");
+
         }
     } else {
-        console.log("Switching back to simple skybox...");
+
         // Show the old skybox
         if (window.skybox) window.skybox.visible = true;
 
@@ -963,7 +963,7 @@ export function toggleSkySystem() {
     // Update UI indicator
     updateSkyModeIndicator();
 
-    console.log(`Sky system set to: ${useRealisticSky ? 'Realistic' : 'Simple'}`);
+
     return useRealisticSky;
 }
 
@@ -1162,7 +1162,7 @@ function addDebugInfo(container, label, value) {
 
 // Create a realistic sky with atmospheric scattering shader, stars and clouds
 function createRealisticSky() {
-    console.log("Creating realistic sky mesh...");
+
 
     // === ATMOSPHERIC SCATTERING SKY ===
     // Create a sphere larger than our regular skybox but not too large
@@ -1230,7 +1230,7 @@ function createRealisticSky() {
 
     // === STARS SYSTEM ===
     // Create stars for night sky
-    console.log("Creating star field...");
+
     createSkyStarField();
 
     // Set realistic sky as active
@@ -1240,11 +1240,11 @@ function createRealisticSky() {
     updateSkyModeIndicator();
 
     // Make sure camera far plane is large enough to see the sky
-    console.log("Camera far plane before:", camera.far);
+
     if (camera.far < effectiveSkyRadius * 2) {
         camera.far = effectiveSkyRadius * 2;
         camera.updateProjectionMatrix();
-        console.log("Increased camera far plane to:", camera.far);
+
     }
 
     return skyMesh;
@@ -1253,7 +1253,7 @@ function createRealisticSky() {
 // Simpler update function for the enhanced sky
 export function updateRealisticSky(skyMesh, deltaTime) {
     if (!skyMesh || !skyMesh.material || !skyMesh.material.uniforms) {
-        console.warn("Realistic sky mesh not properly initialized");
+
         return;
     }
 
@@ -1325,7 +1325,7 @@ export function updateRealisticSky(skyMesh, deltaTime) {
         // Update star visibility
         updateSkyStars(dayPhase);
     } else {
-        console.warn("Sky mesh missing uniforms");
+
     }
 
     // Keep skybox centered on camera
@@ -1334,10 +1334,10 @@ export function updateRealisticSky(skyMesh, deltaTime) {
     // Debug information (only when debug is enabled)
     const skyDebug = false; // Set to true to enable debugging
     if (skyDebug) {
-        console.log("Sky time of day:", timeOfDay);
-        console.log("Top color:", topColor);
-        console.log("Bottom color:", bottomColor);
-        console.log("Sky radius:", skyMesh.geometry.parameters.radius);
+
+
+
+
     }
 }
 

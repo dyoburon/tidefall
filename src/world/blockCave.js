@@ -7,9 +7,9 @@ import * as THREE from 'three';
  * @param {boolean} hasEntrance - Whether the cave should have an entrance (default: true)
  */
 export function spawnBlockCave(scene, position, hasEntrance = true) {
-    console.log("========== CAVE POSITIONING DEBUG ==========");
-    console.log("SPAWN: Original position received:", position);
-    console.log("SPAWN: Creating cave with entrance:", hasEntrance);
+
+
+
 
     // Keep our forced position at 300,0,300
     const forcedPosition = new THREE.Vector3(300, 0, 300);
@@ -25,7 +25,7 @@ export function spawnBlockCave(scene, position, hasEntrance = true) {
  * @param {boolean} hasEntrance - Whether the cave should have an entrance
  */
 export function createBlockCave(scene, position, hasEntrance = true) {
-    console.log("CREATE: Starting cave creation at position:", position);
+
 
     // Force coordinates to ensure they stick
     const x = 1000; // Force X=300
@@ -34,7 +34,7 @@ export function createBlockCave(scene, position, hasEntrance = true) {
 
     // Block size
     const BLOCK_SIZE = 10;
-    console.log("CREATE: Using block size:", BLOCK_SIZE);
+
 
     // Create materials for the blocks
     const materials = [
@@ -71,7 +71,7 @@ export function createBlockCave(scene, position, hasEntrance = true) {
 
     // Create a medium-sized cave with proper interior and entrance
     function createMediumCave() {
-        console.log("CREATE: Building medium cave structure");
+
 
         // Increased dimensions - larger than before but still manageable
         const xRange = { min: -8, max: 8 };  // 17 blocks wide
@@ -211,7 +211,7 @@ export function createBlockCave(scene, position, hasEntrance = true) {
         }
 
         // Generate the cave blocks
-        console.log("CREATE: Starting block generation...");
+
         for (let localX = xRange.min; localX <= xRange.max; localX++) {
             for (let localY = yRange.min; localY <= yRange.max; localY++) {
                 for (let localZ = zRange.min; localZ <= zRange.max; localZ++) {
@@ -269,7 +269,7 @@ export function createBlockCave(scene, position, hasEntrance = true) {
             });
         }
 
-        console.log(`CREATE: Medium cave complete with ${blockCount} blocks, entrance: ${hasEntrance}`);
+
     }
 
     // Create the cave
@@ -306,14 +306,14 @@ export function createBlockCave(scene, position, hasEntrance = true) {
     const ambientLight = new THREE.AmbientLight(0x333333, 0.6);
     scene.add(ambientLight);
 
-    console.log("CREATE: Cave creation finished at position (300, 0, 300)");
+
     return scene;
 }
 
 // Export a debug function to help test
 export function debugCavePosition(scene, position) {
-    console.log("DEBUG FUNCTION CALLED");
-    console.log("Provided position:", position);
+
+
 
     // Add a visible marker at the specified position
     const debugMarker = new THREE.Mesh(
@@ -323,6 +323,6 @@ export function debugCavePosition(scene, position) {
     debugMarker.position.copy(position);
     scene.add(debugMarker);
 
-    console.log("Added green debug marker at position");
+
     return debugMarker;
 } 

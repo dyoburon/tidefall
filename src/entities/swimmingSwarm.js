@@ -790,7 +790,7 @@ export function setupSwimmingSwarms(playerEntity) {
 
     // Also directly reference boat for more intelligent tracking
     if (!boat) {
-        console.warn("Boat reference not found for swarm targeting");
+
     }
 
     // Clear existing swarms if any
@@ -2441,7 +2441,7 @@ function updateIntelligentTargeting(swarm, deltaTime) {
             // If player is nearby but not detected yet, chance to detect based on intelligence
             if (distanceToPlayer < SWARM_CONFIG.DETECTION_RANGE &&
                 Math.random() < SWARM_CONFIG.INTELLIGENCE_LEVEL * deltaTime * 5) {
-                console.log("Swarm detected player!");
+
                 swarm.state = SWARM_STATE.PURSUING;
                 swarm.stateTimer = 10 + Math.random() * 5;
             }
@@ -2488,7 +2488,7 @@ function updateIntelligentTargeting(swarm, deltaTime) {
         Math.random() < SWARM_CONFIG.INTELLIGENCE_LEVEL * deltaTime) {
 
         // Set up ambush
-        console.log("Swarm setting up ambush!");
+
         swarm.isAmbushing = true;
         swarm.state = SWARM_STATE.GATHERING;
         swarm.targetPosition.copy(playerPos);
@@ -2499,7 +2499,7 @@ function updateIntelligentTargeting(swarm, deltaTime) {
     if (swarm.isAmbushing &&
         distanceToPlayer < SWARM_CONFIG.ATTACK_RANGE * 1.5) {
 
-        console.log("Swarm executing ambush!");
+
         swarm.isAmbushing = false;
         swarm.state = SWARM_STATE.ATTACKING;
         swarm.stateTimer = 10 + Math.random() * 5;
@@ -2538,7 +2538,7 @@ function notifyNearbySwarms(originSwarm) {
 
         // If within coordination range, alert to join attack
         if (distance < SWARM_CONFIG.COORDINATION_RADIUS) {
-            console.log("Coordinating swarm attack!");
+
 
             // Transition to attacking or pursuing depending on distance to player
             if (otherSwarm.state !== SWARM_STATE.ATTACKING) {

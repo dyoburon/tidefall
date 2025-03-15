@@ -165,7 +165,7 @@ class GameUI {
 
             // Add click event listener
             element.addEventListener('click', () => {
-                console.log("👥 PLAYERCOUNT: Player count clicked, showing player list");
+
                 playerList.toggle();
             });
         }
@@ -1142,7 +1142,7 @@ class GameUI {
                     statusMessage.textContent = `Error: ${error.message || 'Could not change water style'}`;
                     statusMessage.style.color = '#ffaaaa';
                     statusMessage.style.opacity = '1';
-                    console.error('Error changing water style:', error);
+
 
                     // Reset active button to match current style
                     waterButtons.forEach(btn => {
@@ -1240,7 +1240,7 @@ class GameUI {
                         registerOpenUI(settingsPanel);
                     }
                 } catch (e) {
-                    console.warn('Could not register settings panel as open UI:', e);
+
                 }
             } else {
                 settingsPanel.style.display = 'none';
@@ -1250,7 +1250,7 @@ class GameUI {
                         unregisterOpenUI(settingsPanel);
                     }
                 } catch (e) {
-                    console.warn('Could not unregister settings panel as open UI:', e);
+
                 }
             }
         });
@@ -1295,15 +1295,15 @@ class GameUI {
 
         // Click handler to open player list
         playerListButton.addEventListener('click', () => {
-            console.log("📋 DEBUG: Settings panel 'Show Active Sailors' button clicked");
+
             // Hide settings panel
             settingsPanel.style.display = 'none';
-            console.log("📋 DEBUG: Settings panel hidden");
+
 
             // Show player list
-            console.log("📋 DEBUG: Attempting to show player list...");
+
             playerList.show();
-            console.log("📋 DEBUG: playerList.show() called");
+
         });
 
         playerListSection.appendChild(playerListButton);
@@ -1424,7 +1424,7 @@ function handleEscapeKey(event) {
 
 // Register a UI element as open
 export function registerOpenUI(uiElement) {
-    console.log('registerOpenUI', uiElement);
+
     // Add the UI to the stack of open elements
     if (uiElement && !openUIElements.includes(uiElement)) {
         openUIElements.push(uiElement);

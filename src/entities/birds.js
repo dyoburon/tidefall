@@ -1,5 +1,11 @@
 import * as THREE from 'three';
 import { scene, getTime } from '../core/gameState.js';
+import {
+    registerEntity,
+    updateEntityChunk,
+    updateEntityVisibility,
+    getVisibleChunks
+} from '../world/chunkEntityController.js';
 
 // Bird configuration
 const BIRD_COUNT = 30;
@@ -128,6 +134,11 @@ export function setupBirds(islands, boat) {
         // Initialize bird goals
         updateBirdGoals();
 
+        // Register each bird with the chunk system
+        birds.forEach(bird => {
+            registerEntity('birds', bird, bird.mesh.position);
+        });
+
         return birds;
     } catch (error) {
         console.error("Error in setupBirds:", error);
@@ -178,7 +189,10 @@ export function updateBirds(deltaTime) {
         // Update goals if islands or boat has moved
         updateBirdGoals();
 
-        // Update each bird
+        // First update visibility to add/remove birds based on chunks
+        updateBirdVisibility();
+
+        // Then update remaining active birds
         birds.forEach((bird, index) => {
             // Update bird state
             updateBirdState(bird, index);
@@ -213,6 +227,9 @@ export function updateBirds(deltaTime) {
             if (Math.random() < POOP_CONFIG.CHANCE_PER_BIRD) {
                 createBirdPoop(bird.mesh.position.clone());
             }
+
+            // Update bird's chunk if it moved to a new one
+            updateEntityChunk('birds', bird, bird.mesh.position);
         });
 
         // Update any active poop particles
@@ -621,4 +638,97 @@ function updateSplashParticles(deltaTime) {
             splashParticles.splice(i, 1);
         }
     }
+}
+
+// New function to handle bird visibility based on chunks
+function updateBirdVisibility() {
+    const visibleChunks = getVisibleChunks();
+
+    updateEntityVisibility(
+        visibleChunks,
+        'birds',
+        // Function to get bird state
+        (bird) => ({
+            position: bird.mesh.position.clone(),
+            velocity: bird.velocity.clone(),
+            state: bird.state,
+            wingFlapPhase: bird.wingFlapPhase,
+            goalIndex: bird.goalIndex,
+            goalTimer: bird.goalTimer
+        }),
+        // Function to clean up bird
+        (bird) => {
+            const index = birds.indexOf(bird);
+            if (index !== -1) {
+                birds.splice(index, 1);
+            }
+            scene.remove(bird.mesh);
+            // Clean up geometries if needed
+        },
+        // Function to respawn birds from saved states
+        (birdStates, chunkKey) => {
+            birdStates.forEach(state => {
+                // Create new bird with saved state
+                const newBird = createBirdFromState(state);
+                birds.push(newBird);
+                registerEntity('birds', newBird, newBird.mesh.position);
+            });
+        }
+    );
+}
+
+// New helper function to create a bird from saved state
+function createBirdFromState(state) {
+    // Create bird group
+    const bird = new THREE.Group();
+
+    // Create body
+    const bodyGeometry = new THREE.ConeGeometry(1, 4, 4);
+    bodyGeometry.rotateX(Math.PI / 2);
+
+    // Choose random color (since we're not saving color in state)
+    const birdColors = [0xFFFFFF, 0x333333, 0x87CEEB, 0xA52A2A, 0x000000];
+    const birdColor = birdColors[Math.floor(Math.random() * birdColors.length)];
+
+    // Create body
+    const bodyMaterial = new THREE.MeshPhongMaterial({ color: birdColor });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    bird.add(body);
+
+    // Create wing geometry
+    const wingGeometry = new THREE.PlaneGeometry(6, 2);
+
+    // Create left wing
+    const leftWingMaterial = new THREE.MeshPhongMaterial({
+        color: birdColor,
+        side: THREE.DoubleSide
+    });
+    const leftWing = new THREE.Mesh(wingGeometry, leftWingMaterial);
+    leftWing.position.set(-2, 0, 0);
+    leftWing.rotation.z = Math.PI / 4;
+    bird.add(leftWing);
+
+    // Create right wing
+    const rightWing = new THREE.Mesh(wingGeometry, leftWingMaterial);
+    rightWing.position.set(2, 0, 0);
+    rightWing.rotation.z = -Math.PI / 4;
+    bird.add(rightWing);
+
+    // Position based on saved state
+    bird.position.copy(state.position);
+
+    // Add to scene
+    scene.add(bird);
+
+    // Return bird object with all properties
+    return {
+        mesh: bird,
+        velocity: state.velocity.clone(),
+        state: state.state,
+        wingFlapPhase: state.wingFlapPhase,
+        goalIndex: state.goalIndex,
+        goalTimer: state.goalTimer,
+        leftWing: leftWing,
+        rightWing: rightWing
+    };
 } 

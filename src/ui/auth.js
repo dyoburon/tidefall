@@ -14,15 +14,15 @@ let currentUser = null;
  * @param {Function} onComplete - Function to call when auth is complete
  */
 export function showAuthPopup(onComplete) {
-    console.log("🔒 Auth: Showing Firebase authentication popup");
+
 
     Firebase.showAuthPopup((user) => {
         if (user) {
-            console.log("🔒 Auth: Authentication successful:", user.displayName || user.email);
+
             isAuthenticated = true;
             currentUser = user;
         } else {
-            console.log("🔒 Auth: Authentication failed or canceled");
+
         }
 
         if (onComplete && typeof onComplete === 'function') {

@@ -374,7 +374,7 @@ function loadShipFromPlayerSelection(boat) {
     setTimeout(() => {
         boatModelLoaded = true;
         boatModelLoading = false;
-        console.log("✅ Boat model loading process completed");
+
 
         // Apply wood texture overlay to colorable parts
         applyWoodTextureToColoredParts(boat);
@@ -540,7 +540,7 @@ export function updateBoatRocking(deltaTime) {
 
     // If height is extreme or changes too rapidly, clamp it
     if (Math.abs(floatHeight) > 10) {
-        console.warn("Boat height extreme value detected:", floatHeight);
+
         boat.position.y = normalWaterLevel + 0.5; // Reset to normal level + offset
     } else if (boat.lastFloatHeight && Math.abs(floatHeight - boat.lastFloatHeight) > maxHeightChange) {
         // If height change is too rapid, dampen it
@@ -790,7 +790,7 @@ function applyBoatColors(model) {
         }
     });
 
-    console.log("Applied custom colors to boat model");
+
 }
 
 // Function to apply wood texture to a specific mesh
@@ -830,7 +830,7 @@ function makeBoatCartoony(model) {
         }
     });
 
-    console.log("Applied cartoony bright style to boat model");
+
 }
 
 // Helper function to make a material more vibrant/cartoony

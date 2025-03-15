@@ -69,13 +69,13 @@ function generateCartoonyWaterNormals() {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.needsUpdate = true;
 
-    console.log("Generated procedural cartoony water normals texture");
+
     return texture;
 }
 
 // Initialize the advanced water effect
 export function setupWater(style = 'realistic') {
-    console.log(`Setting up water with style: ${style}`);
+
 
     // Set the current style
     currentWaterStyle = style;
@@ -95,7 +95,7 @@ export function setupWater(style = 'realistic') {
                 texture.repeat.set(1, 1); // Standard repeats for realistic style
             }
 
-            console.log(`Water normal map loaded successfully for ${style} style`);
+
 
             // If cartoony style and water mesh exists, we can optionally replace with procedural
             if (style === 'cartoony' && waterMesh) {
@@ -106,7 +106,7 @@ export function setupWater(style = 'realistic') {
         },
         undefined,
         function (err) {
-            console.error("Error loading water normal map:", err);
+
         }
     );
 
@@ -166,7 +166,7 @@ export function setupWater(style = 'realistic') {
     waterMesh.rotation.x = -Math.PI / 2;
     waterMesh.position.y = -0.5; // Slightly below sea level for visibility
 
-    console.log(`Water mesh created with style: ${style}, position: ${waterMesh.position.y}`);
+
 
     // Adjust additional properties based on style
     if (style === 'cartoony') {
@@ -218,7 +218,7 @@ export function setupWater(style = 'realistic') {
 // Update water in animation loop
 export function updateWater(deltaTime) {
     if (!waterMesh) {
-        console.warn("Water mesh not initialized in updateWater");
+
         return;
     }
 
@@ -388,10 +388,10 @@ export function setWaterQuality(quality) {
 
 // Function to toggle between water styles
 export function setWaterStyle(style = 'realistic') {
-    console.log(`Changing water style to: ${style}`);
+
 
     if (style === currentWaterStyle) {
-        console.log("Water style already set to " + style);
+
         return; // No change needed
     }
 
@@ -404,5 +404,5 @@ export function setWaterStyle(style = 'realistic') {
     // Setup new water with desired style
     setupWater(style);
 
-    console.log(`Water style changed to ${style}`);
+
 } 

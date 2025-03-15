@@ -52,7 +52,7 @@ const lastChunkUpdatePosition = new THREE.Vector3();
  * Call this during game initialization
  */
 export function initializeChunkSystem() {
-    console.log("Initializing chunk system with biome integration...");
+
 
     // Initialize the biome system with our seed
     initializeBiomeSystem(WORLD_SEED);
@@ -62,7 +62,7 @@ export function initializeChunkSystem() {
     registerBiome(arcticBiome);
     registerBiome(volcanicBiome);
 
-    console.log("Chunk system initialized with biomes!");
+
 }
 
 /**
@@ -146,7 +146,7 @@ function generateChunk(chunkX, chunkZ, scene) {
     const biome = getBiomeForChunk(chunkX, chunkZ);
     const biomeProperties = biome ? biome.getProperties() : {};
 
-    console.log(`Generating chunk ${chunkKey} with biome: ${biome ? biome.name : 'unknown'}`);
+
 
     // Calculate chunk world coordinates
     const worldX = chunkX * chunkSize;
@@ -203,7 +203,7 @@ export function updateChunkSystem(deltaTime) {
  * This now only handles base terrain/water chunks, not entities
  */
 export function updateVisibleChunks(lastChunkUpdatePosition) {
-    //console.log("Updating visible chunks");
+    //
 
     // Get current chunk coordinates based on boat position
     const currentChunk = getChunkCoords(boat.position.x, boat.position.z);
@@ -257,7 +257,7 @@ export function updateVisibleChunks(lastChunkUpdatePosition) {
 // Remove or modify updateAllIslandVisibility since it's now handled by biomes
 // If needed for backward compatibility, you can keep it but have it delegate to biomes:
 export function updateAllIslandVisibility(lastChunkUpdatePosition) {
-    console.warn('updateAllIslandVisibility is deprecated. Use biome system instead.');
+
     // For backward compatibility, delegate to biome system
     getAllBiomes().forEach(biome => {
         biome.updateEntityVisibility(lastChunkUpdatePosition);

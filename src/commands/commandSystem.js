@@ -165,7 +165,7 @@ export function initCommandSystem() {
         setupFireballUpdates();
     }
 
-    console.log("✅ Command system initialized with commands:", Array.from(commands.keys()));
+
 
     return {
         processCommand,
@@ -222,7 +222,7 @@ export function processCommand(message, chatSystem) {
         command.handler(args, chatSystem);
         return true;
     } catch (error) {
-        console.error(`Error executing command /${commandName}:`, error);
+
         chatSystem.addSystemMessage(`Error executing command: /${commandName}`);
         return true;
     }
@@ -293,7 +293,7 @@ function flyCommand(args, chatSystem) {
         // Blur focus from the input field to allow keyboard controls to work
         if (chatSystem.messageInput) {
             chatSystem.messageInput.blur();
-            console.log("Blurred chat input to enable keyboard controls");
+
         }
     }
 }
@@ -374,7 +374,7 @@ function enableFlyMode(speed = 1.0) {
 
         // Replace the updateCamera function
         window.updateCamera = state.updateCameraWrapper;
-        console.log("📸 Overrode updateCamera function for fly mode");
+
     }
 
     // Setup animation loop for fly mode
@@ -396,9 +396,9 @@ function enableFlyMode(speed = 1.0) {
     // Add visual indicator for fly mode
     createFlyModeIndicator();
 
-    console.log("🚁 Fly mode enabled - camera detached");
-    console.log("Current camera position:", camera.position);
-    console.log("Current camera rotation:", camera.rotation);
+
+
+
 }
 
 /**
@@ -503,7 +503,7 @@ function disableFlyMode() {
     // Remove visual indicator
     removeFlyModeIndicator();
 
-    console.log("🚢 Fly mode disabled - camera reattached to boat");
+
 }
 
 /**
@@ -533,7 +533,7 @@ function handleFlyModeMouseDown(event) {
         state.mouseLook.isDragging = true;
         state.mouseLook.lastX = event.clientX;
         state.mouseLook.lastY = event.clientY;
-        console.log("Fly mode: Started camera drag");
+
     }
 }
 
@@ -547,7 +547,7 @@ function handleFlyModeMouseUp(event) {
     // Only handle left mouse button (button 0)
     if (event.button === 0) {
         state.mouseLook.isDragging = false;
-        console.log("Fly mode: Ended camera drag");
+
     }
 }
 
@@ -591,7 +591,7 @@ function handleFlyModeKeyDown(event) {
     }
 
     // First log the event to debug
-    console.log(`Fly mode key down: ${event.key}`);
+
 
     let handled = true;
 
@@ -654,7 +654,7 @@ function handleFlyModeKeyUp(event) {
     }
 
     // First log the event to debug
-    console.log(`Fly mode key up: ${event.key}`);
+
 
     let handled = true;
 
@@ -708,7 +708,7 @@ function handleFlyModeKeyUp(event) {
 function updateFlyCamera() {
     // If no longer in fly mode, stop updating
     if (!state.flyMode || !window.flyModeEnabled) {
-        console.log("Fly mode deactivated, stopping camera updates");
+
         return;
     }
 
@@ -786,34 +786,34 @@ function updateFlyCamera() {
             const distance = originalPos.distanceTo(newPos);
             const rotationChange = Math.abs(originalRot.y - camera.rotation.y);
 
-            console.log(`Fly mode: Camera moved ${distance.toFixed(2)} units, rotated ${(rotationChange * 180 / Math.PI).toFixed(2)}°`);
-            console.log(`From: ${originalPos.x.toFixed(1)}, ${originalPos.y.toFixed(1)}, ${originalPos.z.toFixed(1)}`);
-            console.log(`To: ${newPos.x.toFixed(1)}, ${newPos.y.toFixed(1)}, ${newPos.z.toFixed(1)}`);
-            console.log(`Keys pressed: ${pressedKeys.join(', ')}`);
+
+
+
+
 
             // Double-check that the camera actually moved or rotated
             if (distance < 0.01 && rotationChange < 0.001) {
-                console.warn("WARNING: Camera position and rotation didn't change significantly despite key presses!");
-                console.warn("Move speed:", moveSpeed);
-                console.warn("Rotate speed:", rotateSpeed);
-                console.warn("Forward vector:", forward);
-                console.warn("Right vector:", right);
-                console.warn("Camera quaternion:", camera.quaternion);
+
+
+
+
+
+
             }
         }
 
         // Debug helper: log current key states occasionally
         if (Math.random() < 0.01) { // ~1% chance each frame to reduce spam
-            console.log("Current fly keys state:", JSON.stringify(state.flyKeys));
-            console.log("Camera position:", camera.position);
-            console.log("Camera rotation:", camera.rotation);
-            console.log("Current speed:", state.flySpeed);
+
+
+
+
         }
 
         // Continue animation loop
         window.requestAnimationFrame(updateFlyCamera);
     } catch (error) {
-        console.error("Error in updateFlyCamera:", error);
+
         // Try to continue the animation loop despite the error
         window.requestAnimationFrame(updateFlyCamera);
     }
@@ -852,10 +852,10 @@ function patchAnimationLoop() {
             return originalFn.apply(this, arguments);
         };
 
-        console.log("✅ Successfully patched updateCamera function for fly mode");
+
         animationLoopPatched = true;
     } else {
-        console.warn("⚠️ updateCamera function not found - fly mode may not work correctly");
+
     }
 }
 
@@ -881,10 +881,10 @@ function setupFireballUpdates() {
             return originalAnimate.apply(this, arguments);
         };
 
-        console.log("✅ Fireball updates integrated into animation loop");
+
     } else {
         // If we can't find the original animate function, set up our own update loop
-        console.warn("⚠️ Could not find main animation loop, setting up separate fireball update loop");
+
 
         let lastTime = performance.now();
 

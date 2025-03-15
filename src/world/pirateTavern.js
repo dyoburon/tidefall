@@ -19,7 +19,7 @@ export function createPirateTavern(params) {
         scale = 1.0
     } = params;
 
-    console.log("Creating Pirate Tavern at:", position);
+
 
     // Create container for the tavern
     const tavern = new THREE.Group();
@@ -263,7 +263,7 @@ export function createPirateTavern(params) {
     ridge.position.set(0, roofBaseY + roofHeight, 0);
     tavern.add(ridge);
 
-    console.log("Created Pirate Tavern");
+
 
     return tavern;
 } 

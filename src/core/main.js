@@ -53,6 +53,8 @@ import { getPlayerInventory, playerHasItem } from './network.js';
 import SpatialAudioSystem from '../audio/spatialAudio.js';
 import { dissipateFog, updateFogEffects } from '../environment/fog.js';
 import AbilityManager from '../abilities/abilitymanager.js';
+import { updateAllEntityChunks } from '../world/chunkEntityController.js';
+
 
 
 // Define these variables at the file level scope (outside any functions)
@@ -76,7 +78,7 @@ const fogColorKeyframes = [
 ];
 
 // Initialize water with explicit realistic style as default
-console.log("Initializing water in main.js");
+
 const water = setupWater('cartoony');
 
 // Initialize biome
@@ -140,7 +142,7 @@ camera.lookAt(0, 0, 0);
 // Ensure camera's far plane is large enough to see the sky
 camera.far = 50000;
 camera.updateProjectionMatrix();
-console.log("Camera setup:", { near: camera.near, far: camera.far, fov: camera.fov });
+
 
 initCameraControls();
 
@@ -176,7 +178,7 @@ composer.addPass(bloomPass);
 // Add sky setup here
 setupSky();
 // Enable realistic sky with clouds and stars
-console.log("Initializing realistic sky system...");
+
 
 // Force removal of any existing sky before toggling
 if (window.realisticSkyMesh) {
@@ -187,13 +189,13 @@ toggleSkySystem();
 
 // Toggle to enable realistic sky
 const skyEnabled = toggleSkySystem();
-console.log(`Realistic sky system initialized: ${skyEnabled}`);
+
 
 // Force update the sky once to ensure it's properly displayed
 if (window.realisticSkyMesh) {
     const deltaTime = 1 / 60;
     updateRealisticSky(window.realisticSkyMesh, deltaTime);
-    console.log("Forced initial sky update completed");
+
 }
 
 requestLeaderboard();
@@ -203,7 +205,7 @@ MusicSystem.setVolume(0.1); // 30% volume
 // Test Rocky Islands - set to true to create test islands
 const TEST_ROCKY_ISLANDS = true;
 if (TEST_ROCKY_ISLANDS) {
-    console.log("Testing rocky islands - creating test islands");
+
     // Create a single test rocky island further from the starting position
     createTestRockyIslandCluster(scene, 4, 800, new THREE.Vector3(boat.position.x, 0, boat.position.z));
 }
@@ -266,7 +268,7 @@ spawnMassiveIsland(scene);
 
 // Add this line to spawn your block cave instead
 const blockCave = spawnBlockCave(scene, new THREE.Vector3(0, 0, 0));
-console.log("Block cave system created");
+
 
 spawnMassiveIsland(scene);
 // Add this at the beginning of your script.js file
@@ -275,31 +277,31 @@ let playerColor = '#3498db'; // Default blue
 
 // Add this function after your other initialization code
 async function initializeFirebaseAuth() {
-    console.log("Initializing Firebase authentication...");
+
 
     // Try to initialize Firebase
     firebaseInitialized = await Firebase.initializeFirebase();
 
     if (!firebaseInitialized) {
-        console.warn("Firebase initialization failed");
+
         return;
     }
 
     // Show Firebase auth popup
     Firebase.showAuthPopup((user) => {
-        console.log("🔍 MAIN DEBUG: Firebase auth completed, user:", user?.uid || 'No user');
-        console.log("🔍 MAIN DEBUG: User name:", user);
+
+
 
         // Check if user has already completed login process
         if (localStorage.getItem('hasCompletedLogin') === 'true') {
-            console.log('🔍 MAIN DEBUG: User has already completed login, skipping login screen');
+
             onAuthAndLoginComplete(user);
             return;
         }
 
         // Check both Firebase displayName AND localStorage
         if ((user && !user.name) || !localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
-            console.log('🔍 MAIN DEBUG: User needs to set name, showing login screen');
+
 
             // If there's a name in localStorage, use it as default in the login screen
             const savedName = localStorage.getItem('playerName');
@@ -310,13 +312,13 @@ async function initializeFirebaseAuth() {
             // Your showLoginScreen function
             if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
                 showLoginScreen(() => {
-                    console.log('🔍 MAIN DEBUG: Login screen complete, now showing MOTD');
+
                     onAuthAndLoginComplete(user);
                 });
             }
 
         } else {
-            console.log('🔍 MAIN DEBUG: User already has name, going to MOTD');
+
             // If there's a saved name, make sure to use it
             if (localStorage.getItem('playerName')) {
                 playerName = localStorage.getItem('playerName');
@@ -327,7 +329,7 @@ async function initializeFirebaseAuth() {
 
     if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
         showLoginScreen(() => {
-            console.log('🔍 MAIN DEBUG: Login screen complete, now showing MOTD');
+
             onAuthAndLoginComplete(user);
         });
     }
@@ -339,22 +341,22 @@ initializeFirebaseAuth();
 
 // Create a new helper function to handle the sequence
 function completeAuthAndShowMOTD(user = null) {
-    console.log("🔔 Main: Authentication and login complete, checking MOTD");
+
 
     // Add a short delay to ensure any UI elements are properly closed
     setTimeout(() => {
         if (shouldShowMessageOfDay()) {
-            console.log("🔔 Main: Showing MOTD after auth/login complete");
+
             showMessageOfDay(() => {
                 // Complete network initialization after MOTD is closed
                 if (user) {
-                    console.log("🔔 Main: Initializing network with user after MOTD");
+
                     initializeNetworkWithPlayerInfo(user);
                 }
             });
         } else if (user) {
             // Skip MOTD and initialize directly
-            console.log("🔔 Main: Skipping MOTD, initializing network directly");
+
             initializeNetworkWithPlayerInfo(user);
         }
     }, 500); // Short delay to ensure UI elements are updated
@@ -642,7 +644,7 @@ export function showLoginScreen(onComplete) {
 
         // Make sure the click event is properly defined
         boatCard.addEventListener('click', () => {
-            console.log(`Boat selected: ${boat.id}`); // Add debug logging
+            // Add debug logging
 
             // Update selected boat
             selectedBoatId = boat.id;
@@ -774,11 +776,11 @@ export function showLoginScreen(onComplete) {
         // Add debugging for events - uncomment if needed
         /*
         boatCard.addEventListener('mousedown', (e) => {
-            console.log(`Mouse down on ${boat.id}`);
+            
         });
         
         boatCard.addEventListener('mouseup', (e) => {
-            console.log(`Mouse up on ${boat.id}`);
+            
         });
         */
 
@@ -850,7 +852,7 @@ export function showLoginScreen(onComplete) {
 
         // Call the completion callback directly
         if (onComplete && typeof onComplete === 'function') {
-            console.log("🔔 Main: Login screen completed, calling callback");
+
             onComplete();
         }
 
@@ -866,7 +868,7 @@ export function showLoginScreen(onComplete) {
 
 // Initialize network with player info
 function initializeNetworkWithPlayerInfo(firebaseUser = null) {
-    console.log(`🔔 Main: Connecting as: ${playerName} with color: ${playerColor}`);
+
 
     // Convert hex color to RGB (0-1 range for Three.js)
     const hexToRgb = (hex) => {
@@ -883,9 +885,9 @@ function initializeNetworkWithPlayerInfo(firebaseUser = null) {
     let firebaseUserId = null;
     if (firebaseUser) {
         firebaseUserId = firebaseUser.uid;
-        console.log("🔔 Main: Using Firebase authentication with UID:", firebaseUserId);
+
     } else {
-        console.log("🔔 Main: No Firebase user, using anonymous mode");
+
     }
 
     // Complete the initialization directly - MOTD should have been shown by now
@@ -904,7 +906,7 @@ function initializeNetworkWithPlayerInfo(firebaseUser = null) {
 // Replace your existing setTimeout for network initialization with this:
 /*
 setTimeout(() => {
-    console.log("Showing player setup screen...");
+    
     showLoginScreen();
 }, 2000);
 */
@@ -942,19 +944,19 @@ const keydownHandler = (event) => {
     switch (event.key) {
         case 'w': case 'W': case 'ArrowUp':
             keys.forward = true;
-            console.log("⌨️ KEYDOWN: W/UP pressed - keys.forward set to:", keys.forward);
+
             break;
         case 's': case 'S': case 'ArrowDown':
             keys.backward = true;
-            console.log("⌨️ KEYDOWN: S/DOWN pressed - keys.backward set to:", keys.backward);
+
             break;
         case 'a': case 'A': case 'ArrowLeft':
             keys.left = true;
-            console.log("⌨️ KEYDOWN: A/LEFT pressed - keys.left set to:", keys.left);
+
             break;
         case 'd': case 'D': case 'ArrowRight':
             keys.right = true;
-            console.log("⌨️ KEYDOWN: D/RIGHT pressed - keys.right set to:", keys.right);
+
             break;
         // Toggle mouse camera control with 'c' key
         case 'c': mouseControl.isEnabled = !mouseControl.isEnabled; break;
@@ -967,16 +969,16 @@ const keydownHandler = (event) => {
             break;
         // Press 'T' to toggle sky system
         case 't': case 'T':
-            console.log("Toggling sky system...");
+
             toggleSkySystem();
             break;
         case 'f': case 'F':
-            console.log("Toggling fog system...");
+
             const fogEnabled = toggleFog(scene);
-            console.log("🌫️ Slow fog dissipation (5s)");
+
             /*dissipateFog({
                 duration: 5000,
-                onComplete: () => console.log("Fog has dissipated")
+                onComplete: () => 
             });*/
             break;
     }
@@ -995,19 +997,19 @@ const keyupHandler = (event) => {
     switch (event.key) {
         case 'w': case 'W': case 'ArrowUp':
             keys.forward = false;
-            console.log("⌨️ KEYUP: W/UP released - keys.forward set to:", keys.forward);
+
             break;
         case 's': case 'S': case 'ArrowDown':
             keys.backward = false;
-            console.log("⌨️ KEYUP: S/DOWN released - keys.backward set to:", keys.backward);
+
             break;
         case 'a': case 'A': case 'ArrowLeft':
             keys.left = false;
-            console.log("⌨️ KEYUP: A/LEFT released - keys.left set to:", keys.left);
+
             break;
         case 'd': case 'D': case 'ArrowRight':
             keys.right = false;
-            console.log("⌨️ KEYUP: D/RIGHT released - keys.right set to:", keys.right);
+
             break;
     }
 };
@@ -1106,11 +1108,11 @@ function animate() {
 
     // Right before updating position, add this logging
     if (window.collisionDebugActive && window.boatInParabolicFlight) {
-        console.log("%c📌 MAIN: Position update during flight", "color:purple; font-weight:bold;");
-        console.log("   Current position:", boat.position.x.toFixed(2), boat.position.y.toFixed(2), boat.position.z.toFixed(2));
-        console.log("   New position:", newPosition.x.toFixed(2), newPosition.y.toFixed(2), newPosition.z.toFixed(2));
-        console.log("   Velocity:", boatVelocity.x.toFixed(2), boatVelocity.y.toFixed(2), boatVelocity.z.toFixed(2));
-        console.log("   Y will be preserved:", boat.position.y.toFixed(2));
+
+
+
+
+
     }
 
     if (!collided) {
@@ -1119,8 +1121,8 @@ function animate() {
 
             // Debug logging before position change
             if (window.collisionDebugActive) {
-                console.log("%c🔄 MAIN: Applying flight-safe position update", "color:purple;");
-                console.log("   Y before:", boat.position.y.toFixed(2));
+
+
             }
 
             // Only apply X and Z changes, Y is controlled by the collision system
@@ -1209,6 +1211,8 @@ function animate() {
     // Update sea monsters with delta time
     updateSeaMonsters(deltaTime);
 
+    updateAllEntityChunks();
+
     // Update fishing
     updateFishing();
 
@@ -1283,7 +1287,7 @@ function animate() {
     //updateFogEffects(deltaTime);
 
     // Optional: Log the changing colors (uncomment for debugging)
-    // console.log(`Fog color gradient: phase ${dayPhase.toFixed(2)}, color #${interpolatedColor.getHexString()}`);
+    // 
 
     // Update the spatial audio system with the player's position
     //spatialAudio.update(boat.position);
@@ -1341,12 +1345,12 @@ function updateGameUI() {
 
 // Force an initial update to ensure islands are generated
 setTimeout(() => {
-    console.log("Forcing initial chunk update...");
+
     //updateVisibleChunks(boat, scene, waterShader, lastChunkUpdatePosition);
 
     // Add this line to initialize villagers after the first chunk update
     if (activeIslands && activeIslands.size > 0) {
-        console.log(`Initializing villagers with ${activeIslands.size} islands`);
+
         //updateVillagers(activeIslands);
     }
 }, 1000);
@@ -1355,7 +1359,7 @@ setTimeout(() => {
 window.addEventListener('keydown', (event) => {
     // Press 'T' to toggle sky system
     if (event.key === 't' || event.key === 'T') {
-        console.log("Toggling sky system...");
+
         toggleSkySystem();
     }
 });
@@ -1430,21 +1434,21 @@ initDiagnostics();
 // Create the coastal cliff scene at a position offset from the starting point
 const startPosition = new THREE.Vector3(boat.position.x + 1000, 0, boat.position.z + 1000);
 const cliffScene = spawnCoastalCliffScene(scene, startPosition);
-console.log("Coastal cliff scene created at:", startPosition);
+
 
 // Create a global command to show MOTD for testing
 window.showMOTD = function () {
-    console.log("🔔 Main: Manually showing MOTD via global command");
+
     forceShowMessageOfDay();
 };
 
-console.log("🔔 MOTD: Global command available - call window.showMOTD() to display");
+
 
 /**
  * Initialize the game with proper UI sequence
  */
 function initializeGame() {
-    console.log("🎮 Main: Starting game initialization");
+
 
     // Check if we need to show Firebase auth and login screens
     const needsAuth = !getCurrentUser();
@@ -1453,9 +1457,9 @@ function initializeGame() {
     if (needsAuth || needsLogin) {
         // If auth or login needed, start the full screen sequence
         // which will show MOTD only AFTER login completes
-        console.log('🔍 MAIN DEBUG: Starting screen sequence WITHOUT MOTD');
+
         startScreenSequence(() => {
-            console.log('🔍 MAIN DEBUG: Screen sequence complete, handling auth result');
+
             const user = getCurrentUser(); // If you have this function
             onAuthAndLoginComplete(user);
         });
@@ -1476,7 +1480,7 @@ function initializeGame() {
 
 // Common finish function to avoid code duplication
 function finishInitialization() {
-    console.log("🎮 Main: UI sequence complete, initializing network");
+
 
     // Get current user state after all screens
     const firebaseUser = getCurrentUser();
@@ -1494,7 +1498,7 @@ function finishInitialization() {
         firebaseUser ? firebaseUser.uid : null
     );
 
-    console.log("🎮 Main: Game fully initialized");
+
 }
 
 /**
@@ -1520,17 +1524,17 @@ document.addEventListener('DOMContentLoaded', () => {
  * This is the ONLY place we should show the MOTD!
  */
 function onAuthAndLoginComplete(user) {
-    console.log('🔍 MAIN DEBUG: Auth and login complete, user:', user?.displayName || 'No name');
+
 
     // Check if MOTD should be shown based on localStorage
     if (shouldShowMessageOfDay()) {
-        console.log('🔍 MAIN DEBUG: MOTD should be shown, displaying it now...');
+
         showMessageOfDay(() => {
-            console.log('🔍 MAIN DEBUG: MOTD closed, continuing with game initialization');
+
             initializeGameAfterLogin(user);
         });
     } else {
-        console.log('🔍 MAIN DEBUG: MOTD already shown before, skipping');
+
         // Proceed directly to game initialization
         initializeGameAfterLogin(user);
     }
@@ -1540,21 +1544,21 @@ function onAuthAndLoginComplete(user) {
  * Initialize the game after all login/MOTD screens
  */
 function initializeGameAfterLogin(user) {
-    console.log('🔍 MAIN DEBUG: Initializing game with user:', user?.displayName || 'No name');
+
 
     // Your network initialization code here
     // For example:
     if (typeof initializeNetworkWithPlayerInfo === 'function') {
         initializeNetworkWithPlayerInfo(user);
     } else {
-        console.log('🔍 MAIN DEBUG: Network initialization function not found');
+
     }
 }
 
 function initializeWorld() {
     // ... existing setup code ...
 
-    console.log("DEBUG: Initializing world with ONLY block cave");
+
 
     // Only spawn block cave
     if (typeof spawnBlockCave === 'function') {
@@ -1563,12 +1567,12 @@ function initializeWorld() {
 
     // Ensure these don't run by replacing calls with console logs
     if (typeof spawnMassiveIsland === 'function') {
-        console.log("DEBUG: Massive Island initialization DISABLED");
+
         // Do NOT call spawnMassiveIsland
     }
 
     if (typeof spawnCoastalCliffScene === 'function') {
-        console.log("DEBUG: Coastal Cliff initialization DISABLED");
+
         // Do NOT call spawnCoastalCliffScene
     }
 
@@ -1576,7 +1580,7 @@ function initializeWorld() {
 }
 
 // Initialize fog system with appropriate color
-console.log("Initializing fog system...");
+
 const fog = setupFog();
 
 // Function to desaturate colors to prevent luminosity
@@ -1598,26 +1602,26 @@ toggleFog(scene);
 
 // Initialize collision response system near other initialization code
 const collisionResponseSystem = initCollisionResponse();
-console.log("Island collision response system initialized");
+
 
 export function setupAllPlayersTracking() {
-    console.log("🎮 Setting up all players tracking...");
+
 
     // Register for all_players updates
     Network.onAllPlayers((players) => {
         // Update our gameState variable
         updateAllPlayers(players);
-        console.log("📊 All Players Updated:", players.length, "players found");
+
 
         // Debug output the first few players
         if (players.length > 0) {
-            console.log("📊 Sample Player Data:", players.slice(0, 3));
+
         }
     });
 
     // Request initial player list
     const requestSent = Network.getAllPlayers();
-    console.log("🎮 Initial player list request sent:", requestSent);
+
 
     // Set up a periodic refresh every 10 seconds
     setInterval(() => {
@@ -1625,7 +1629,7 @@ export function setupAllPlayersTracking() {
 
         // Print the current players from gameState
         const currentPlayers = getAllPlayers();
-        console.log("⏱️ Periodic player check:", currentPlayers.length, "players in game state");
+
     }, 10000);
 }
 

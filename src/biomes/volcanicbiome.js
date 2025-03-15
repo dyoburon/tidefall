@@ -197,7 +197,7 @@ class VolcanicBiome extends BiomeInterface {
                     if (random() < 0.25) {
                         // Make sure we don't spawn too close to other entities
                         if (!this.checkEntityCollisions(position, 500)) {
-                            console.log("Spawning volcano at", finalX, finalZ);
+
 
                             // Create the volcano island using the advanced implementation
                             const volcano = createActiveVolcanoIsland(
@@ -405,7 +405,7 @@ class VolcanicBiome extends BiomeInterface {
     startAshEffects(playerPosition) {
         // TODO: Implement ash particle system similar to snow
         // For now, just log that it would be activated
-        console.log("Starting volcanic ash effects");
+
         this.isAshActive = true;
 
         // Here you would initialize and start a particle system for ash
@@ -701,7 +701,7 @@ class VolcanicBiome extends BiomeInterface {
             // TODO: Stop ash system
             // this.ashSystem.stop();
             this.isAshActive = false;
-            console.log("Player left Volcanic biome - stopping ash effects");
+
         }
     }
 
@@ -713,10 +713,10 @@ class VolcanicBiome extends BiomeInterface {
     handleFogTransition(isEntering, playerObject) {
         setFogProperties(VOLCANIC_FOG_CONFIG);
         if (isEntering) {
-            console.log("Entering volcanic biome - activating fog");
+
             toggleFog(true); // Explicitly fade in the fog
         } else {
-            console.log("Leaving volcanic biome - dissipating fog");
+
             toggleFog(false); // Explicitly fade out the fog
         }
     }

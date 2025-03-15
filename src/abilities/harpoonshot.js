@@ -39,12 +39,12 @@ class HarpoonShot {
     }
 
     onAimStart(crosshair) {
-        console.log('Harpoon Shot Aiming Started');
+
         // Change crosshair color/shape for harpoon
         if (crosshair && crosshair.crosshairElement) {
             crosshair.crosshairElement.style.borderColor = '#FFD700'; // Gold color for harpoon
         } else {
-            console.warn('Crosshair or crosshairElement is undefined');
+
         }
     }
 
@@ -54,12 +54,12 @@ class HarpoonShot {
 
         // If harpoon is already fired but not reeling, start reeling instead of firing again
         if (this.harpoon && !this.isReset) {
-            console.log('Harpoon already fired, starting reeling...');
+
             this.startReeling();
             return true;
         }
 
-        console.log('Harpoon Shot Executed at:', targetPosition);
+
 
         // Get harpoon firing position (from front of boat)
         this.firingPosition = this.getHarpoonFiringPosition();
@@ -67,7 +67,7 @@ class HarpoonShot {
         // Calculate direction from firing position to target
         const direction = new THREE.Vector3().subVectors(targetPosition, this.firingPosition);
         direction.normalize();
-        console.log("Firing direction:", direction);
+
 
         // Create and fire the harpoon
         this.fireHarpoon(this.firingPosition, direction, targetPosition);
@@ -80,14 +80,14 @@ class HarpoonShot {
     }
 
     onCancel() {
-        console.log('Harpoon Shot Canceled');
+
 
         // Only do something if harpoon exists and we're not already reeling
         if (!this.harpoon || this.isReeling) return true;
 
         // Start reeling in the harpoon
         if (this.isAttached || this.isPersisting) {
-            console.log('Reeling in harpoon...');
+
             this.startReeling();
         }
 
@@ -126,7 +126,7 @@ class HarpoonShot {
 
         // If harpoon exists but somehow there's no line, recreate the line
         if (this.harpoon && !this.harpoonLine) {
-            console.log("Harpoon exists but line is missing, recreating line");
+
             this.createHarpoonLine(this.getHarpoonFiringPosition(), this.harpoon.position);
         }
     }
@@ -164,7 +164,7 @@ class HarpoonShot {
 
         // Calculate target distance
         const targetDistance = position.distanceTo(targetPosition);
-        console.log("Target distance:", targetDistance);
+
 
         // Animate the harpoon
         const startTime = getTime();
@@ -194,7 +194,7 @@ class HarpoonShot {
 
             // Check for water collision
             if (this.harpoon.position.y <= 0) {
-                console.log("Harpoon hit water, persisting until R is pressed again.");
+
                 this.isPersisting = true;
                 this.harpoon.position.y = 0.1; // Keep slightly above water
                 return;
@@ -251,7 +251,7 @@ class HarpoonShot {
 
         // Add to scene
         scene.add(this.harpoonLine);
-        console.log("Created new harpoon rope using tube geometry");
+
     }
 
     updateHarpoonLine(startPos, endPos) {
@@ -273,7 +273,7 @@ class HarpoonShot {
                 const collisionThreshold = 10; // Adjust based on monster size
 
                 if (distanceToEnemy < collisionThreshold) {
-                    console.log("Harpoon hit monster:", monster);
+
                     this.attachToEnemy(monster);
 
                     // Flash the monster red to indicate it was hit
@@ -292,7 +292,7 @@ class HarpoonShot {
         // Position harpoon at enemy center
         this.harpoon.position.copy(enemy.mesh.position);
 
-        console.log("Harpoon attached to enemy!");
+
 
         // Indicate visually that we're attached (e.g., change color)
         if (this.harpoon.material) {
@@ -312,7 +312,7 @@ class HarpoonShot {
 
         // If attached to an enemy, detach
         if (this.attachedEnemy) {
-            console.log("Detaching from enemy");
+
 
             // Flash the monster to indicate detachment
             flashMonsterRed(this.attachedEnemy, false);
@@ -336,7 +336,7 @@ class HarpoonShot {
 
         // SIMPLIFIED: Only remove harpoon when it's very close to the boat
         if (distance < 3) {
-            console.log("Harpoon reeled in completely");
+
             this.removeHarpoon();
             return;
         }

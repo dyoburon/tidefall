@@ -16,7 +16,7 @@ export function initShop(uiManager) {
 
     // Set up event listener for 'S' key
     document.addEventListener('keydown', handleShopKeyPress);
-    console.log('Shop system initialized');
+
 
     return {
         update: updateShopAvailability
@@ -184,7 +184,7 @@ export function updateShopAvailability(activeIslands, playerPosition) {
 // Handle 'E' key press to open the shop
 function handleShopKeyPress(event) {
     if (event.key.toLowerCase() === 'e') {
-        //console.log(`Opening shop for island ${nearestIslandId}...`);
+        //
         // Check if player is near any shop
         let canOpenShop = false;
         let nearestIslandId = null;
@@ -195,10 +195,10 @@ function handleShopKeyPress(event) {
             // print the prompt, shop prompts, and prompt.isNear
             // print the shop prompt map and its contents, cycle through the map and print the key and value
             for (const [key, value] of shopPrompts.entries()) {
-                console.log(`key: ${key} value: ${value}`);
+
 
             }
-            console.log(`prompt: ${prompt} shopPrompts: ${shopPrompts} prompt.isNear: ${prompt.isNear}`);
+
             if (!prompt.isNear) {
                 const distance = boat.position.distanceTo(prompt.position);
                 if (distance < shortestDistance) {
@@ -210,7 +210,7 @@ function handleShopKeyPress(event) {
         });
 
         if (canOpenShop) {
-            console.log(`Opening shop for island ${nearestIslandId}...`);
+
 
             // Open the shop UI instead of just logging
             if (shopUI && !shopUI.isOpen()) {

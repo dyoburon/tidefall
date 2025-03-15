@@ -44,14 +44,14 @@ class Sprint {
         this.speedEffect = new FastShipEffect();
         this.effectInitialized = true;
 
-        console.log("Fast ship effect initialized");
+
     }
 
     /**
      * Called when ability aiming starts
      */
     onAimStart(crosshair) {
-        console.log('Sprint activated for ' + this.duration + ' seconds!');
+
 
         // Hide the crosshair since this ability doesn't need aiming
         crosshair.stopAiming();
@@ -104,7 +104,7 @@ class Sprint {
     onCancel() {
         if (!this.isActive) return true;
 
-        console.log('Sprint deactivated!');
+
         this.deactivateSprint();
         return true;
     }
@@ -133,7 +133,7 @@ class Sprint {
             resetZoom();
         }, this.momentumDuration * 500); // Half the momentum duration in milliseconds
 
-        console.log('Sprint ended with momentum preservation');
+
     }
 
     /**
@@ -147,7 +147,7 @@ class Sprint {
 
             // Check if sprint duration has expired
             if (this.activeTimer >= this.duration) {
-                console.log('Sprint duration expired!');
+
                 this.deactivateSprint();
             } else {
                 // Update visual effect timer
@@ -164,7 +164,7 @@ class Sprint {
                 // Show remaining duration as console feedback
                 if (Math.floor(this.activeTimer * 10) % 10 === 0) {
                     const remaining = (this.duration - this.activeTimer).toFixed(1);
-                    console.log(`Sprint: ${remaining}s remaining`);
+
                 }
             }
         }

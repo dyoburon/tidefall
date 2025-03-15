@@ -48,7 +48,7 @@ export function setupFog(config = {}) {
     // Add fog to scene
     scene.fog = sceneFog;
 
-    //console.log("Exponential fog system initialized:", fogConfig);
+    //
 
     return sceneFog;
 }
@@ -60,7 +60,7 @@ export function setupFog(config = {}) {
  * @param {Object} windData - Optional wind data for fog movement
  */
 export function updateFog(playerPosition, deltaTime, windData = null) {
-    //console.log("Density:", sceneFog.density);
+    //
     if (!sceneFog && scene.fog) {
         sceneFog = scene.fog; // Ensure we have the reference if fog exists
     }
@@ -130,7 +130,7 @@ export function toggleFog(fadeIn) {
     if (fadeIn !== undefined) {
         // Check if this is already our target state
         if (fadeIn === targetFogState) {
-            //console.log(`Fog is already ${fadeIn ? 'fading in/on' : 'fading out/off'}, ignoring redundant call`);
+            //
             return targetFogState;
         }
 
@@ -139,16 +139,16 @@ export function toggleFog(fadeIn) {
 
         // Interruption handling: Cancel any ongoing effects in the opposite direction
         if (fadeIn && isFadingOut) {
-            //console.log("Interrupting fade-out to start fade-in");
+            //
             isFadingOut = false;
         } else if (!fadeIn && isFadingIn) {
-            console.log("Interrupting fade-in to start fade-out");
+
             isFadingIn = false;
         }
 
         if (fadeIn) {
             // Explicitly fade in
-            //console.log("Explicit fade in triggered");
+            //
 
             // Create new fog with zero density if it doesn't exist
             if (!scene.fog) {
@@ -161,7 +161,7 @@ export function toggleFog(fadeIn) {
             fadeInFog({
                 duration: 10000,
                 onComplete: () => {
-                    console.log("Fog has faded in");
+
                     isFadingIn = false;
                 }
             });
@@ -169,7 +169,7 @@ export function toggleFog(fadeIn) {
             return true;
         } else {
             // Explicitly fade out
-            console.log("Explicit fade out triggered");
+
 
             if (scene.fog) {
                 isFadingOut = true;
@@ -177,7 +177,7 @@ export function toggleFog(fadeIn) {
                 dissipateFog({
                     duration: 5000,
                     onComplete: () => {
-                        console.log("Fog has dissipated");
+
                         isFadingOut = false;
                     }
                 });
@@ -228,7 +228,7 @@ export function setFogProperties(config = {}) {
 export function dissipateFog(options = {}) {
     if (!sceneFog) return { isActive: false };
 
-    console.log("Starting exponential fog dissipation...");
+
 
     // Configuration
     const duration = options.duration || 3000;
@@ -252,7 +252,7 @@ export function dissipateFog(options = {}) {
 
             // Log occasionally
             if (Math.random() < 0.01) {
-                console.log(`Fog dissipation: ${Math.round(progress * 100)}%, density=${sceneFog.density.toFixed(5)}`);
+
             }
 
             // Complete?
@@ -260,7 +260,7 @@ export function dissipateFog(options = {}) {
                 // Remove fog completely
                 scene.fog = null;
 
-                //console.log("Fog dissipation complete, fog removed");
+                //
 
                 // Call completion callback
                 onComplete();
@@ -293,7 +293,7 @@ export function fadeInFog(options = {}) {
     const targetDensity = options.targetDensity || DEFAULT_FOG_CONFIG.density;
     const onComplete = options.onComplete || (() => { });
 
-    console.log("Starting fog fade-in effect...");
+
 
     // Ensure fog exists with zero density
     if (!scene.fog) {
@@ -325,7 +325,7 @@ export function fadeInFog(options = {}) {
 
             // Log occasionally
             if (Math.random() < 0.01) {
-                console.log(`Fog fade-in: ${Math.round(progress * 100)}%, density=${sceneFog.density.toFixed(5)}`);
+
             }
 
             // Complete?
@@ -337,7 +337,7 @@ export function fadeInFog(options = {}) {
                 fogConfig.density = targetDensity;
                 if (options.color) fogConfig.color = options.color;
 
-                console.log("Fog fade-in complete, final density:", targetDensity);
+
 
                 // Call completion callback
                 onComplete();
@@ -371,18 +371,18 @@ export function toggleFogEffect() {
         fadeInFog({
             duration: 5000,
             onComplete: () => {
-                console.log("Fog has faded in");
+
                 isFadingIn = false;
             }
         });
     }
 
     if (isFadingOut) {
-        console.log("Fade out should trigger");
+
         dissipateFog({
             duration: 5000,
             onComplete: () => {
-                console.log("Fog has dissipated");
+
                 isFadingOut = false;
             }
         });
@@ -399,16 +399,16 @@ export function toggleFogEffect() {
  */
 function updateFogSettings(settings) {
     if (!scene) {
-        //console.warn("Scene not available for fog settings update");
+        //
         return;
     }
 
-    console.log("Updating fog settings:", settings);
+
 
     // Apply to existing fog
     if (scene.fog) {
 
-        // console.log("test 2");
+        // 
         // Update color regardless of fog type
         if (settings.color) {
             scene.fog.color.copy(settings.color);
@@ -416,9 +416,9 @@ function updateFogSettings(settings) {
 
         // Update other properties based on fog type
         if (scene.fog.isFogExp2) {
-            //console.log("test 3");
+            //
             if (settings.density !== undefined) {
-                //console.log("test 4");
+                //
                 scene.fog.density = settings.density;
             }
         } else {
@@ -509,7 +509,7 @@ function interpolateValue(a, b, progress) {
  * @param {number} duration - Transition duration in milliseconds
  */
 function transitionFogType(fromType, toType, duration = 8000) {
-    // console.log(`Transitioning fog: ${fromType} → ${toType} over ${duration}ms`);
+    // 
 
     // Get settings for both fog types
     const fromSettings = getFogSettingsForType(fromType);
@@ -577,7 +577,7 @@ function transitionFogType(fromType, toType, duration = 8000) {
             // Reset the interpolation flag
             isInterpolatingFog = false;
 
-            //console.log(`Fog transition to ${toType} complete`);
+            //
         }
     }, 16); // Update roughly every frame at 60fps
 }

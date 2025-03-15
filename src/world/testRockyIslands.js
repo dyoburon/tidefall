@@ -13,10 +13,10 @@ import { createRockyIsland } from './rockyIslands.js';
  * @param {number} z - Z position
  */
 export function createTestRockyIsland(scene, x = 300, z = 300) {
-    console.log("Creating test rocky island at position:", x, z);
+
     const seed = Math.floor(Math.random() * 1000000);
     const island = createRockyIsland(x, z, seed, scene);
-    console.log("Rocky island created:", island);
+
     return island;
 }
 
@@ -28,7 +28,7 @@ export function createTestRockyIsland(scene, x = 300, z = 300) {
  * @param {THREE.Vector3} center - Center position to place islands around
  */
 export function createTestRockyIslandCluster(scene, count = 3, radius = 1200, center = new THREE.Vector3(0, 0, 0)) {
-    console.log(`Creating ${count} test rocky islands around position:`, center);
+
 
     const islands = [];
     for (let i = 0; i < count; i++) {
@@ -41,6 +41,6 @@ export function createTestRockyIslandCluster(scene, count = 3, radius = 1200, ce
         islands.push(island);
     }
 
-    console.log(`Created ${islands.length} rocky islands for testing`);
+
     return islands;
 } 

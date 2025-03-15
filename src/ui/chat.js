@@ -366,13 +366,13 @@ export class ChatSystem {
         this.messageInput.addEventListener('focus', () => {
             // Set a global flag that can be checked by other handlers
             window.chatInputActive = true;
-            console.log("Chat input focused - game controls disabled");
+
         });
 
         this.messageInput.addEventListener('blur', () => {
             // Clear the global flag
             window.chatInputActive = false;
-            console.log("Chat input blurred - game controls enabled");
+
         });
     }
 
@@ -380,7 +380,7 @@ export class ChatSystem {
         // Listen for new messages
         // Register callback for incoming messages
         onChatMessage((message) => {
-            console.log("message received", message);
+
             this.addMessage(message);
 
             // If chat tab is not active, increment unread count
@@ -392,7 +392,7 @@ export class ChatSystem {
 
         // Register callback for receiving message history
         onRecentMessages((messages) => {
-            console.log("message received", message);
+
             // Clear existing messages
             this.messages = [];
             this.messagesArea.innerHTML = '';
@@ -414,7 +414,7 @@ export class ChatSystem {
     }
 
     sendMessage() {
-        console.log("message sent");
+
         const content = this.messageInput.value.trim();
         if (!content) return;
 
@@ -435,8 +435,8 @@ export class ChatSystem {
     }
 
     addMessage(message, shouldScroll = true) {
-        console.log('CHAT UI: Adding message to UI:', message);
-        console.log('CHAT UI: Message type:', typeof message);
+
+
 
         // Create message element with quill-written appearance
         const messageEl = document.createElement('div');
@@ -450,7 +450,7 @@ export class ChatSystem {
         // Format timestamp
         let timeStr = '';
         if (typeof message === 'string') {
-            console.log('CHAT UI: Processing string message:', message);
+
             // Handle simple string messages (backward compatibility)
             timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -461,7 +461,7 @@ export class ChatSystem {
                 <span style="color: #3D1C00;">${sanitizedMessage}</span>
             `;
         } else if (message && typeof message === 'object') {
-            console.log('CHAT UI: Processing object message with keys:', Object.keys(message));
+
 
             // Handle object messages (new format)
             // Format timestamp if available
@@ -472,9 +472,9 @@ export class ChatSystem {
                         new Date(message.timestamp) :
                         new Date(message.timestamp);
                     timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    console.log('CHAT UI: Parsed timestamp:', timeStr);
+
                 } catch (e) {
-                    console.error('CHAT UI: Error parsing timestamp:', e);
+
                     timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 }
             } else {
@@ -489,16 +489,16 @@ export class ChatSystem {
                     const g = Math.floor(message.sender_color.g * 255);
                     const b = Math.floor(message.sender_color.b * 255);
                     colorStyle = `rgb(${r}, ${g}, ${b})`;
-                    console.log('CHAT UI: Using sender color:', colorStyle);
+
                 } catch (e) {
-                    console.error('CHAT UI: Error applying sender color:', e);
+
                 }
             }
 
             // Default sender name if not provided - sanitize it
             const rawSenderName = message.sender_name || "Unknown Sailor";
             const senderName = this.sanitizeText(rawSenderName);
-            console.log('CHAT UI: Using sanitized sender name:', senderName);
+
 
             // Add special styling for messages with clan tags (matching [Tag] format)
             let formattedSenderName = senderName;
@@ -508,7 +508,7 @@ export class ChatSystem {
                 if (senderName.includes('[') && senderName.includes(']')) {
                     // Apply special styling to clan tags
                     const tagMatch = senderName.match(/^(\[.*?\])\s*(.*?)$/);
-                    console.log('CHAT UI: Clan tag regex match:', tagMatch);
+
 
                     if (tagMatch && tagMatch[1] && tagMatch[2]) {
                         // Both parts are already sanitized since we sanitized the whole name
@@ -517,19 +517,19 @@ export class ChatSystem {
 
                         // Use gold color for clan tags
                         formattedSenderName = `<span style="color: #DAA520; font-style: italic;">${clanTag}</span> <span style="color: ${colorStyle};">${baseName}</span>`;
-                        console.log('CHAT UI: Formatted sender name with clan tag styling');
+
                     } else {
                         // Fallback if regex doesn't match as expected
                         formattedSenderName = `<span style="color: ${colorStyle};">${senderName}</span>`;
-                        console.log('CHAT UI: Clan tag detected but regex failed, using default formatting');
+
                     }
                 } else {
                     // No clan tag, use normal styling
                     formattedSenderName = `<span style="color: ${colorStyle};">${senderName}</span>`;
-                    console.log('CHAT UI: No clan tag detected, using default formatting');
+
                 }
             } catch (e) {
-                console.error('CHAT UI: Error formatting sender name:', e);
+
                 formattedSenderName = `<span style="color: ${colorStyle};">${senderName}</span>`;
             }
 
@@ -543,9 +543,9 @@ export class ChatSystem {
                 <span style="font-weight: bold;"> ${formattedSenderName}: </span>
                 <span style="color: #3D1C00;">${messageContent}</span>
             `;
-            console.log('CHAT UI: Final formatted message HTML created');
+
         } else {
-            console.error('CHAT UI: Invalid message type received:', typeof message);
+
             return; // Skip rendering invalid messages
         }
 
@@ -635,11 +635,11 @@ export class MiniMap {
         // This is the circular element that should contain our markers
         const radarScreen = this.chatSystem.miniMapContainer.querySelector('div');
         if (!radarScreen) {
-            console.error("Radar screen element not found in miniMapContainer");
+
             return;
         }
 
-        console.log("Radar screen found:", radarScreen);
+
         this.miniMapContainer = this.chatSystem.miniMapContainer;
         this.radarScreen = radarScreen; // Store reference to actual radar screen
     }
@@ -696,9 +696,9 @@ export class MiniMap {
         if (!this.radarScreen) return; // Use radarScreen instead of miniMapContainer
 
         // Debug log to check for monsters and their positions
-        //console.log(`Updating ${monsters.length} monster markers, player at ${playerPosition.x.toFixed(0)},${playerPosition.z.toFixed(0)}`);
+        //
         if (monsters.length > 0) {
-            //console.log(`First monster: Type=${monsters[0].monsterType}, State=${monsters[0].state}, Pos=${monsters[0].mesh.position.x.toFixed(0)},${monsters[0].mesh.position.z.toFixed(0)}`);
+            //
         }
 
         // Use a much smaller scale for monsters to amplify their movement
@@ -802,7 +802,7 @@ export class MiniMap {
                 }
 
                 this.radarScreen.appendChild(marker); // Use radarScreen
-                console.log(`Created monster marker at ${centerX + rotatedX}, ${centerY + rotatedZ}`);
+
 
                 this.monsterMarkers.set(monsterId, {
                     element: marker,

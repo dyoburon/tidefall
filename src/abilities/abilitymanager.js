@@ -73,7 +73,6 @@ class AbilityManager {
             this.keyBindings.set(keyBinding.toLowerCase(), id);
         }
 
-        console.log(`Ability '${id}' registered with key binding '${keyBinding}'`);
 
         return ability;
     }
@@ -89,17 +88,17 @@ class AbilityManager {
             staysActiveAfterExecution: false, // Don't stay active
 
             onAimStart: (crosshair) => {
-                console.log('Test Ability Aiming Started');
+                // 
                 // You could change crosshair appearance here if needed
             },
 
             onExecute: (targetPosition) => {
-                console.log('Test Ability Executed at:', targetPosition);
+
                 // This is where you'd implement the ability's effect
             },
 
             onCancel: () => {
-                console.log('Test Ability Canceled');
+
             },
 
             update: (deltaTime) => {
@@ -124,7 +123,7 @@ class AbilityManager {
     registerHarpoonShot() {
         const harpoonShot = new HarpoonShot();
         this.registerAbility(harpoonShot.id, harpoonShot, 'R'); // Explicitly bind to 'E' key
-        console.log("Harpoon Shot registered with key binding 'R'");
+
     }
 
     /**
@@ -133,7 +132,7 @@ class AbilityManager {
     registerScatterShot() {
         const scatterShot = new ScatterShot();
         this.registerAbility(scatterShot.id, scatterShot, 't'); // Bind to 't' key
-        console.log("Scatter Shot registered with key binding 't'");
+
     }
 
     /**
@@ -142,7 +141,7 @@ class AbilityManager {
     registerSprint() {
         const sprint = new Sprint();
         this.registerAbility(sprint.id, sprint, 'shift'); // Bind to 'shift' key
-        console.log("Sprint ability registered with key binding 'shift'");
+
     }
 
     /**
@@ -169,7 +168,7 @@ class AbilityManager {
         }
 
         const key = event.key.toLowerCase();
-        console.log(`Key pressed: '${event.key}', looking up as '${key}'`); // Debug log
+        // Debug log
 
         // Special handling for shift key (sprinting)
         if (key === 'shift') {
@@ -179,12 +178,12 @@ class AbilityManager {
             if (sprint) {
                 // Toggle sprint state
                 if (this.activeAbility && this.activeAbility.id === sprintId) {
-                    console.log(`${sprintId} is already active - cancelling (toggle off)`);
+
                     this.cancelActiveAbility();
                 } else {
                     // If another ability is active, cancel it first
                     if (this.activeAbility) {
-                        console.log(`Cancelling active ability ${this.activeAbility.id} before activating ${sprintId}`);
+
                         this.cancelActiveAbility();
                     }
 
@@ -203,7 +202,7 @@ class AbilityManager {
             const abilityId = this.keyBindings.get(key);
             const ability = this.abilities.get(abilityId);
 
-            console.log(`Key '${key}' is bound to ability '${abilityId}'`); // Debug log
+            // Debug log
 
             if (ability) {
                 // SPECIAL HANDLING FOR HARPOON
@@ -212,7 +211,7 @@ class AbilityManager {
                     if (this.isAbilityActive('harpoonShot') || this.backgroundAbilities.has(ability)) {
                         // If harpoon is in use, call onCancel to start reeling
                         if (ability.isHarpoonInUse && ability.isHarpoonInUse()) {
-                            console.log('Harpoon in use, starting to reel in');
+
                             ability.onCancel();
 
                             // Don't deactivate it - just let it keep running in background
@@ -236,7 +235,7 @@ class AbilityManager {
                 // HANDLING FOR OTHER ABILITIES
                 // Check if this ability is already active - if so, toggle it off
                 if (this.activeAbility && this.activeAbility.id === ability.id) {
-                    console.log(`${abilityId} is already active - cancelling (toggle off)`);
+
                     this.cancelActiveAbility();
                     return;
                 }
@@ -248,11 +247,11 @@ class AbilityManager {
                     // If the current active is a persistent ability (like harpoon), keep it running
                     if (currentActive.id === 'harpoonShot' && currentActive.isHarpoonInUse()) {
                         // Add to background instead of cancelling
-                        console.log(`Moving ${currentActive.id} to background and activating ${abilityId}`);
+
                         this.backgroundAbilities.add(currentActive);
                     } else {
                         // Otherwise, cancel it normally
-                        console.log(`Cancelling ${currentActive.id} and activating ${abilityId}`);
+
                         this.cancelAbility(currentActive);
                     }
 
@@ -264,7 +263,7 @@ class AbilityManager {
                 this.startAbilityAiming(ability);
             }
         } else {
-            console.log(`Key '${key}' is not bound to any ability`); // Debug log
+            // Debug log
         }
     }
 
@@ -300,7 +299,7 @@ class AbilityManager {
      * @param {Object} ability - The ability to activate
      */
     startAbilityAiming(ability) {
-        console.log(`Starting ability aiming for: ${ability.id}`);
+
 
         // Set as active ability
         this.activeAbility = ability;
@@ -321,7 +320,7 @@ class AbilityManager {
     cancelAbility(ability) {
         if (!ability) return;
 
-        console.log(`Cancelling ability: ${ability.id}`);
+
 
         // Call ability's onCancel if available
         if (ability.onCancel) {
@@ -353,7 +352,7 @@ class AbilityManager {
     executeActiveAbility(targetPosition) {
         if (!this.activeAbility) return;
 
-        console.log(`Executing ability: ${this.activeAbility.id}`);
+
 
         // Call ability's onExecute function
         if (this.activeAbility.onExecute) {
@@ -401,7 +400,7 @@ class AbilityManager {
 
         // Check if testAbility is active and log a message
         if (this.isAbilityActive('testAbility')) {
-            console.log("Test Ability is currently active!");
+
         }
     }
 
@@ -433,13 +432,13 @@ class AbilityManager {
 
         // If this is the currently active ability, deactivate it
         if (this.activeAbility && this.activeAbility.id === abilityId) {
-            console.log(`Active ability ${abilityId} has reset, deactivating it`);
+
             this.activeAbility = null;
         }
 
         // Also remove from background abilities
         if (ability && this.backgroundAbilities.has(ability)) {
-            console.log(`Background ability ${abilityId} has reset, removing it`);
+
             this.backgroundAbilities.delete(ability);
         }
     }

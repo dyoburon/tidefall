@@ -70,7 +70,7 @@ export function preserveMomentum(fromMultiplier, toMultiplier, decayDuration = 1
     // Activate momentum preservation
     momentumActive = true;
 
-    console.log(`🚀 Preserving momentum: ${fromMultiplier.toFixed(2)} → ${toMultiplier.toFixed(2)} over ${decayDuration.toFixed(1)}s`);
+
 }
 
 export function updateShipMovement(deltaTime) {
@@ -158,7 +158,7 @@ export function updateShipMovement(deltaTime) {
             momentumActive = false;
             momentumMultiplier = originalSpeedMultiplier;
             shipSpeedConfig.speedMultiplier = originalSpeedMultiplier;
-            console.log("🚀 Momentum fully decayed, speed restored to", originalSpeedMultiplier.toFixed(2));
+
         } else {
             // Set the current speed multiplier to the decaying momentum value
             shipSpeedConfig.speedMultiplier = momentumMultiplier;
@@ -254,7 +254,7 @@ export function applyShipKnockback(direction, force = 1.0, options = {}) {
     knockbackActive = true;
     knockbackTimer = settings.knockbackDuration;
 
-    console.log(`🚢 KNOCKBACK applied! Force: ${force}, Speed: ${boatVelocity.length().toFixed(2)}`);
+
 
     return boatVelocity.clone(); // Return the new velocity for reference
 }
@@ -278,7 +278,7 @@ export function checkAndHandleIslandCollisions() {
 
     // Check for collision with any islands (add extra radius for early detection)
     if (checkAllIslandCollisions(shipPosition, 2)) {
-        console.log("🏝️ ISLAND COLLISION DETECTED!");
+
 
         // Calculate direction vector away from island
         // Since we don't have the exact island center, use the negative of current velocity 

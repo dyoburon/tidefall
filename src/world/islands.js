@@ -355,7 +355,7 @@ function createIsland(x, z, seed, scene) {
 
     // Add the Smuggler's Hideout (with a certain probability or on specific islands)
     if (random() < 0.0) {  // Changed from 1.0 to 0.5 for 50% chance
-        console.log("Adding Pirate Tavern to island");
+
 
         // Find a good spot on the island
         const angle = random() * Math.PI * 2;
@@ -378,7 +378,7 @@ function createIsland(x, z, seed, scene) {
     }
 
     if (SPAWN_CONTROLS.treehouseTavern && random() < 0.4) {  // Only spawn if enabled, with 40% chance
-        console.log("Adding Treehouse Tavern to island");
+
 
         // Find a spot with trees on the island
         const angle = random() * Math.PI * 2;
@@ -1050,7 +1050,7 @@ function createGiantStatue(island, random) {
     // Start the pulsing animation
     pulseAnimation();
 
-    console.log("Created Roman obelisk monument");
+
 
     return island;
 }
@@ -1275,7 +1275,7 @@ export function setMassiveIslandPosition(position) {
  * @param {THREE.Scene} scene - The scene to add the island to
  */
 export function spawnMassiveIsland(scene) {
-    console.log("DEBUG: Massive Island spawn DISABLED", massiveIslandPosition);
+
     return null; // Return null instead of creating the island
 }
 
@@ -1340,7 +1340,7 @@ export function updateAllIslandEffects(deltaTime) {
  * @returns {Object} - References to the cave system
  */
 export function spawnBlockCaveFromIsland(scene, position = new THREE.Vector3(0, 0, 0)) {
-    console.log("Spawning massive block-based cave system at:", position);
+
     return createBlockCave(scene, position);
 }
 
@@ -1351,20 +1351,20 @@ export function spawnBlockCaveFromIsland(scene, position = new THREE.Vector3(0, 
  * @returns {Object} - Empty object
  */
 export function spawnCoastalCliffScene(scene, position = new THREE.Vector3(0, 0, 0)) {
-    console.log("DEBUG: Coastal Cliff spawn DISABLED", position);
+
     return null; // Return null instead of creating the cliff
 }
 
 // Main function that spawns islands and cave systems
 export function spawnIslands(scene, position) {
-    console.log("Spawning islands at position:", position);
+
 
     // ONLY spawn the block cave - everything else is disabled
     try {
-        console.log("DEBUG: Only spawning block cave, all other features disabled");
+
         spawnBlockCaveFromIsland(scene, position);
     } catch (error) {
-        console.error("Error spawning block cave:", error);
+
     }
 
     // Return immediately after spawning block cave

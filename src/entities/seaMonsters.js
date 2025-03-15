@@ -102,7 +102,7 @@ export function setupSeaMonsters(boat) {
 
         return monsters;
     } catch (error) {
-        console.error("Error in setupSeaMonsters:", error);
+
         return [];
     }
 }
@@ -259,7 +259,7 @@ function restoreMonsterColors(monster) {
             }
         });
     } catch (error) {
-        console.error("Error restoring monster colors:", error);
+
     }
 
     // Reset flag
@@ -296,7 +296,7 @@ export function updateSeaMonsters(deltaTime) {
 
         // Check if night has just started (transition from another time to night)
         if (currentTimeOfDay === "Night" && lastTimeOfDay !== "Night") {
-            console.log("Night has fallen - preparing to respawn sea monsters");
+
             respawnMonstersAtNight();
         }
 
@@ -386,7 +386,7 @@ export function updateSeaMonsters(deltaTime) {
         // Update treasures using the new system
         updateTreasures(deltaTime);
     } catch (error) {
-        console.error("Error in updateSeaMonsters:", error);
+
     }
 }
 
@@ -1410,11 +1410,11 @@ function respawnMonstersAtNight() {
     const monstersToSpawn = MONSTER_COUNT - monsters.length;
 
     if (monstersToSpawn <= 0) {
-        console.log("Monster population is already at maximum capacity");
+
         return;
     }
 
-    console.log(`Night has fallen. Respawning ${monstersToSpawn} sea monsters...`);
+
 
     // Spawn monsters in positions away from the player
     for (let i = 0; i < monstersToSpawn; i++) {
@@ -1423,7 +1423,7 @@ function respawnMonstersAtNight() {
         createMonsterByType(monsterType, spawnPosition);
     }
 
-    console.log(`Sea monsters have respawned (${monsters.length}/${MONSTER_COUNT})`);
+
 }
 
 // Helper function to create a monster by type
@@ -1532,7 +1532,7 @@ function checkBoatMonsterCollisions() {
     if (boatSpeed < MIN_COLLISION_SPEED) return;
 
     // Debug collision info
-    // console.log(`🔍 Checking collisions: Boat speed: ${boatSpeed.toFixed(2)}, Monsters: ${monsters.length}`);
+    // 
 
     // Check collision with each monster
     monsters.forEach(monster => {
@@ -1547,7 +1547,7 @@ function checkBoatMonsterCollisions() {
 
         // Log distance for monsters near collision range
         if (distanceToMonster < BOAT_COLLISION_RANGE * 1.5) {
-            console.log(`👹 Monster proximity: ${distanceToMonster.toFixed(1)} units, Type: ${monster.monsterType}, Y-pos: ${monster.mesh.position.y.toFixed(1)}`);
+
         }
 
         if (distanceToMonster < BOAT_COLLISION_RANGE) {
@@ -1557,7 +1557,7 @@ function checkBoatMonsterCollisions() {
 
             // Apply damage to monster
             monster.health -= damageAmount;
-            console.log(`💥 COLLISION! Hit monster with ${damageAmount} damage. Monster health: ${monster.health}`);
+
 
             // NEW: Flash monster red to indicate damage (reusing cannon hit effect)
             flashMonsterRed(monster, true); // Use true to make it brighter like a well-targeted hit

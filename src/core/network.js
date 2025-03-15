@@ -44,12 +44,12 @@ export function onAllPlayers(callback) {
     allPlayersCallback = callback;
 
     // Register the socket listener if it doesn't exist
-    console.log('Setting up all_players listener');
+
 
     if (socket) {
-        console.log('Setting up all_players listener');
+
         socket.on('all_players', (players) => {
-            console.log('Received all players list:', players.length);
+
 
             // Add player stats if available
             players.forEach(player => {
@@ -73,7 +73,7 @@ export function onAllPlayers(callback) {
 // Request the player list from the server
 export function getAllPlayers() {
     if (isConnected && socket) {
-        console.log('Requesting all players from server');
+
         socket.emit('get_all_players');
         return true;
     }
@@ -82,7 +82,7 @@ export function getAllPlayers() {
 
 // Export a getter for the player name
 export function getPlayerName() {
-    console.log("getPlayerName called, returning:", playerName);
+
     return playerName;
 }
 
@@ -97,7 +97,7 @@ export async function initializeNetwork(
     color,
     userId = null // Firebase UID
 ) {
-    console.log("NETWORK INIT STARTING");
+
 
     // Store references to game objects
     sceneRef = scene;
@@ -109,9 +109,9 @@ export async function initializeNetwork(
     playerColor = color;
 
     // Store the Firebase user ID
-    console.log("Initializing network with Firebase UID:", userId);
 
-    console.log(`Initializing network with user ID: ${userId || 'anonymous'}`);
+
+
 
     // Apply the player's color to their own boat
     applyColorToBoat(boat, playerColor);
@@ -131,22 +131,22 @@ export async function initializeNetwork(
         try {
             const auth = getAuth();
             firebaseToken = await auth.currentUser.getIdToken();
-            console.log("Firebase token acquired successfully");
+
         } catch (error) {
-            console.error("Failed to get Firebase token:", error);
+
         }
     }
 
-    console.log('Connecting to game server...');
+
 
     // Once connected, we'll send the player_join event
     socket.on('connect', () => {
-        console.log('Connected to game server, sending player data');
+
         isConnected = true;
 
         // CRUCIAL FIX: Get the current Firebase UID value at connection time
         // This ensures we're using the most up-to-date value
-        console.log(`Current Firebase UID at connection time: ${firebaseDocId}`);
+
 
         // Send player data with the token to authenticate
         socket.emit('player_join', {
@@ -283,7 +283,7 @@ function setupSocketEvents() {
     // Skip connect handler as we'll handle it in initializeNetwork
 
     socket.on('disconnect', () => {
-        console.log('Disconnected from game server');
+
         isConnected = false;
 
         // Clean up other players
@@ -293,7 +293,7 @@ function setupSocketEvents() {
     });
 
     socket.on('connection_response', (data) => {
-        console.log('Connection established, player ID:', data.id);
+
 
         // Important: The server will now send back the Firebase UID as the player ID
         // if authentication was successful
@@ -305,7 +305,7 @@ function setupSocketEvents() {
             showLoginScreen();
         }
 
-        console.log("setting player data ", data);
+
         setPlayerStateFromDb(data);
 
         setupAllPlayersTracking();
@@ -313,16 +313,16 @@ function setupSocketEvents() {
 
         // Example usage in game code
 
-        console.log("Getting player inventory");
+
         getPlayerInventory((inventory) => {
-            console.log('Inventory:', inventory);
+
             if (inventory) {
-                console.log('My fish collection:', inventory.fish);
-                console.log('My treasures:', inventory.treasures);
+
+
 
                 // Check if player has a specific item
                 if (playerHasItem(inventory, 'fish', 'Rare Tuna')) {
-                    console.log('You have a Rare Tuna!');
+
                 }
             }
         });
@@ -331,7 +331,7 @@ function setupSocketEvents() {
         // IMPORTANT FIX: Update the playerName variable with the server-stored name
         // This ensures clan tags are maintained after page reload
         if (data.name) {
-            console.log("Updating player name from server data:", data.name);
+
             playerName = data.name; // Update the local variable directly with server data
         }
 
@@ -350,7 +350,7 @@ function setupSocketEvents() {
 
     // Handle receiving all current players
     socket.on('all_players', (players) => {
-        console.log('Received all players:', players.length);
+
 
         // Add each player to the scene (except ourselves)
         players.forEach(playerData => {
@@ -362,7 +362,7 @@ function setupSocketEvents() {
 
     // Player events
     socket.on('player_joined', (data) => {
-        console.log('New player joined:', data.name);
+
         if (data.id !== playerId) {
             addOtherPlayerToScene(data);
         }
@@ -381,31 +381,31 @@ function setupSocketEvents() {
     });
 
     socket.on('player_disconnected', (data) => {
-        console.log('Player disconnected:', data.id);
+
         removeOtherPlayerFromScene(data.id);
     });
 
     // Island events
     socket.on('island_registered', (data) => {
         // This could be used to sync islands across clients
-        console.log('Island registered:', data.id);
+
     });
 
     // Leaderboard events
     socket.on('leaderboard_update', (data) => {
-        console.log('Received leaderboard update:', data);
+
 
         // Update the UI with new leaderboard data
         if (typeof updateLeaderboardData === 'function') {
             updateLeaderboardData(data);
         } else {
-            console.warn('updateLeaderboardData function not available');
+
         }
     });
 
     // Add this handler to process the player stats response
     socket.on('player_stats', (data) => {
-        console.log('Received player stats from server:', data);
+
 
         // Update local player stats
         if (data.fishCount !== undefined) {
@@ -426,31 +426,31 @@ function setupSocketEvents() {
 
     // Chat events
     socket.on('new_message', (data) => {
-        console.log('CHAT DEBUG: Received raw message data:', data);
-        console.log('CHAT DEBUG: Data type:', typeof data);
+
+
 
         // Handle string messages (backwards compatibility)
         if (typeof data === 'string') {
-            console.log('CHAT DEBUG: Received string message - converting to object');
+
             data = {
                 content: data,
                 timestamp: Date.now(),
                 sender_name: 'Unknown Sailor'
             };
         } else if (data && typeof data === 'object') {
-            console.log('CHAT DEBUG: Received object message with fields:', Object.keys(data));
+
 
             // Check if data has required fields
             if (!data.content) {
-                console.error('CHAT DEBUG: Message missing content field!', data);
+
             }
 
             if (!data.sender_name) {
-                console.log('CHAT DEBUG: Message missing sender_name field');
+
 
                 // If this is our own message and it's missing the sender name
                 if (data.player_id === firebaseDocId) {
-                    console.log('CHAT DEBUG: This is our own message, using our name');
+
                     data.sender_name = playerName;
                 }
                 // If it's from another player, try to get their name from our local cache
@@ -458,22 +458,22 @@ function setupSocketEvents() {
                     const otherPlayer = otherPlayers.get(data.player_id);
                     if (otherPlayer && otherPlayer.name) {
                         data.sender_name = otherPlayer.name;
-                        console.log('CHAT DEBUG: Using name from other players cache:', data.sender_name);
+
                     } else {
                         data.sender_name = 'Unknown Sailor';
-                        console.log('CHAT DEBUG: Other player found but no name available, using default');
+
                     }
                 }
                 // Last resort - use default name
                 else {
                     data.sender_name = 'Unknown Sailor';
-                    console.log('CHAT DEBUG: No sender information available, using default name');
+
                 }
             } else {
-                console.log('CHAT DEBUG: Message has sender_name:', data.sender_name);
+
             }
         } else {
-            console.error('CHAT DEBUG: Received invalid message data type:', data);
+
             return; // Skip processing invalid data
         }
 
@@ -482,7 +482,7 @@ function setupSocketEvents() {
             data.timestamp = Date.now();
         }
 
-        console.log('CHAT DEBUG: Final processed message:', data);
+
 
         // Add to message history
         messageHistory.push(data);
@@ -494,15 +494,15 @@ function setupSocketEvents() {
 
         // Notify UI if callback is registered
         if (chatMessageCallback) {
-            console.log('CHAT DEBUG: Calling UI callback with message data');
+
             chatMessageCallback(data);
         } else {
-            console.log('CHAT DEBUG: No UI callback registered for messages');
+
         }
     });
 
     socket.on('recent_messages', (data) => {
-        console.log('Received recent messages:', data.messages.length);
+
 
         // Replace message history with recent messages (sorted chronologically)
         messageHistory = data.messages.sort((a, b) => a.timestamp - b.timestamp);
@@ -533,23 +533,23 @@ export function updatePlayerPosition() {
 
 // Set the player's name
 export function setPlayerName(name) {
-    console.log("setPlayerName called with new name:", name);
-    console.log("Previous player name was:", playerName);
+
+
 
     // Safety check - don't allow empty names
     if (!name || name.trim() === '') {
-        console.error("ERROR: Attempted to set empty player name. Ignoring request.");
+
         return;
     }
 
     playerName = name;
-    console.log("Player name updated to:", playerName);
+
 
     if (isConnected && socket) {
-        console.log("Sending update_player_name to server with:", { name: playerName, player_id: firebaseDocId });
+
         socket.emit('update_player_name', { name: playerName, player_id: firebaseDocId });
     } else {
-        console.warn("Not connected to server, player name update not sent");
+
     }
 }
 
@@ -723,7 +723,7 @@ function updatePlayerInAllPlayers(playerData) {
     const allPlayers = getAllPlayers();
 
     if (!allPlayers || !Array.isArray(allPlayers)) {
-        console.log("⚠️ updatePlayerInAllPlayers: allPlayers is not an array or doesn't exist");
+
         return;
     }
 
@@ -743,7 +743,7 @@ function updatePlayerInAllPlayers(playerData) {
 
     // Update the allPlayers array in gameState
     updateAllPlayers(updatedPlayers);
-    console.log(`🔄 Player position updated in allPlayers array: ${playerData.id}`);
+
 }
 
 // Update another player's information (like name)
@@ -824,7 +824,7 @@ export function isNetworkConnected() {
 export function requestLeaderboard() {
     if (!isConnected || !socket) return;
 
-    console.log('Requesting leaderboard data...');
+
     socket.emit('get_leaderboard', { player_id: firebaseDocId });
 }
 
@@ -844,7 +844,7 @@ export function updatePlayerStats(stats) {
     }
 
     // Send update to server
-    console.log('Updating player stats:', stats);
+
     socket.emit('player_action', {
         action: 'update_stats',
         stats: stats,
@@ -875,7 +875,7 @@ export function incrementPlayerStats(stats) {
     updatePlayerStats(playerStats);
 
     // Send the complete updated stats to server
-    console.log('Incrementing player stats:', stats);
+
     socket.emit('player_action', {
         action: 'update_stats',
         stats: playerStats,
@@ -900,7 +900,7 @@ export function onFishCaught(value = 1) {
     // Update local stats
     playerStats.fishCount += value;
 
-    console.log(`Fish caught! New count: ${playerStats.fishCount}`);
+
 
     // Send the fish caught action to server
     socket.emit('player_action', {
@@ -922,7 +922,7 @@ export function onMonsterKilled(value = 1) {
     // Update local stats
     playerStats.monsterKills += value;
 
-    console.log(`Monster killed! New count: ${playerStats.monsterKills}`);
+
 
     // Send the monster killed action to server
     socket.emit('player_action', {
@@ -944,7 +944,7 @@ export function onMoneyEarned(value) {
     // Update local stats
     playerStats.money += value;
 
-    console.log(`Money earned! New amount: ${playerStats.money}`);
+
 
     // Send the money earned action to server
     socket.emit('player_action', {
@@ -963,7 +963,7 @@ export function onMoneyEarned(value) {
 function initializePlayerStats() {
     if (!isConnected || !socket || !playerId) return;
 
-    console.log('Initializing player stats from server...');
+
 
     // Request player stats from server
     socket.emit('get_player_stats', { id: playerId, player_id: firebaseDocId });
@@ -974,34 +974,34 @@ export function sendChatMessage(content, messageType = 'global') {
     try {
         // First check for socket connection
         if (!isConnected || !socket) {
-            console.error("Cannot send message - not connected to server");
+
             return false;
         }
 
         // Log current state
-        console.log('Attempt to send chat message:', content);
-        console.log('Connection status:', isConnected ? 'Connected' : 'Disconnected');
-        console.log('Current player ID:', playerId);
-        console.log('Current Firebase doc ID:', firebaseDocId);
-        console.log('Current player name:', playerName);
+
+
+
+
+
 
         // Ensure we have a valid player ID
         // Try to get it from different sources if not available
         if (!playerId && socket && socket.id) {
             // If no player ID but we have a socket ID, use that temporarily
-            console.log('No player ID found, using socket ID temporarily');
+
             playerId = socket.id;
         }
 
         // Make sure firebaseDocId is properly set
         if (!firebaseDocId && playerId) {
             // If we have playerId but no firebaseDocId, set it
-            console.log('Setting firebaseDocId from playerId:', playerId);
+
             firebaseDocId = playerId.startsWith('firebase_') ?
                 playerId : 'firebase_' + playerId;
         } else if (!firebaseDocId) {
             // Last resort - create a temporary ID
-            console.error('No player ID available, using temporary ID');
+
             const tempId = 'firebase_temp_' + Math.floor(Math.random() * 10000);
             firebaseDocId = tempId;
             playerId = tempId.replace('firebase_', '');
@@ -1010,14 +1010,14 @@ export function sendChatMessage(content, messageType = 'global') {
         // Ensure the firebaseDocId is correctly formatted
         if (!firebaseDocId.startsWith('firebase_')) {
             firebaseDocId = 'firebase_' + firebaseDocId;
-            console.log('Fixed Firebase doc ID format:', firebaseDocId);
+
         }
 
         // IMPORTANT: DON'T send a player_name field at all
         // Let the server use what it has in its cache
         // This ensures consistency between nick changes and chat
-        console.log('Sending chat message with player_id:', firebaseDocId);
-        console.log('NOT sending player_name - using server cache instead');
+
+
 
         // Create the message object WITHOUT the player_name field
         const messageObj = {
@@ -1028,16 +1028,16 @@ export function sendChatMessage(content, messageType = 'global') {
         };
 
         // Log the complete message object being sent
-        console.log('Sending complete message object:', messageObj);
+
 
         // Now send the message
         socket.emit('send_message', messageObj);
 
-        console.log('Message emitted without player_name to ensure server cache is used');
-        console.log('Message emitted successfully');
+
+
         return true;
     } catch (error) {
-        console.error('Error sending chat message:', error);
+
         return false;
     }
 }
@@ -1046,7 +1046,7 @@ export function sendChatMessage(content, messageType = 'global') {
 export function getRecentMessages(messageType = 'global', limit = DEFAULT_MESSAGE_LIMIT) {
     if (!isConnected || !socket) return false;
 
-    console.log('Requesting recent messages...');
+
 
     socket.emit('get_recent_messages', {
         type: messageType,
@@ -1086,7 +1086,7 @@ export function getFirebaseUserId() {
 export function addToInventory(itemData) {
     if (!isConnected || !socket) return;
 
-    console.log(`Adding item to inventory: ${itemData.item_name} (${itemData.item_type})`);
+
 
     // Send the inventory update to server
     socket.emit('add_to_inventory', {
@@ -1100,21 +1100,21 @@ export function addToInventory(itemData) {
 // Get player inventory from the server using Socket.IO instead of fetch
 export function getPlayerInventory(callback) {
     if (!isConnected || !socket || !firebaseDocId) {
-        console.error("Cannot get inventory - not connected or no player ID");
+
         if (callback) callback(null);
         return false;
     }
 
-    console.log(`DEBUG CLIENT: Sending get_inventory event with player_id: ${firebaseDocId}`);
-    console.log(`DEBUG CLIENT: Socket connected: ${socket.connected}`);
-    console.log(`DEBUG CLIENT: Socket ID: ${socket.id}`);
+
+
+
 
     socket.off('inventory_data');
 
 
     // Set up handler for inventory data response
     socket.on('inventory_data', (inventoryData) => {
-        console.log('DEBUG CLIENT: Received inventory data:', inventoryData);
+
         if (callback) callback(inventoryData);
     });
 

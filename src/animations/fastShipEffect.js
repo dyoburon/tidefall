@@ -43,7 +43,7 @@ class FastShipEffect {
         this.createSpeedLines();
         this.createParticles();
 
-        console.log("FastShipEffect initialized with ship:", this.ship);
+
     }
 
     /**
@@ -102,7 +102,7 @@ class FastShipEffect {
     activate() {
         if (this.active) return;
         this.active = true;
-        console.log("🚤 Fast ship effect activated!");
+
     }
 
     /**
@@ -111,7 +111,7 @@ class FastShipEffect {
     deactivate() {
         if (!this.active) return;
         this.active = false;
-        console.log("🚤 Fast ship effect deactivated!");
+
     }
 
     /**

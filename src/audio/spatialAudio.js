@@ -18,7 +18,7 @@ class SpatialAudioSystem {
         this.defaultRefDistance = 50;
         this.defaultRolloffFactor = 1;
 
-        console.log("🔊 Spatial Audio System initialized");
+
     }
 
     /**
@@ -70,7 +70,7 @@ class SpatialAudioSystem {
                 sound.play();
             }
 
-            console.log(`🔊 Loaded audio source: ${id} at position:`, position);
+
         });
 
         // Add the sound to the sphere
@@ -127,7 +127,7 @@ class SpatialAudioSystem {
         // Store the interval so it can be cleared if needed
         this.audioSources.get(id).interval = interval;
 
-        console.log(`🔊 Created beacon: ${id} at position:`, position, "interval:", config.interval + "ms");
+
 
         return this.audioSources.get(id);
     }
@@ -146,7 +146,7 @@ class SpatialAudioSystem {
             // For debugging purposes, we could log the distance and current volume
             // but only if the sound is playing to avoid console spam
             if (source.sound.isPlaying && Math.random() < 0.01) { // Only log occasionally
-                console.log(`🔊 Sound ${id}: distance=${distance.toFixed(2)}, volume=${source.sound.getVolume().toFixed(2)}`);
+
             }
         });
     }
@@ -176,7 +176,7 @@ class SpatialAudioSystem {
 
             // Remove from our collection
             this.audioSources.delete(id);
-            console.log(`🔊 Removed audio source: ${id}`);
+
         }
     }
 
@@ -279,7 +279,7 @@ class SpatialAudioSystem {
             interval
         });
 
-        console.log(`🔊 Created test beacon: ${id} at position:`, position);
+
         return id;
     }
 }

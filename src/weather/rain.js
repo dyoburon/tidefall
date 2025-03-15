@@ -45,7 +45,7 @@ export function initRain() {
 export function startRain(playerPosition, intensity = {}) {
     // If explicitly set to 0 and no override, don't start rain
     if (RAIN_CONFIG.PARTICLES_COUNT === 0 && !intensity.count) {
-        console.log("Rain disabled: PARTICLES_COUNT is 0");
+
         return false;
     }
 
@@ -140,7 +140,7 @@ export function updateRain(deltaTime, playerPosition) {
     if (RAIN_CONFIG.PARTICLES_COUNT === 0) {
         // If there are any existing raindrops, let them fall naturally
         if (raindrops.length > 0) {
-            console.log(`🌧️ Rain disabled but cleaning up ${raindrops.length} remaining drops`);
+
             // Process existing raindrops without creating new ones
             processExistingRaindrops(deltaTime, playerPosition);
         }
@@ -152,7 +152,7 @@ export function updateRain(deltaTime, playerPosition) {
     }
 
     // Add debug logging to check if update is being called
-    console.log(`🌧️ Updating rain: ${raindrops.length} drops, isRaining=${isRaining}`);
+
 
     // Update player position reference
     if (playerPosition) {
@@ -172,7 +172,7 @@ export function updateRain(deltaTime, playerPosition) {
         );
 
         // Add debug logging to check if raindrops are being created
-        console.log(`🌧️ Spawning ${particlesToSpawn} new raindrops`);
+
 
         for (let i = 0; i < particlesToSpawn; i++) {
             createRaindrop(lastPlayerPosition);

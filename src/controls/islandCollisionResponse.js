@@ -53,9 +53,9 @@ function periodicDebugLog(message, data = null, forcePrint = false) {
     // Log important messages regardless of counter
     if (forcePrint) {
         if (data) {
-            console.log("%c" + message, "color:#2196F3;", data);
+
         } else {
-            console.log("%c" + message, "color:#2196F3;");
+
         }
         return;
     }
@@ -63,9 +63,9 @@ function periodicDebugLog(message, data = null, forcePrint = false) {
     // Otherwise log every 60 frames (about once per second)
     if (debugFrameCounter % 60 === 0) {
         if (data) {
-            console.log("%c" + message, "color:#78909C;", data);
+
         } else {
-            console.log("%c" + message, "color:#78909C;");
+
         }
     }
 }
@@ -133,7 +133,7 @@ function checkIfStuck() {
         stuckFrames++;
 
         if (stuckFrames > 10) {
-            console.log("%c🚨 BOAT APPEARS STUCK! velocity=" + velocity.toFixed(2) +
+            console.log("🚨 Boat is stuck! Stuck frames:", stuckFrames,
                 ", movement=" + positionDelta.toFixed(5),
                 "background:red; color:white; padding:3px; border-radius:3px;");
             return true;
@@ -149,7 +149,7 @@ function checkIfStuck() {
 
 // Apply emergency escape maneuver when stuck
 function emergencyEscape() {
-    console.log("%c🚀 EMERGENCY ESCAPE INITIATED", "background:purple; color:white; padding:4px; font-weight:bold;");
+
 
     // Strong upward velocity
     verticalVelocity = COLLISION_CONFIG.emergencyEscapeForce;
@@ -226,9 +226,9 @@ function executeParabolicFlight(deltaTime) {
 
     // Check if we've hit the water
     if (boat.position.y <= 0.5 && verticalVelocity < 0) {
-        console.log("%c🌊 LANDING ON WATER after parabolic flight", "color:blue; font-weight:bold;");
-        console.log("   Final velocity:", verticalVelocity.toFixed(2));
-        console.log("   Flight time:", ((performance.now() - collisionTime) / 1000).toFixed(2) + "s");
+
+
+
 
         // Land the boat
         boat.position.y = 0.5;
@@ -242,13 +242,13 @@ function executeParabolicFlight(deltaTime) {
         boatVelocity.multiplyScalar(COLLISION_CONFIG.landingDamping);
         const newSpeed = boatVelocity.length();
 
-        console.log("   Speed change on landing:", oldSpeed.toFixed(2), "→", newSpeed.toFixed(2));
+
 
         // Reset rotation
         if (originalRotation) {
             boat.rotation.x = originalRotation.x;
             boat.rotation.z = originalRotation.z;
-            console.log("   Rotation reset to original");
+
         }
     }
 
@@ -256,7 +256,7 @@ function executeParabolicFlight(deltaTime) {
     if (performance.now() - lastCollisionCheck > 500) {
         const airborneCollision = checkAllIslandCollisions(boat.position, 2);
         if (airborneCollision && airborneCollision.hit) {
-            console.log("%c🏔️ MID-AIR COLLISION WITH ISLAND!", "background:orange; color:black; font-weight:bold;");
+
 
             // Calculate bounce normal
             const normal = new THREE.Vector3().subVectors(
@@ -272,7 +272,7 @@ function executeParabolicFlight(deltaTime) {
             boatVelocity.reflect(normal).multiplyScalar(0.8);
             verticalVelocity = Math.max(verticalVelocity, bounceForce);
 
-            console.log("   Applied mid-air bounce, new vY =", verticalVelocity.toFixed(2));
+
         }
         lastCollisionCheck = performance.now();
     }
@@ -293,12 +293,6 @@ export function updateCollisionResponse(deltaTime) {
 
     // Basic state info logging every ~1 second
     if (debugFrameCounter % 60 === 0) {
-        console.log("%c📊 STATUS: airborne=" + isAirborne +
-            ", speed=" + boatVelocity.length().toFixed(2) +
-            ", pos=(" + boat.position.x.toFixed(1) + "," +
-            boat.position.y.toFixed(1) + "," +
-            boat.position.z.toFixed(1) + ")",
-            "color:gray;");
     }
 
     // Check if boat is stuck against an island
@@ -321,12 +315,12 @@ export function updateCollisionResponse(deltaTime) {
         const speed = boatVelocity.length();
 
         // Log detailed collision information
-        console.log("%c🏝️ ISLAND COLLISION DETECTED", "background:orange; color:black; font-weight:bold;");
-        console.log("   Boat speed:", speed.toFixed(2));
-        console.log("   Position:", boat.position.x.toFixed(1), boat.position.y.toFixed(1), boat.position.z.toFixed(1));
-        console.log("   Island position:", collision.position.x.toFixed(1), collision.position.y.toFixed(1), collision.position.z.toFixed(1));
-        console.log("   Velocity:", boatVelocity.x.toFixed(2), boatVelocity.y.toFixed(2), boatVelocity.z.toFixed(2));
-        console.log("   Airborne threshold:", COLLISION_CONFIG.minAirborneSpeed);
+
+
+
+
+
+
 
         if (speed >= COLLISION_CONFIG.minAirborneSpeed) {
             // Calculate the normal vector from island center to boat
@@ -334,7 +328,7 @@ export function updateCollisionResponse(deltaTime) {
                 boat.position, collision.position
             ).normalize();
 
-            console.log("   Collision normal:", normalVector.x.toFixed(2), normalVector.y.toFixed(2), normalVector.z.toFixed(2));
+
 
             // Save original rotation
             originalRotation = new THREE.Euler(
@@ -345,7 +339,7 @@ export function updateCollisionResponse(deltaTime) {
             const launchSpeed = (speed - COLLISION_CONFIG.minAirborneSpeed) * COLLISION_CONFIG.bounceMultiplier;
             verticalVelocity = 5.0 + launchSpeed;  // Minimum upward velocity + speed boost
 
-            console.log("   Launch velocity:", verticalVelocity.toFixed(2));
+
 
             // Reflect horizontal velocity based on collision normal
             const oldVelocity = boatVelocity.clone();
@@ -361,23 +355,19 @@ export function updateCollisionResponse(deltaTime) {
             window.boatInParabolicFlight = true;
             collisionTime = performance.now();
 
-            console.log("%c🚀 PARABOLIC FLIGHT INITIATED", "background:green; color:white; font-weight:bold;");
+
         } else {
             // Not fast enough for flight, just bounce
             const normalVector = new THREE.Vector3().subVectors(
                 boat.position, collision.position
             ).normalize();
 
-            console.log("   Applying simple bounce (speed too low for flight)");
+
 
             // Simple bounce at slower speeds
             const oldVelocity = boatVelocity.clone();
             reflectVelocityFromIsland(normalVector, speed);
 
-            console.log("   Velocity changed:",
-                "(" + oldVelocity.x.toFixed(2) + "," + oldVelocity.z.toFixed(2) + ")",
-                "→",
-                "(" + boatVelocity.x.toFixed(2) + "," + boatVelocity.z.toFixed(2) + ")");
         }
     }
 
@@ -389,7 +379,7 @@ export function updateCollisionResponse(deltaTime) {
     // Log performance every ~5 seconds
     if (debugFrameCounter % 300 === 0) {
         const avgDuration = frameDurations.reduce((sum, val) => sum + val, 0) / frameDurations.length;
-        console.log("⌛ Collision system performance:", avgDuration.toFixed(2) + "ms/frame");
+
         frameDurations = []; // Reset for next batch
     }
 }
@@ -402,15 +392,15 @@ function reflectVelocityFromIsland(normal, speed) {
     // Calculate reflection angle
     const dot = boatVelocity.dot(normal);
 
-    console.log("   Reflection calculation:");
-    console.log("     Velocity:", initialVelocity.x.toFixed(2), initialVelocity.y.toFixed(2), initialVelocity.z.toFixed(2));
-    console.log("     Normal:", normal.x.toFixed(2), normal.y.toFixed(2), normal.z.toFixed(2));
-    console.log("     Dot product:", dot.toFixed(2));
+
+
+
+
 
     // NEW BEHAVIOR: For standard speed (around 1.2), do a simple small bounce
     // in the opposite direction of travel
     if (speed < COLLISION_CONFIG.minAirborneSpeed && speed > 0.5) {
-        console.log("     Using simple opposite bounce for standard speed:", speed.toFixed(2));
+
 
         // Reverse the velocity direction (opposite of travel)
         const reverseDirection = boatVelocity.clone().negate();
@@ -435,29 +425,29 @@ function reflectVelocityFromIsland(normal, speed) {
         );
 
         // Log reflection calculation
-        console.log("     Raw reflection:", reflection.x.toFixed(2), reflection.y.toFixed(2), reflection.z.toFixed(2));
+
 
         // Apply some energy loss in the reflection
         boatVelocity.copy(reflection.multiplyScalar(COLLISION_CONFIG.restitution));
 
         // Log after energy loss
-        console.log("     After restitution:", boatVelocity.x.toFixed(2), boatVelocity.y.toFixed(2), boatVelocity.z.toFixed(2));
+
 
         // Add extra push away from island to prevent getting stuck
         const pushForce = normal.clone().multiplyScalar(0.8 + Math.random() * 0.4);
         boatVelocity.add(pushForce);
 
-        console.log("     Added push force:", pushForce.x.toFixed(2), pushForce.y.toFixed(2), pushForce.z.toFixed(2));
-        console.log("     Final velocity:", boatVelocity.x.toFixed(2), boatVelocity.y.toFixed(2), boatVelocity.z.toFixed(2));
+
+
     } else {
-        console.log("     Already moving away, adding extra push");
+
 
         // Already moving away, just add more push
         const pushForce = normal.clone().multiplyScalar(1.0 + Math.random() * 0.5);
         boatVelocity.add(pushForce);
 
-        console.log("     Added push force:", pushForce.x.toFixed(2), pushForce.y.toFixed(2), pushForce.z.toFixed(2));
-        console.log("     Final velocity:", boatVelocity.x.toFixed(2), boatVelocity.y.toFixed(2), boatVelocity.z.toFixed(2));
+
+
     }
 }
 

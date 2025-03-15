@@ -193,7 +193,7 @@ class ArcticBiome extends BiomeInterface {
                     if (random() < 0.25) {
                         // Make sure we don't spawn too close to other entities
                         if (!this.checkEntityCollisions(position, 500)) {
-                            console.log("Spawning snow island at", finalX, finalZ);
+
 
                             // Create the snow island
                             const snowIsland = createSnowIsland(finalX, finalZ, seed * (finalX * finalZ), scene);
@@ -623,17 +623,17 @@ class ArcticBiome extends BiomeInterface {
         if (this.isSnowActive) {
             this.snowSystem.stop();
             this.isSnowActive = false;
-            console.log("Player left Arctic biome - stopping snow");
+
         }
     }
 
     handleFogTransition(isEntering, playerObject) {
         setFogProperties(ARCTIC_FOG_CONFIG);
         if (isEntering) {
-            console.log("Entering arctic biome - activating fog");
+
             toggleFog(true); // Explicitly fade in the fog
         } else {
-            console.log("Leaving arctic biome - dissipating fog");
+
             toggleFog(false); // Explicitly fade out the fog
         }
     }

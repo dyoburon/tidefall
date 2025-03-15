@@ -25,7 +25,7 @@ let isProcessingSequence = false;
  */
 export function registerScreen(screen) {
     if (!screen.id || typeof screen.show !== 'function') {
-        console.error('Invalid screen registration. Missing required properties.');
+
         return;
     }
 
@@ -44,7 +44,7 @@ export function registerScreen(screen) {
     // Sort screens by order
     registeredScreens.sort((a, b) => a.order - b.order);
 
-    console.log(`📋 Messages: Registered screen "${screen.id}" with order ${completeScreen.order}`);
+
 }
 
 /**
@@ -55,11 +55,11 @@ export function registerScreen(screen) {
  */
 export function startScreenSequence(onComplete = () => { }, forceAll = false) {
     if (isProcessingSequence) {
-        console.log('📋 Messages: Already processing a screen sequence, ignoring request');
+
         return;
     }
 
-    console.log('📋 Messages: Starting screen sequence');
+
     isProcessingSequence = true;
 
     // Process screens in order
@@ -76,7 +76,7 @@ export function startScreenSequence(onComplete = () => { }, forceAll = false) {
 function processNextScreen(index, onComplete, forceAll) {
     // If we've processed all screens, we're done
     if (index >= registeredScreens.length) {
-        console.log('📋 Messages: Completed screen sequence');
+
         isProcessingSequence = false;
         onComplete();
         return;
@@ -89,19 +89,19 @@ function processNextScreen(index, onComplete, forceAll) {
         (screen.shouldShow() && (!screen.once || !shownScreens.has(screen.id)));
 
     if (shouldShow) {
-        console.log(`📋 Messages: Showing screen "${screen.id}"`);
+
 
         // Mark as shown
         shownScreens.add(screen.id);
 
         // Show the screen, passing completion callback to move to next screen
         screen.show(() => {
-            console.log(`📋 Messages: Screen "${screen.id}" completed`);
+
             // Process next screen
             processNextScreen(index + 1, onComplete, forceAll);
         });
     } else {
-        console.log(`📋 Messages: Skipping screen "${screen.id}"`);
+
         // Skip to next screen
         processNextScreen(index + 1, onComplete, forceAll);
     }
@@ -124,10 +124,10 @@ export function showScreen(screenId, onComplete = () => { }) {
     const screen = registeredScreens.find(s => s.id === screenId);
 
     if (screen) {
-        console.log(`📋 Messages: Force showing screen "${screenId}"`);
+
         screen.show(onComplete);
     } else {
-        console.error(`Screen "${screenId}" not found`);
+
         onComplete();
     }
 }
@@ -147,7 +147,7 @@ window.messageSystem = {
     getRegisteredScreenIds
 };
 
-console.log('📋 Messages: System initialized. Available screens can be shown with window.messageSystem.showScreen("screenId")');
+
 
 // COMMENT OUT the MOTD screen registration in messages.js
 
@@ -163,7 +163,7 @@ registerScreen({
 */
 
 // Add debug info
-console.log('🔍 MESSAGES DEBUG: Screen system loaded - MOTD registration disabled');
+
 
 registerScreen({
     id: 'my-new-screen',

@@ -9,11 +9,11 @@ import { registerScreen } from './messages.js';
  * @param {Function} onClose - Callback for when the screen is closed
  */
 export function showMessageOfDay(onClose) {
-    console.log("🔔 MOTD: Showing Message of the Day");
+
 
     // Check if already showing
     if (document.getElementById('motd-container')) {
-        console.log("🔔 MOTD: Already showing, won't create duplicate");
+
         if (onClose) onClose();
         return;
     }
@@ -22,7 +22,7 @@ export function showMessageOfDay(onClose) {
     try {
         localStorage.setItem('motd-has-shown', 'true');
     } catch (e) {
-        console.warn("🔔 MOTD: Could not save to localStorage");
+
     }
 
     // Create container
@@ -149,7 +149,7 @@ export function shouldShowMessageOfDay() {
         return hasShownBefore !== 'true';
     } catch (e) {
         // If localStorage is not available, default to showing MOTD
-        console.warn("🔔 MOTD: Could not access localStorage. MOTD will be shown.");
+
         return true;
     }
 }
@@ -159,7 +159,7 @@ export function shouldShowMessageOfDay() {
  * @param {Function} onClose - Callback for when the screen is closed
  */
 export function forceShowMessageOfDay(onClose) {
-    console.log("🔔 MOTD: Force showing message of day");
+
 
     // Bypass the normal conditions that would prevent showing
     // For example, localStorage checks or already-shown-today flags

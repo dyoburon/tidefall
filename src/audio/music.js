@@ -35,13 +35,13 @@ const MusicSystem = (() => {
         // Also load volume if available
         if (localStorage.getItem('musicVolume') !== null) {
             musicVolume = parseFloat(localStorage.getItem('musicVolume'));
-            console.log(`Loaded music volume from localStorage: ${musicVolume}`);
+
         }
 
         // Add user interaction listeners to start music
         setupUserInteractionListeners();
 
-        console.log('Music system initialized with main track');
+
 
         // Make MusicSystem available globally for UI components
         window.MusicSystem = MusicSystem;
@@ -62,7 +62,7 @@ const MusicSystem = (() => {
                 document.removeEventListener('keydown', startMusicOnInteraction);
                 document.removeEventListener('touchstart', startMusicOnInteraction);
 
-                console.log('Music started after user interaction');
+
             }
         };
 
@@ -71,17 +71,19 @@ const MusicSystem = (() => {
         document.addEventListener('keydown', startMusicOnInteraction);
         document.addEventListener('touchstart', startMusicOnInteraction);
 
-        console.log('User interaction listeners set up');
+
     };
 
     /**
      * Play the background music
      */
     const playMusic = () => {
-        console.log('Playing music', backgroundMusic);
+
         if (backgroundMusic) {
             backgroundMusic.play()
-                .catch(error => console.error('Error playing music:', error));
+                .catch(error => {
+                    console.error('Error playing background music:', error);
+                });
         }
     };
 
@@ -107,7 +109,7 @@ const MusicSystem = (() => {
 
         // Save volume to localStorage
         localStorage.setItem('musicVolume', musicVolume);
-        console.log(`Saved music volume to localStorage: ${musicVolume}`);
+
     };
 
     /**
@@ -123,7 +125,7 @@ const MusicSystem = (() => {
 
         // Save mute state to localStorage
         localStorage.setItem('musicMuted', isMuted);
-        console.log(`Saved music mute state to localStorage: ${isMuted}`);
+
     };
 
     /**
@@ -141,14 +143,14 @@ const MusicSystem = (() => {
     const updateWaveSound = (waveIntensity) => {
         // To be implemented in the future
         // Could adjust wave sound volume based on wave intensity
-        console.log(`Wave intensity updated: ${waveIntensity}`);
+
     };
 
     // Placeholder for future weather sounds
     const updateWeatherSounds = (weatherType) => {
         // To be implemented in the future
         // Could play different weather sounds based on type
-        console.log(`Weather changed to: ${weatherType}`);
+
     };
 
     // Return public API

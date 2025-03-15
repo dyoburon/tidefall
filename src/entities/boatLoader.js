@@ -173,13 +173,13 @@ export function loadGLBModel(boat) {
         [rotX, rotY, rotZ] = shipConfig.rotation;
     }
 
-    console.log(`Loading boat model ${shipType} from path: ${modelUrl} with scale: ${scaleValue}, position: [${posX}, ${posY}, ${posZ}], rotation: [${rotX}, ${rotY}, ${rotZ}]`);
+
 
     loader.load(
         modelUrl,
         // Success callback
         function (gltf) {
-            console.log("✅ GLB model loaded successfully!");
+
             const model = gltf.scene;
 
             // Add LOD system
@@ -234,13 +234,13 @@ export function loadGLBModel(boat) {
         function (xhr) {
             if (xhr.lengthComputable) {
                 const percentComplete = xhr.loaded / xhr.total * 100;
-                console.log(`Model loading: ${Math.round(percentComplete)}%`);
+
             }
         },
         // Error callback
         function (error) {
-            console.error("❌ Error loading boat model:", error);
-            console.log("Falling back to default ship model");
+
+
 
             // Reset loading flag but don't mark as loaded
             boatModelLoading = false;
@@ -259,7 +259,7 @@ export function loadGLBModel(boat) {
                 loader.load(
                     defaultShip.path,
                     function (gltf) {
-                        console.log("✅ Default ship model loaded successfully!");
+
                         const model = gltf.scene;
                         model.scale.set(defaultShip.scale, defaultShip.scale, defaultShip.scale);
                         model.position.set(defX, defY, defZ);
@@ -269,7 +269,7 @@ export function loadGLBModel(boat) {
                     },
                     null,
                     function (error) {
-                        console.error("❌ Failed to load even the default ship model:", error);
+
                     }
                 );
             }
