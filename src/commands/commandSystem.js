@@ -9,6 +9,7 @@ import { teleportCommands } from './teleportCommands.js';
 import { clanCommands } from './clanCommands.js';
 import { birdCommands } from './birdCommands.js';
 import { weatherCommands } from './weatherCommands.js';
+import { boatFlyCommands } from './boatFlyCommands.js';
 
 // Create a global variable to track fly mode state
 // This will be checked by the updateCameraPosition function
@@ -71,6 +72,10 @@ export const COMMAND_CONFIG = {
     // Bird commands
     birdsworm: {
         description: 'Spawn a swarm of birds at your location. Usage: /birdsworm [count]'
+    },
+
+    boatfly: {
+        description: 'Toggle boat flying mode with added wings. Usage: /boatfly [speed]'
     }
 };
 
@@ -155,6 +160,11 @@ export function initCommandSystem() {
         registerCommand(cmd.name, cmd.handler, cmd.description);
     });
 
+    // Register boat fly commands from the boatFlyCommands module
+    boatFlyCommands.forEach(cmd => {
+        registerCommand(cmd.name, cmd.handler, cmd.description);
+    });
+
     // Patch the animation loop once the page is fully loaded
     if (!animationLoopPatched) {
         // Patch the animation loop after a short delay to ensure
@@ -164,8 +174,6 @@ export function initCommandSystem() {
         // Set up the animation update for fireballs
         setupFireballUpdates();
     }
-
-
 
     return {
         processCommand,
@@ -222,7 +230,6 @@ export function processCommand(message, chatSystem) {
         command.handler(args, chatSystem);
         return true;
     } catch (error) {
-
         chatSystem.addSystemMessage(`Error executing command: /${commandName}`);
         return true;
     }
@@ -293,7 +300,6 @@ function flyCommand(args, chatSystem) {
         // Blur focus from the input field to allow keyboard controls to work
         if (chatSystem.messageInput) {
             chatSystem.messageInput.blur();
-
         }
     }
 }
@@ -374,7 +380,6 @@ function enableFlyMode(speed = 1.0) {
 
         // Replace the updateCamera function
         window.updateCamera = state.updateCameraWrapper;
-
     }
 
     // Setup animation loop for fly mode
@@ -395,10 +400,6 @@ function enableFlyMode(speed = 1.0) {
 
     // Add visual indicator for fly mode
     createFlyModeIndicator();
-
-
-
-
 }
 
 /**
@@ -502,8 +503,6 @@ function disableFlyMode() {
 
     // Remove visual indicator
     removeFlyModeIndicator();
-
-
 }
 
 /**
@@ -533,7 +532,6 @@ function handleFlyModeMouseDown(event) {
         state.mouseLook.isDragging = true;
         state.mouseLook.lastX = event.clientX;
         state.mouseLook.lastY = event.clientY;
-
     }
 }
 
@@ -547,7 +545,6 @@ function handleFlyModeMouseUp(event) {
     // Only handle left mouse button (button 0)
     if (event.button === 0) {
         state.mouseLook.isDragging = false;
-
     }
 }
 
@@ -591,8 +588,6 @@ function handleFlyModeKeyDown(event) {
     }
 
     // First log the event to debug
-
-
     let handled = true;
 
     // Convert key to uppercase for case-insensitive comparison
@@ -654,8 +649,6 @@ function handleFlyModeKeyUp(event) {
     }
 
     // First log the event to debug
-
-
     let handled = true;
 
     // Convert key to uppercase for case-insensitive comparison
@@ -708,7 +701,6 @@ function handleFlyModeKeyUp(event) {
 function updateFlyCamera() {
     // If no longer in fly mode, stop updating
     if (!state.flyMode || !window.flyModeEnabled) {
-
         return;
     }
 
@@ -786,34 +778,18 @@ function updateFlyCamera() {
             const distance = originalPos.distanceTo(newPos);
             const rotationChange = Math.abs(originalRot.y - camera.rotation.y);
 
-
-
-
-
-
             // Double-check that the camera actually moved or rotated
             if (distance < 0.01 && rotationChange < 0.001) {
-
-
-
-
-
-
             }
         }
 
         // Debug helper: log current key states occasionally
         if (Math.random() < 0.01) { // ~1% chance each frame to reduce spam
-
-
-
-
         }
 
         // Continue animation loop
         window.requestAnimationFrame(updateFlyCamera);
     } catch (error) {
-
         // Try to continue the animation loop despite the error
         window.requestAnimationFrame(updateFlyCamera);
     }
@@ -852,10 +828,8 @@ function patchAnimationLoop() {
             return originalFn.apply(this, arguments);
         };
 
-
         animationLoopPatched = true;
     } else {
-
     }
 }
 
@@ -880,12 +854,8 @@ function setupFireballUpdates() {
             // Call the original animate function
             return originalAnimate.apply(this, arguments);
         };
-
-
     } else {
         // If we can't find the original animate function, set up our own update loop
-
-
         let lastTime = performance.now();
 
         function updateLoop() {

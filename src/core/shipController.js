@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { boat, boatVelocity, keys, getWindData, getTime } from './gameState.js';
 import { checkAllIslandCollisions } from '../world/islands.js';
+import { boatFlyState } from '../commands/boatFlyCommands.js';
 
 
 
@@ -74,6 +75,10 @@ export function preserveMomentum(fromMultiplier, toMultiplier, decayDuration = 1
 }
 
 export function updateShipMovement(deltaTime) {
+    // If boat is flying or falling, skip normal ship movement
+    if (boatFlyState.isFalling) {
+        return boatVelocity; // Return unchanged velocity
+    }
     // Get wind info for sailing mechanics
     const windData = getWindData();
     const windDirection = windData.direction;
@@ -266,6 +271,11 @@ const ISLAND_COLLISION_COOLDOWN = 1.0; // Seconds between collision responses
 
 // Add this function to gameState.js
 export function checkAndHandleIslandCollisions() {
+    // Skip if boat is flying
+    /* if (boatFlyState && boatFlyState.isFlying) {
+         return false; // No collision when flying
+     }*/
+
     // Skip if too soon after last collision
     const currentTime = getTime() / 1000;
     if (currentTime - lastIslandCollisionTime < ISLAND_COLLISION_COOLDOWN) {
