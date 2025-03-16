@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { boat, scene, getTime } from '../core/gameState.js';
 import { playCannonSound } from '../audio/soundEffects.js'; // Import sound
+import {
+    registerProjectile,
+    unregisterProjectile,
+    applyCannonballSplash
+} from './damageSystem.js';
+import { getAllMonsters } from '../entities/monsterManager.js';
 
 /**
  * Cannon Shot ability - Fires a single cannonball towards the target location.
@@ -88,7 +94,7 @@ class CannonShot {
     }
 
     createCannonball(position, direction) {
-        const cannonballGeometry = new THREE.SphereGeometry(2.0 / 3, 16, 16); // Reduced size
+        const cannonballGeometry = new THREE.SphereGeometry(2.0 / 3, 16, 16);
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
         const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
         cannonball.position.copy(position);
@@ -97,11 +103,10 @@ class CannonShot {
 
         // Add a slight upward component to the direction
         const firingDirection = direction.clone();
-        firingDirection.y += 0.05; // Reduced upward angle.
+        firingDirection.y += 0.05; // Reduced upward angle
         firingDirection.normalize();
 
         const velocity = firingDirection.clone().multiplyScalar(this.cannonballSpeed);
-
 
         // Create muzzle flash
         this.createMuzzleFlash(position, firingDirection);
@@ -110,31 +115,62 @@ class CannonShot {
         const maxDistance = 150;
         const initialPosition = position.clone();
 
+        // Generate a unique ID for this cannonball
+        const cannonballId = `cannonball-${startTime}`;
+
+        // Register with more reasonable hit radius (reduced from 100)
+        registerProjectile(cannonballId, {
+            mesh: cannonball,
+            data: {
+                damage: 1000, // Extremely high damage to guarantee kill
+                hitRadius: 15.0 // Very generous hit radius
+            },
+            prevPosition: position.clone(),
+            onHit: (hitData) => {
+                console.log(`Cannonball HIT: ${hitData.monster.typeId}!`);
+                console.log(`Monster should now be DEAD. Health: ${hitData.monster.health}`);
+
+                // Create a visible effect at the hit point
+                this.createHitEffect(hitData.point);
+
+                // Remove the cannonball from the scene
+                scene.remove(cannonball);
+            }
+        });
+
         const animateCannonball = () => {
             const elapsedTime = (getTime() - startTime) / 1000;
 
-
             const distanceTraveled = cannonball.position.distanceTo(initialPosition);
             if (distanceTraveled > maxDistance) {
-
+                unregisterProjectile(cannonballId);
                 scene.remove(cannonball);
                 return;
             }
 
             velocity.y -= this.gravity * elapsedTime;
-            // Log only y component
 
+            // Update cannonball position
             cannonball.position.x += velocity.x * 0.16;
             cannonball.position.y += velocity.y * 0.16;
             cannonball.position.z += velocity.z * 0.16;
-            // Log only y component
 
             cannonball.rotation.x += 0.02;
             cannonball.rotation.z += 0.02;
 
+            // Handle water impact
             if (cannonball.position.y <= 0) {
+                // Apply splash damage
+                const hitPosition = cannonball.position.clone();
+                const damagedMonsters = applyCannonballSplash(hitPosition);
 
-                this.createEnhancedSplashEffect(cannonball.position.clone(), 2.0 / 3.0); //Adjusted intensity
+                // Log damage results
+                if (damagedMonsters.length > 0) {
+                    console.log(`Cannonball splash damaged ${damagedMonsters.length} monsters!`);
+                }
+
+                this.createEnhancedSplashEffect(cannonball.position.clone(), 2.0 / 3.0);
+                unregisterProjectile(cannonballId);
                 scene.remove(cannonball);
                 return;
             }
@@ -481,6 +517,82 @@ class CannonShot {
                 }
             });
         }, 3000); // Ensure all smoke is gone after 3 seconds
+    }
+
+    /**
+     * Find the closest point on a line segment to a point
+     * @param {THREE.Vector3} segmentStart - Start of segment
+     * @param {THREE.Vector3} segmentEnd - End of segment
+     * @param {THREE.Vector3} point - Point to find closest position to
+     * @returns {THREE.Vector3} Closest point on segment
+     */
+    getClosestPointOnSegment(segmentStart, segmentEnd, point) {
+        const segment = new THREE.Vector3().subVectors(segmentEnd, segmentStart);
+        const segmentLength = segment.length();
+        const segmentDirection = segment.clone().normalize();
+
+        const pointToStart = new THREE.Vector3().subVectors(point, segmentStart);
+
+        // Project point onto segment
+        const projection = pointToStart.dot(segmentDirection);
+
+        // Clamp to segment bounds
+        const normalizedProjection = Math.max(0, Math.min(segmentLength, projection));
+
+        // Get the closest point on the segment
+        return new THREE.Vector3().addVectors(
+            segmentStart,
+            segmentDirection.multiplyScalar(normalizedProjection)
+        );
+    }
+
+    /**
+     * Create visual effect at hit location
+     * @param {THREE.Vector3} position - Hit position
+     */
+    createHitEffect(position) {
+        // Create a small explosion effect
+        const hitGeometry = new THREE.SphereGeometry(0.8, 8, 8);
+        const hitMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff5500,
+            transparent: true,
+            opacity: 1.0
+        });
+
+        const hitEffect = new THREE.Mesh(hitGeometry, hitMaterial);
+        hitEffect.position.copy(position);
+        scene.add(hitEffect);
+
+        const startTime = getTime();
+        const duration = 0.4; // seconds
+
+        const animateHit = () => {
+            const elapsed = (getTime() - startTime) / 1000;
+            if (elapsed > duration) {
+                scene.remove(hitEffect);
+                hitEffect.geometry.dispose();
+                hitEffect.material.dispose();
+                return;
+            }
+
+            const progress = elapsed / duration;
+            const scale = 1 + progress * 2;
+            hitEffect.scale.set(scale, scale, scale);
+            hitEffect.material.opacity = 1.0 - progress;
+
+            requestAnimationFrame(animateHit);
+        };
+
+        requestAnimationFrame(animateHit);
+
+        // Safety cleanup
+        setTimeout(() => {
+            if (scene.children.includes(hitEffect)) {
+                scene.remove(hitEffect);
+                hitEffect.geometry.dispose();
+                hitEffect.material.dispose();
+            }
+        }, duration * 1000 + 100);
     }
 }
 

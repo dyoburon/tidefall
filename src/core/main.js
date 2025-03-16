@@ -55,7 +55,7 @@ import { dissipateFog, updateFogEffects } from '../environment/fog.js';
 import AbilityManager from '../abilities/abilitymanager.js';
 import { updateAllEntityChunks } from '../world/chunkEntityController.js';
 import { initMonsterManager, updateAllMonsters } from '../entities/monsterManager.js';
-
+import { updateProjectileCollisions, initDamageSystem } from '../abilities/damageSystem.js';
 
 // Define these variables at the file level scope (outside any functions)
 // so they're accessible throughout the file
@@ -84,6 +84,7 @@ const water = setupWater('cartoony');
 // Initialize biome
 initializeChunkSystem();
 initMonsterManager();
+initDamageSystem();
 
 
 const abilityManager = new AbilityManager(scene, camera, boat);
@@ -1208,6 +1209,8 @@ function animate() {
 
     // Update birds with delta time
     updateBirds(deltaTime);
+
+    updateProjectileCollisions();
 
     // Update sea monsters with delta time
     updateSeaMonsters(deltaTime);
