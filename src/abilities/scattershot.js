@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { boat, scene, getTime } from '../core/gameState.js';
 import { playCannonSound } from '../audio/soundEffects.js';
+import {
+    registerProjectile,
+    unregisterProjectile,
+    applyCannonballSplash
+} from './damageSystem.js';
 
 /**
  * Scatter Shot ability - Fires multiple small cannonballs in a spread pattern.
@@ -11,11 +16,14 @@ class ScatterShot {
         this.name = 'Scatter Shot';
         this.canCancel = true;
         this.staysActiveAfterExecution = false;
-        this.cannonballSpeed = 20; // Slightly faster than regular cannon
-        this.gravity = 100;
-        this.projectileCount = 20; // Number of projectiles to fire at once
-        this.spreadAngle = 0.4; // Controls how wide the spread is (in radians)
+        this.cannonballSpeed = 20; // Slightly slower than regular cannonballs
+        this.gravity = 80;         // Lower gravity for wider spread
 
+        // ScatterShot specific properties
+        this.projectileCount = 8;     // Number of cannonballs to fire
+        this.spreadAngle = Math.PI / 6; // 30-degree cone of fire
+
+        // Using the same cannon positions as regular cannonshot
         this.cannonPositions = [
             { name: 'leftFront', x: -2.5, z: -3 },
             { name: 'leftRear', x: -2.5, z: 3 },
@@ -25,27 +33,33 @@ class ScatterShot {
     }
 
     onAimStart(crosshair) {
-
-        // Could change crosshair color/shape here if desired
+        // Change crosshair appearance for scattershot
+        if (crosshair && crosshair.crosshairElement) {
+            crosshair.crosshairElement.style.borderColor = '#FFA500'; // Orange
+            crosshair.crosshairElement.style.width = '40px'; // Wider crosshair
+            crosshair.crosshairElement.style.height = '40px'; // Taller crosshair
+        }
     }
 
     onExecute(targetPosition) {
-
-
         // Find nearest cannon position
         const cannonPosition = this.getNearestCannonPosition(targetPosition);
         const cannonName = this.getCannonNameFromPosition(cannonPosition);
 
-
-        // Calculate base direction from cannon to target
+        // Calculate base direction
         const baseDirection = new THREE.Vector3().subVectors(targetPosition, cannonPosition);
         baseDirection.normalize();
 
+        // Fire multiple projectiles in a cone pattern
+        for (let i = 0; i < this.projectileCount; i++) {
+            // Create a variant of the base direction with random spread
+            const spreadDirection = this.createSpreadDirection(baseDirection);
 
-        // Fire multiple cannonballs in a spread pattern
-        this.fireScatterShot(cannonPosition, baseDirection);
+            // Fire a smaller cannonball in this direction
+            this.fireScatterProjectile(cannonPosition, spreadDirection);
+        }
 
-        // Play sound
+        // Play cannon sound (perhaps a special scatter sound)
         playCannonSound();
 
         // Create smoke effect
@@ -86,87 +100,116 @@ class ScatterShot {
         return null;
     }
 
-    fireScatterShot(position, baseDirection) {
-        // Create a larger muzzle flash for the scatter shot
-        this.createMuzzleFlash(position, baseDirection, 1.5);
+    createSpreadDirection(baseDirection) {
+        // Create a rotation axis perpendicular to the base direction
+        const up = new THREE.Vector3(0, 1, 0);
+        const rotationAxis = new THREE.Vector3().crossVectors(baseDirection, up).normalize();
 
-        // Create multiple cannonballs with varied directions
-        for (let i = 0; i < this.projectileCount; i++) {
-            // Create a new direction with some randomization
-            const spreadDirection = baseDirection.clone();
-
-            // Add random spread (more in horizontal than vertical)
-            const horizontalSpread = (Math.random() - 0.5) * this.spreadAngle;
-            const verticalSpread = (Math.random() - 0.5) * (this.spreadAngle * 0.6);
-
-            // Create a rotation matrix for the horizontal spread (around Y axis)
-            const horizontalRotation = new THREE.Matrix4().makeRotationY(horizontalSpread);
-            spreadDirection.applyMatrix4(horizontalRotation);
-
-            // Create a rotation matrix for the vertical spread (around local X axis)
-            // First find perpendicular axis
-            const xAxis = new THREE.Vector3(0, 1, 0).cross(spreadDirection).normalize();
-            const verticalRotation = new THREE.Matrix4().makeRotationAxis(xAxis, verticalSpread);
-            spreadDirection.applyMatrix4(verticalRotation);
-
-            // Add a slight upward component
-            spreadDirection.y += 0.05;
-            spreadDirection.normalize();
-
-            // Create the cannonball with random size variation (but all smaller than regular)
-            const sizeVariation = 0.2 + Math.random() * 0.2; // Between 0.2 and 0.4 of regular size
-            this.createCannonball(position.clone(), spreadDirection, sizeVariation);
+        // If we have a problem with rotation axis, use another axis
+        if (rotationAxis.lengthSq() < 0.1) {
+            rotationAxis.copy(new THREE.Vector3(1, 0, 0));
         }
+
+        // Create a random angle within our spread cone
+        const randomAngle = (Math.random() - 0.5) * this.spreadAngle;
+
+        // Create a random rotation around the base direction
+        const randomRotation = Math.random() * Math.PI * 2;
+
+        // First rotate by random angle on rotation axis
+        const spreadDirection = baseDirection.clone();
+        spreadDirection.applyAxisAngle(rotationAxis, randomAngle);
+
+        // Then rotate around base direction for full cone coverage
+        spreadDirection.applyAxisAngle(baseDirection, randomRotation);
+
+        // Add some vertical variation
+        const verticalVariation = (Math.random() - 0.3) * 0.1; // Bias slightly upward
+        spreadDirection.y += verticalVariation;
+        spreadDirection.normalize();
+
+        return spreadDirection;
     }
 
-    createCannonball(position, direction, sizeScale = 0.3) {
+    fireScatterProjectile(position, direction) {
         // Create a smaller cannonball
-        const cannonballGeometry = new THREE.SphereGeometry((2.0 / 3) * sizeScale, 12, 12);
-        const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
+        const cannonballGeometry = new THREE.SphereGeometry(0.4, 12, 12); // Smaller size
+        const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
         const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
         cannonball.position.copy(position);
+
         scene.add(cannonball);
 
-        // Apply slight positional variation for better scatter effect
-        cannonball.position.x += (Math.random() - 0.5) * 0.2;
-        cannonball.position.y += (Math.random() - 0.5) * 0.2;
-        cannonball.position.z += (Math.random() - 0.5) * 0.2;
+        // Add a slight upward component
+        const firingDirection = direction.clone();
+        firingDirection.y += 0.05;
+        firingDirection.normalize();
 
-        // Calculate velocity based on direction and speed
-        // Slight speed variation for more natural effect
-        const speedVariation = 0.9 + Math.random() * 0.2;
-        const velocity = direction.clone().multiplyScalar(this.cannonballSpeed * speedVariation);
+        // Randomize speed slightly
+        const speedVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+        const velocity = firingDirection.clone().multiplyScalar(this.cannonballSpeed * speedVariation);
+
+        // Create small muzzle flash
+        this.createMuzzleFlash(position, firingDirection, 0.6); // Smaller flash
 
         const startTime = getTime();
-        const maxDistance = 150;
+        const maxDistance = 100; // Shorter max distance than regular cannonshot
         const initialPosition = position.clone();
 
+        // Generate unique ID
+        const cannonballId = `scatter-${startTime}-${Math.floor(Math.random() * 1000)}`;
+
+        // Register with damage system - reusing existing system
+        registerProjectile(cannonballId, {
+            mesh: cannonball,
+            data: {
+                damage: 300, // Less damage per projectile
+                hitRadius: 6.0 // Smaller hit radius
+            },
+            prevPosition: position.clone(),
+            onHit: (hitData) => {
+                console.log(`ScatterShot hit: ${hitData.monster.typeId}!`);
+
+                // Create hit effect
+                this.createHitEffect(hitData.point, 0.6); // Smaller hit effect
+
+                // Remove the cannonball
+                scene.remove(cannonball);
+            }
+        });
+
+        // Animation loop
         const animateCannonball = () => {
             const elapsedTime = (getTime() - startTime) / 1000;
 
             const distanceTraveled = cannonball.position.distanceTo(initialPosition);
             if (distanceTraveled > maxDistance) {
+                unregisterProjectile(cannonballId);
                 scene.remove(cannonball);
-                cannonball.geometry.dispose();
-                cannonball.material.dispose();
                 return;
             }
 
             velocity.y -= this.gravity * elapsedTime;
 
+            // Update position
             cannonball.position.x += velocity.x * 0.16;
             cannonball.position.y += velocity.y * 0.16;
             cannonball.position.z += velocity.z * 0.16;
 
-            cannonball.rotation.x += 0.02;
-            cannonball.rotation.z += 0.02;
+            cannonball.rotation.x += 0.05;
+            cannonball.rotation.z += 0.05;
 
+            // Water impact
             if (cannonball.position.y <= 0) {
-                // Smaller splash for smaller cannonballs
-                this.createEnhancedSplashEffect(cannonball.position.clone(), sizeScale);
+                // Create smaller splash
+                const hitPosition = cannonball.position.clone();
+                applyCannonballSplash(hitPosition, 8, 300); // Smaller splash radius and damage
+
+                // Create splash effect
+                this.createEnhancedSplashEffect(cannonball.position.clone(), 0.5); // Smaller splash
+
+                unregisterProjectile(cannonballId);
                 scene.remove(cannonball);
-                cannonball.geometry.dispose();
-                cannonball.material.dispose();
                 return;
             }
 
