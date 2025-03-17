@@ -7,7 +7,7 @@ import {
 } from './chunkControl.js';
 import { boat, scene } from '../core/gameState.js';
 // Import monster manager for spawning
-import { createMonster, getAllMonsters, spawnMonstersInChunk } from '../entities/monsterManager.js';
+import { createMonster, spawnMonstersInChunk } from '../entities/monsterManager.js';
 
 // Entity tracking by type and chunk
 export const entityChunkMap = {
