@@ -10,7 +10,7 @@ import { boat, scene } from '../core/gameState.js';
 import { createMonster, getAllMonsters, spawnMonstersInChunk } from '../entities/monsterManager.js';
 
 // Entity tracking by type and chunk
-const entityChunkMap = {
+export const entityChunkMap = {
     birds: new Map(),     // Maps entity → chunk key
     monsters: new Map(),  // Can add more entity types as needed
 };
@@ -23,6 +23,8 @@ const inactiveEntityStates = {
 
 // Track which chunks have already been populated with entities
 const populatedChunks = new Set();
+
+let currentPlayerChunk = null;
 
 /**
  * Register an entity with the chunk system
@@ -117,6 +119,9 @@ export function getEntityStatesForChunk(entityType, chunkKey) {
  * @param {Function} respawnFn - Function to respawn entities from states
  */
 export function updateEntityVisibility(visibleChunks, entityType, getStateFn, cleanupFn, respawnFn) {
+
+
+    /* COMMENTED OUT - DISABLE DESPAWNING FOR TESTING
     // Find entities to remove (in chunks that are no longer visible)
     const entitiesToRemove = [];
 
@@ -130,7 +135,9 @@ export function updateEntityVisibility(visibleChunks, entityType, getStateFn, cl
     entitiesToRemove.forEach(entity => {
         saveEntityState(entityType, entity, getStateFn, cleanupFn);
     });
+    */
 
+    // KEEP ONLY THE RESPAWNING PART ACTIVE
     // Check for chunks that are now visible and need entities respawned
     visibleChunks.forEach(chunkKey => {
         if (inactiveEntityStates[entityType].has(chunkKey)) {
@@ -161,9 +168,26 @@ export function getVisibleChunks() {
 }
 
 /**
- * Update all entity types and handle spawning in new chunks
+ * Main function to update entity chunks - call this every frame
  */
 export function updateAllEntityChunks() {
+    // Get current player chunk
+    const playerChunkCoords = getChunkCoords(boat.position.x, boat.position.z);
+    const playerChunkKey = getChunkKey(playerChunkCoords.x, playerChunkCoords.z);
+
+    // Check if player has entered a new chunk
+    if (currentPlayerChunk !== playerChunkKey) {
+
+        currentPlayerChunk = playerChunkKey;
+
+        // Force check for this chunk to ensure monsters spawn immediately
+        if (!populatedChunks.has(playerChunkKey) && !inactiveEntityStates.monsters.has(playerChunkKey)) {
+
+            populateChunkWithEntities(playerChunkKey);
+            populatedChunks.add(playerChunkKey);
+        }
+    }
+
     const visibleChunks = getVisibleChunks();
 
     // Check for newly visible chunks that need population
@@ -208,15 +232,20 @@ function populateChunkWithMonsters(chunkKey, chunkX, chunkZ) {
     });
 
     // Skip if already has monsters
-    if (chunkHasMonsters) return;
+    if (chunkHasMonsters) {
+
+        return;
+    }
+
+
 
     // Use the enhanced monster manager to spawn monsters in this chunk
     spawnMonstersInChunk(chunkKey, chunkX, chunkZ, {
         chunkSize: chunkSize,
         depth: -20, // Underwater depth
-        spawnChance: 0.5, // CHANGED: 50% chance (reduced from 70%)
+        spawnChance: 0.7, // 70% chance to spawn monsters
         minCount: 1,
-        maxCount: 1, // CHANGED: Exactly 1 monster per chunk
+        maxCount: 1, // Just one monster per chunk
         typeWeights: {
             'yellowBeast': 1.0,
             'kraken': 0.0,
@@ -224,4 +253,27 @@ function populateChunkWithMonsters(chunkKey, chunkX, chunkZ) {
             'phantomJellyfish': 0.0
         }
     });
+}
+
+/**
+ * Remove an entity from the chunk system
+ * @param {string} entityType - Type of entity ('birds', 'monsters', etc.)
+ * @param {Object} entity - Entity to remove
+ * @returns {boolean} True if entity was successfully removed
+ */
+export function removeEntity(entityType, entity) {
+    if (!entityChunkMap[entityType]) {
+        console.log(`[DEBUG] Cannot remove entity: type ${entityType} not found in entityChunkMap`);
+        return false;
+    }
+
+    const wasRemoved = entityChunkMap[entityType].delete(entity);
+
+    if (wasRemoved) {
+        console.log(`[DEBUG] Removed ${entityType} from entityChunkMap, remaining: ${entityChunkMap[entityType].size}`);
+    } else {
+        console.log(`[DEBUG] Failed to remove ${entityType} - not found in entityChunkMap`);
+    }
+
+    return wasRemoved;
 } 

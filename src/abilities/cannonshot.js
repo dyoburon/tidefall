@@ -17,7 +17,7 @@ class CannonShot {
         this.name = 'Cannon Shot';
         this.canCancel = true;
         this.staysActiveAfterExecution = false;
-        this.cannonballSpeed = 18;
+        this.cannonballSpeed = 25;
         this.gravity = 100;      // Adjust as needed.  Increased significantly.
 
         this.cannonPositions = [

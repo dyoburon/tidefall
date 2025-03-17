@@ -1042,7 +1042,7 @@ function createLargeSplashEffect(position) {
 // Add a simple sound function (you can enhance this with actual audio)
 function playMonsterDeathSound() {
     // If you have an audio system, play a death sound here
-    console.log("Monster death sound played");
+    //console.log("Monster death sound played");
 }
 
 // Update cannonballs with more dramatic physics

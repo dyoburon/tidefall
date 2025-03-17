@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { animateSails } from '../animations/sailAnimations';
 
 // Variables needed for loadGLBModel
 let boatModelLoaded = false;
@@ -173,13 +174,10 @@ export function loadGLBModel(boat) {
         [rotX, rotY, rotZ] = shipConfig.rotation;
     }
 
-
-
     loader.load(
         modelUrl,
         // Success callback
         function (gltf) {
-
             const model = gltf.scene;
 
             // Add LOD system
@@ -213,6 +211,16 @@ export function loadGLBModel(boat) {
 
             // Add LOD to boat
             boat.add(lod);
+
+            // Add sail animations
+            if (model.name.includes('sail')) {
+                const sailControls = animateSails(model);
+                boat.userData.sailControls = sailControls;
+            }
+
+            // Add to a global update list if not exists
+            if (!window.sailAnimations) window.sailAnimations = [];
+            window.sailAnimations.push(sailControls);
 
             // Handle animations if present
             if (gltf.animations && gltf.animations.length) {

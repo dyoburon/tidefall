@@ -1,16 +1,17 @@
 import * as THREE from 'three';
 import { scene, getTime } from '../core/gameState.js';
 import {
+    entityChunkMap,
     registerEntity,
     updateEntityChunk,
     updateEntityVisibility,
-    getVisibleChunks
+    getVisibleChunks,
+    removeEntity
 } from '../world/chunkEntityController.js';
 import { registerSeaMonsterTypes } from './seaMonsters.js';
 
 // Central registry of monster types
 const monsterTypes = new Map();
-const activeMonsters = []; // All active monsters
 
 /**
  * Initialize the monster manager
@@ -19,8 +20,6 @@ const activeMonsters = []; // All active monsters
 export function initMonsterManager() {
     // Register all sea monster types
     registerSeaMonsterTypes();
-
-    console.log("Monster manager initialized with all monster types");
 }
 
 /**
@@ -29,11 +28,11 @@ export function initMonsterManager() {
  * @param {Object} typeInfo - Monster type information and handlers
  */
 export function registerMonsterType(typeId, typeInfo) {
+    // Store the typeInfo without the activeInstances array
     monsterTypes.set(typeId, {
-        ...typeInfo,
-        activeInstances: [] // Track instances of this type
+        ...typeInfo
+        // No activeInstances array - data will come from entityChunkMap
     });
-    console.log(`Registered monster type: ${typeId}`);
 }
 
 /**
@@ -45,12 +44,8 @@ export function registerMonsterType(typeId, typeInfo) {
 export function createMonster(typeId, options = {}) {
     const typeInfo = monsterTypes.get(typeId);
     if (!typeInfo) {
-        console.error(`Unknown monster type: ${typeId}`);
         return null;
     }
-
-    // Debug output to help diagnose issues
-    console.log(`Creating monster of type: ${typeId} with options:`, options);
 
     try {
         // Call the type's creation function
@@ -58,7 +53,6 @@ export function createMonster(typeId, options = {}) {
 
         // Safety check - if creation function didn't return a valid monster
         if (!monster || !monster.mesh) {
-            console.error(`Creation function for ${typeId} did not return a valid monster object`);
             return null;
         }
 
@@ -77,14 +71,10 @@ export function createMonster(typeId, options = {}) {
         // Register with entity chunk system
         registerEntity('monsters', monster, monster.mesh.position);
 
-        // Add to active lists
-        activeMonsters.push(monster);
-        typeInfo.activeInstances.push(monster);
+        // No more adding to active lists - just use entityChunkMap
 
-        console.log(`Successfully created ${typeId} monster`);
         return monster;
     } catch (error) {
-        console.error(`Error creating monster of type ${typeId}:`, error);
         return null;
     }
 }
@@ -110,41 +100,69 @@ function getMonsterTypeHealth(typeId) {
 
 /**
  * Spawn monsters in a specific chunk
- * @param {string} chunkKey - Chunk key
- * @param {number} chunkX - Chunk X coordinate
- * @param {number} chunkZ - Chunk Z coordinate 
- * @param {Object} options - Additional spawn options
  */
 export function spawnMonstersInChunk(chunkKey, chunkX, chunkZ, options = {}) {
-    // Reduce spawn chance to 30% (from 70%) to have fewer monsters
-    const spawnChance = 0.3;
-
-    // Random check - 70% of chunks will have no monsters at all
-    if (Math.random() > spawnChance) {
-        return; // Skip this chunk for spawning
-    }
-
-    // SIMPLIFIED: Only ever spawn ONE monster per chunk
-    const monstersToSpawn = 1;
-
-    // SIMPLIFIED: Always spawn the Yellow Beast
-    const selectedType = 'yellowBeast';
+    // TESTING: Force 100% spawn rate
+    const spawnChance = 1.0; // Force 100% spawn chance for testing
 
     // Calculate position within chunk (add some randomness)
     const posX = chunkX * (options.chunkSize || 500) + Math.random() * (options.chunkSize || 500);
     const posZ = chunkZ * (options.chunkSize || 500) + Math.random() * (options.chunkSize || 500);
-    const depth = options.depth || -20; // Default underwater depth
+    const depth = -5; // Even shallower for better visibility
 
-    // Create single Yellow Beast monster with options
-    const monster = createMonster(selectedType, {
+    // Create monster in SURFACING state to make it immediately visible
+    const monster = createMonster('yellowBeast', {
         position: new THREE.Vector3(posX, depth, posZ),
-        state: 'lurking',
-        stateTimer: 30 + Math.random() * 30
+        state: 'surfacing',
+        stateTimer: 1 // Very short timer to reach surface quickly
     });
 
     if (monster) {
-        console.log(`TEST MODE: Spawned exactly ONE Yellow Beast in chunk ${chunkKey} at ${posX.toFixed(0)}, ${depth}, ${posZ.toFixed(0)}`);
+        // Force monster to be visible
+        ensureMonsterVisibility(monster);
+
+        // TEST - Also move monster above water for easy visibility
+        monster.mesh.position.y = 5; // Position above water for easy visibility
     }
+}
+
+/**
+ * Ensure monster visibility
+ */
+export function ensureMonsterVisibility(monster) {
+    if (!monster || !monster.mesh) return;
+
+    // Force monster to be visible
+    monster.mesh.visible = true;
+
+    // Check all mesh components
+    monster.mesh.traverse(child => {
+        if (child.isMesh) {
+            child.visible = true;
+
+            // Reset any transparency issues
+            if (child.material) {
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                materials.forEach(material => {
+                    if (material.transparent) {
+                        material.opacity = 1.0;
+                    }
+                });
+            }
+        }
+    });
+
+    // Special case for monster parts
+    ['dorsalFin', 'leftFin', 'rightFin'].forEach(part => {
+        if (monster[part]) {
+            monster[part].visible = true;
+        }
+    });
+
+    // Force monster to surface quickly
+    monster.state = 'surfacing';
+    monster.stateTimer = 5;
+    monster.velocity = new THREE.Vector3(0, 0.1, 0); // Add upward velocity
 }
 
 /**
@@ -152,25 +170,17 @@ export function spawnMonstersInChunk(chunkKey, chunkX, chunkZ, options = {}) {
  * @param {Object} monster - Monster to remove
  */
 export function removeMonster(monster) {
-    // Find and remove from active monsters
-    const index = activeMonsters.indexOf(monster);
-    if (index !== -1) {
-        activeMonsters.splice(index, 1);
-    }
+    // Remove from entityChunkMap
+    removeEntity('monsters', monster);
 
-    // Find and remove from type-specific list
-    const typeInfo = monsterTypes.get(monster.typeId);
-    if (typeInfo) {
-        const typeIndex = typeInfo.activeInstances.indexOf(monster);
-        if (typeIndex !== -1) {
-            typeInfo.activeInstances.splice(typeIndex, 1);
-        }
-    }
+    // Find and remove from type-specific list - NO LONGER NEEDED
+    // We're not maintaining separate type-specific arrays anymore
 
     // Remove from scene
     scene.remove(monster.mesh);
 
     // Call type-specific cleanup if available
+    const typeInfo = monsterTypes.get(monster.typeId);
     if (typeInfo && typeInfo.cleanupFn) {
         typeInfo.cleanupFn(monster);
     }
@@ -181,7 +191,8 @@ export function removeMonster(monster) {
  * @returns {Array} All active monsters
  */
 export function getAllMonsters() {
-    return [...activeMonsters];
+    // Return monsters from entityChunkMap instead of activeMonsters array
+    return Array.from(entityChunkMap.monsters.keys());
 }
 
 /**
@@ -190,8 +201,26 @@ export function getAllMonsters() {
  * @returns {Array} Active monsters of the specified type
  */
 export function getMonstersOfType(typeId) {
-    const typeInfo = monsterTypes.get(typeId);
-    return typeInfo ? [...typeInfo.activeInstances] : [];
+    // Filter monsters from entityChunkMap by typeId
+    return getAllMonsters().filter(monster => monster.typeId === typeId);
+}
+
+/**
+ * Set the monsters collection directly
+ * @param {Array} newMonsters - Array of monsters to set
+ */
+export function setMonsters(newMonsters) {
+    // Clear existing monsters in entityChunkMap
+    entityChunkMap.monsters.clear();
+
+    // Add all new monsters to entityChunkMap
+    newMonsters.forEach(monster => {
+        if (monster && monster.mesh) {
+            registerEntity('monsters', monster, monster.mesh.position);
+        }
+    });
+
+    console.log(`[DEBUG] Set monsters collection with ${newMonsters.length} monsters`);
 }
 
 /**
@@ -199,11 +228,19 @@ export function getMonstersOfType(typeId) {
  * @param {number} deltaTime - Time since last update
  */
 export function updateAllMonsters(deltaTime) {
+    // Get monsters from entityChunkMap
+    const monsters = getAllMonsters();
+
+    // More frequent debugging - every 2 seconds
+    if (Math.floor(getTime()) % 2 === 0) {
+        console.log(`[DEBUG] Active monsters count: ${monsters.length}`);
+    }
+
     // First update monster visibility based on chunks
     updateMonsterVisibility();
 
     // Update each monster based on its type
-    activeMonsters.forEach(monster => {
+    monsters.forEach(monster => {
         const typeInfo = monsterTypes.get(monster.typeId);
         if (typeInfo && typeInfo.updateFn) {
             typeInfo.updateFn(monster, deltaTime);

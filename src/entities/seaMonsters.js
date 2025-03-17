@@ -6,7 +6,14 @@ import { flashBoatDamage } from '../entities/character.js'; // Add this import
 import { getFishInventory } from '../gameplay/fishing.js'; // Import the fish inventory
 import { createTreasureDrop, updateTreasures, initTreasureSystem } from '../gameplay/treasure.js';
 import { applyOutline, removeOutline } from '../theme/outlineStyles.js';
-import { registerMonsterType, createMonster, getAllMonsters, spawnMonstersInChunk } from '../entities/monsterManager.js';
+import { registerMonsterType, createMonster, getAllMonsters, spawnMonstersInChunk, ensureMonsterVisibility } from '../entities/monsterManager.js';
+import {
+    entityChunkMap,
+    registerEntity,
+    updateEntityChunk,
+    getVisibleChunks,
+    removeEntity
+} from '../world/chunkEntityController.js';
 
 // Sea monster configuration
 const MONSTER_COUNT = 5;
@@ -22,15 +29,15 @@ const MONSTER_TYPE_WEIGHTS = {
     [MONSTER_TYPES.SEA_SERPENT]: 0.0,     // 20% chance 
     [MONSTER_TYPES.PHANTOM_JELLYFISH]: 0.0 // 20% chance
 };
-const MONSTER_SPEED = 0.05;
+const MONSTER_SPEED = 0.02;
 const MONSTER_DETECTION_RANGE = 200;
 const MONSTER_ATTACK_RANGE = 50;
 const MONSTER_DEPTH = -20;
 const MONSTER_SURFACE_TIME = 10; // seconds monster stays on surface
-const MONSTER_DIVE_TIME = 30; // seconds monster stays underwater before considering resurfacing
+const MONSTER_DIVE_TIME = 1; // seconds monster stays underwater before considering resurfacing
 
 // Add a new constant for surfacing speed - much faster than regular movement
-const MONSTER_SURFACING_SPEED = 0.4; // Significantly faster than MONSTER_SPEED (0.11)
+const MONSTER_SURFACING_SPEED = 0.06; // Significantly faster than MONSTER_SPEED (0.11)
 
 // Monster states
 const MONSTER_STATE = {
@@ -68,13 +75,9 @@ export function setupSeaMonsters(boat) {
         // Reset hit cooldown to ensure monsters can hit on first approach
         lastHitTime = -999; // Set to a very negative value to ensure first hit works
 
-        // FULLY DISABLED: Do not spawn any monsters here
-        /* Original spawning code removed */
-
-        console.log("Monster spawning disabled in seaMonsters.js - using chunk system instead");
-        return monsters;
+        // Return monsters from the entityChunkMap instead of local array
+        return getMonsters();
     } catch (error) {
-        console.error("Error in setupSeaMonsters:", error);
         return [];
     }
 }
@@ -236,7 +239,7 @@ function restoreMonsterColors(monster) {
             }
         });
     } catch (error) {
-        console.error("Error restoring monster colors:", error);
+
     }
 
     // Reset flag
@@ -275,7 +278,7 @@ export function updateSeaMonsters(deltaTime) {
         /*
         // Check if night has just started (transition from another time to night)
         if (currentTimeOfDay === "Night" && lastTimeOfDay !== "Night") {
-            console.log("Night has fallen - preparing to respawn sea monsters");
+            
             respawnMonstersAtNight();
         }
         */
@@ -286,8 +289,8 @@ export function updateSeaMonsters(deltaTime) {
         // Check for boat collisions with monsters
         checkBoatMonsterCollisions();
 
-        // Update existing monsters
-        monsters.forEach((monster, index) => {
+        // Update existing monsters - GET FROM CENTRAL SOURCE
+        getMonsters().forEach((monster, index) => {
             // Update state timer
             monster.stateTimer -= deltaTime;
 
@@ -367,7 +370,7 @@ export function updateSeaMonsters(deltaTime) {
         // Update treasures using the new system
         updateTreasures(deltaTime);
     } catch (error) {
-        console.error("Error in updateSeaMonsters:", error);
+
     }
 }
 
@@ -588,31 +591,45 @@ export function updateDyingMonster(monster, deltaTime) {
     monster.mesh.rotation.x += 0.1;   // Double again (was 0.05)
     monster.mesh.rotation.z += 0.06;  // Double again (was 0.03)
 
+    // Track if any material is still visible
+    let stillVisible = false;
+
     // Reduce opacity if materials support it - FASTER fade out
     monster.mesh.traverse((child) => {
-        if (child.isMesh && child.material && child.material.transparent) {
-            child.material.opacity = Math.max(0, child.material.opacity - 0.06); // Double again (was 0.03)
-        }
-        // Make all materials transparent if they aren't already
-        else if (child.isMesh && child.material) {
+        if (child.isMesh && child.material) {
+            // Make all materials transparent if they aren't already
             if (!child.material.transparent) {
                 child.material.transparent = true;
                 child.material.opacity = 1.0;
                 // Store original opacity for reference
                 child.material.userData.originalOpacity = 1.0;
             }
+
+            // Reduce opacity
             child.material.opacity = Math.max(0, child.material.opacity - 0.06); // Double again (was 0.03)
+
+            // If any material still has opacity > 0, the monster is still visible
+            if (child.material.opacity > 0) {
+                stillVisible = true;
+            }
         }
     });
 
-    // Update state timer - make the dying animation complete twice as fast
-    monster.stateTimer -= deltaTime * 3.0; // Double again (was 1.5)
-    if (monster.stateTimer <= 0) {
-        // Monster has completed dying animation
-        // It will be removed by the timeout in hitMonster
+    // If the monster is completely transparent, remove it immediately
+    if (!stillVisible) {
+        console.log("[DEBUG] Monster fully transparent - removing from scene");
+
+        // Remove from scene
+        scene.remove(monster.mesh);
+
+        // Remove from entityChunkMap instead of local array
+        entityChunkMap.monsters.delete(monster);
+
+        return;
     }
 
-    return; // Skip other state handling
+    // Otherwise continue with state timer update
+    monster.stateTimer -= deltaTime * 3.0;
 }
 
 function animateTentacles(monster, deltaTime) {
@@ -716,7 +733,12 @@ function keepMonsterInWorld(monster) {
 
 // Export monsters array for other modules
 export function getMonsters() {
-    return monsters;
+    // Convert the monsters Map entries to an array of monsters
+    if (!entityChunkMap || !entityChunkMap.monsters) {
+        console.warn("[DEBUG] entityChunkMap or entityChunkMap.monsters is undefined");
+        return []; // Return empty array as fallback
+    }
+    return Array.from(entityChunkMap.monsters.keys());
 }
 
 function createYellowBeastMonster(options = {}) {
@@ -782,6 +804,8 @@ function createYellowBeastMonster(options = {}) {
 
         monster.add(tentacle);
         tentacles.push(tentacle);
+
+        console.log(`[DEBUG] Tentacle #${index} material ID: ${tentacle.material.uuid}`);
     });
 
     // Add prominent dorsal fin that sticks out of water
@@ -815,9 +839,15 @@ function createYellowBeastMonster(options = {}) {
     // Position and configure monster
     setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, MONSTER_TYPES.YELLOW_BEAST);
 
-    // VERY IMPORTANT: Return the monster object structure that matches what monsterManager expects
+    // After creating the monster meshes, add this logging:
+    console.log(`[DEBUG] Created new monster, checking material instances:`);
+    console.log(`[DEBUG] Body material ID: ${body.material.uuid}`);
+    console.log(`[DEBUG] Left eye material ID: ${leftEye.material.uuid}`);
+    console.log(`[DEBUG] Tentacle material ID: ${tentacleMaterial.uuid}`);
+
+    // Return the fully configured monster
     return {
-        mesh: monster, // The THREE.js object/group
+        mesh: monster,
         velocity: new THREE.Vector3(0, 0, 0),
         tentacles: tentacles || [],
         dorsalFin: dorsalFin,
@@ -868,26 +898,35 @@ function setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, 
         initialState = MONSTER_STATE.ATTACKING;
     }
 
-    // Store monster data
-    monsters.push({
+    // Create the monster data object
+    const monsterData = {
         mesh: monster,
-        velocity: velocity,
+        velocity: new THREE.Vector3(
+            (Math.random() - 0.5) * MONSTER_SPEED,
+            0,
+            (Math.random() - 0.5) * MONSTER_SPEED
+        ),
         tentacles: tentacles || [],
         dorsalFin: dorsalFin,
         leftFin: leftFin,
         rightFin: rightFin,
-        state: initialState, // Use the randomly determined state
+        state: initialState,
         stateTimer: initialState === MONSTER_STATE.ATTACKING ?
-            MONSTER_SURFACE_TIME + Math.random() * 20 : // Longer timer for attacking
-            MONSTER_DIVE_TIME + Math.random() * 30,     // Longer timer for underwater states
+            MONSTER_SURFACE_TIME + Math.random() * 20 :
+            MONSTER_DIVE_TIME + Math.random() * 30,
         targetPosition: new THREE.Vector3(),
-        eyeGlow: initialState === MONSTER_STATE.HUNTING ? 1 : 0, // Glow eyes if hunting
+        eyeGlow: initialState === MONSTER_STATE.HUNTING ? 1 : 0,
         monsterType: monsterType,
         health: getMonsterHealth(monsterType)
-    });
+    };
+
+    // Register the monster with the chunk entity system
+    registerEntity('monsters', monsterData, monster.position);
 
     // Apply styling with outline
-    applyMonsterStyle(monsters[monsters.length - 1]);
+    applyMonsterStyle(monsterData);
+
+    return monsterData;
 }
 
 function getMonsterHealth(monsterType) {
@@ -1485,7 +1524,7 @@ function createElectricDischargeEffect(position) {
 // Respawn monsters at night until we reach the maximum count
 function respawnMonstersAtNight() {
     // DISABLED: Don't spawn monsters at night from here
-    console.log("Night respawning disabled in seaMonsters.js - chunk system will handle monster spawning");
+
     return;
 }
 
@@ -1622,10 +1661,10 @@ function checkBoatMonsterCollisions() {
     if (boatSpeed < MIN_COLLISION_SPEED) return;
 
     // Debug collision info
-    // console.log(`🔍 Checking collisions: Boat speed: ${boatSpeed.toFixed(2)}, Monsters: ${monsters.length}`);
+    // 
 
-    // Check collision with each monster
-    monsters.forEach(monster => {
+    // Check collision with each monster - GET FROM CENTRAL SOURCE
+    getMonsters().forEach(monster => {
         // Skip monsters that are already dying
         if (monster.state === MONSTER_STATE.DYING) return;
 
@@ -1637,7 +1676,7 @@ function checkBoatMonsterCollisions() {
 
         // Log distance for monsters near collision range
         if (distanceToMonster < BOAT_COLLISION_RANGE * 1.5) {
-            console.log(`👹 Monster proximity: ${distanceToMonster.toFixed(1)} units, Type: ${monster.monsterType}, Y-pos: ${monster.mesh.position.y.toFixed(1)}`);
+
         }
 
         if (distanceToMonster < BOAT_COLLISION_RANGE) {
@@ -1647,7 +1686,7 @@ function checkBoatMonsterCollisions() {
 
             // Apply damage to monster
             monster.health -= damageAmount;
-            console.log(`💥 COLLISION! Hit monster with ${damageAmount} damage. Monster health: ${monster.health}`);
+
 
             // NEW: Flash monster red to indicate damage (reusing cannon hit effect)
             flashMonsterRed(monster, true); // Use true to make it brighter like a well-targeted hit
@@ -1681,6 +1720,31 @@ function checkBoatMonsterCollisions() {
 
             // Check if monster is defeated
             if (monster.health <= 0) {
+                console.log(`[DEBUG] Monster defeated - changing to dying state`);
+                console.log(`[DEBUG] Active monsters before death: ${getMonsters().length}`);
+
+                // Check if any other monsters are using the same materials
+                const dyingMaterials = new Set();
+                monster.mesh.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        dyingMaterials.add(child.material.uuid);
+                    }
+                });
+
+                // Check all other monsters for material sharing
+                getMonsters().forEach((otherMonster, index) => {
+                    if (otherMonster !== monster) {
+                        let sharedMaterials = false;
+                        otherMonster.mesh.traverse(child => {
+                            if (child.isMesh && child.material && dyingMaterials.has(child.material.uuid)) {
+                                sharedMaterials = true;
+                                console.log(`[DEBUG] MATERIAL SHARING DETECTED between dying monster and monster #${index}`);
+                            }
+                        });
+                        console.log(`[DEBUG] Monster #${index} - state: ${otherMonster.state}, visible: ${otherMonster.mesh.visible}, shared materials: ${sharedMaterials}`);
+                    }
+                });
+
                 // Transition to dying state
                 monster.state = MONSTER_STATE.DYING;
                 monster.stateTimer = 3; // Time for dying animation
@@ -1688,19 +1752,7 @@ function checkBoatMonsterCollisions() {
                 // Possibly drop treasure
                 handleMonsterTreasureDrop(monster);
 
-                // Schedule monster cleanup
-                setTimeout(() => {
-                    // Remove monster from scene and array
-                    if (isInScene(monster.mesh)) {
-                        removeFromScene(monster.mesh);
-
-                        // Remove monster from array
-                        const index = monsters.indexOf(monster);
-                        if (index !== -1) {
-                            monsters.splice(index, 1);
-                        }
-                    }
-                }, 3000); // Remove after dying animation completes
+                // No need for setTimeout removal since updateDyingMonster will handle it
             } else {
                 // Monster is still alive but damaged - make it flee
                 /*monster.state = MONSTER_STATE.DIVING;
@@ -1816,17 +1868,40 @@ function getMonsterState(monster) {
 
 // Generic respawn function to use with monster manager
 function respawnMonster(states, chunkKey) {
-    states.forEach(state => {
-        if (!state || !state.monsterType) return;
 
-        createMonster(state.monsterType, {
+
+    states.forEach(state => {
+        if (!state || !state.monsterType) {
+
+            return;
+        }
+
+        // CHANGE 1: Skip any monsters that were in dying state
+        if (state.state === 'dying') {
+
+            return;
+        }
+
+        console.log(`Respawning ${state.monsterType} at position:`,
+            state.position ? `${state.position.x.toFixed(1)}, ${state.position.y.toFixed(1)}, ${state.position.z.toFixed(1)}` : 'unknown');
+
+        // CHANGE 2: Always force surfacing state for better visibility
+        const respawnState = state.state === 'lurking' ? 'surfacing' : state.state;
+
+        const monster = createMonster(state.monsterType, {
             position: state.position,
             rotation: state.rotation,
-            velocity: state.velocity,
-            health: state.health,
-            state: state.state,
-            stateTimer: state.stateTimer
+            velocity: state.velocity || new THREE.Vector3(0, 0.1, 0), // Add upward motion
+            health: state.health || 3,
+            state: respawnState,
+            stateTimer: respawnState === 'surfacing' ? 5 : (state.stateTimer || 30)
         });
+
+        if (monster) {
+            // CHANGE 3: Force monster visibility with our new function
+            ensureMonsterVisibility(monster);
+
+        }
     });
 }
 

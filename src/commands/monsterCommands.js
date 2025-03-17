@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { scene } from '../core/gameState.js';
-import { getMonsters } from '../entities/seaMonsters.js';
+import { getAllMonsters } from '../entities/monsterManager.js';
 
 // Import the death effect from cannons.js (since it's defined there)
 import { createMonsterDeathEffect } from '../gameplay/cannons.js';
@@ -13,7 +13,7 @@ import { onMonsterKilled } from '../core/network.js';
  */
 export function killallCommand(args, chatSystem) {
     // Get reference to monsters array
-    const monsters = getMonsters();
+    const monsters = getAllMonsters();
 
     // Check if there are any monsters
     if (!monsters || monsters.length === 0) {
