@@ -30,6 +30,10 @@ let isZooming = false;
 let zoomTarget = 120;
 let zoomSpeed = 350.0; // How fast to zoom (units per second)
 
+// Add these near the top with other state variables
+let lastAbilityUsedTime = 0;
+const UNLOCK_COOLDOWN = 2000; // 2 seconds cooldown in milliseconds
+
 // NEW: Function to toggle camera lock
 function toggleCameraLock(forceLock = null) {
     if (forceLock !== null) {
@@ -90,13 +94,33 @@ function onMouseDown(event) {
 
     // Only initiate drag if it's the left mouse button
     if (event.button === 0) {
+        // Check if ability is active
+        const abilityActive = window.abilityManager && window.abilityManager.activeAbility;
+
+        // Get current time
+        const currentTime = Date.now();
+
+        // Check if we're within the cooldown period after using an ability
+        const isWithinCooldown = (currentTime - lastAbilityUsedTime) < UNLOCK_COOLDOWN;
+
+        // If ability is active or we're within cooldown period, don't unlock camera
+        if (abilityActive || isWithinCooldown) {
+            // Start drag without unlocking camera
+            isDragging = true;
+            previousMousePosition = {
+                x: event.clientX,
+                y: event.clientY
+            };
+            return;
+        }
+
         isDragging = true;
         previousMousePosition = {
             x: event.clientX,
             y: event.clientY
         };
 
-        // NEW: Unlock camera when user starts dragging
+        // Only unlock camera when no ability is active and cooldown period has passed
         if (cameraLocked) {
             toggleCameraLock(false);
         }
@@ -146,13 +170,34 @@ function onTouchStart(event) {
     if (touchControlsActive) return;
 
     if (event.touches.length === 1) {
+        // Check if ability is active
+        const abilityActive = window.abilityManager && window.abilityManager.activeAbility;
+
+        // Get current time
+        const currentTime = Date.now();
+
+        // Check if we're within the cooldown period after using an ability
+        const isWithinCooldown = (currentTime - lastAbilityUsedTime) < UNLOCK_COOLDOWN;
+
+        // If ability is active or we're within cooldown period, don't unlock camera
+        if (abilityActive || isWithinCooldown) {
+            // Start drag without unlocking camera
+            isDragging = true;
+            previousMousePosition = {
+                x: event.touches[0].clientX,
+                y: event.touches[0].clientY
+            };
+            event.preventDefault();
+            return;
+        }
+
         isDragging = true;
         previousMousePosition = {
             x: event.touches[0].clientX,
             y: event.touches[0].clientY
         };
 
-        // NEW: Unlock camera when user starts touch dragging
+        // Only unlock camera when no ability is active and cooldown period has passed
         if (cameraLocked) {
             toggleCameraLock(false);
         }
@@ -416,3 +461,11 @@ export function updateCameraZoom(deltaTime) {
 
     return isZooming; // Return whether we're still zooming
 }
+
+// Create a function that can be called when an ability is used
+export function notifyAbilityUsed() {
+    lastAbilityUsedTime = Date.now();
+}
+
+// Make this function available globally so ability manager can call it
+window.notifyCameraAbilityUsed = notifyAbilityUsed;

@@ -362,6 +362,11 @@ class AbilityManager {
         // Stop aiming
         this.crosshair.stopAiming();
 
+        // NEW: Notify camera system that an ability was used
+        if (window.notifyCameraAbilityUsed) {
+            window.notifyCameraAbilityUsed();
+        }
+
         // Clear active ability if it doesn't stay active
         if (!this.activeAbility.staysActiveAfterExecution) {
             this.activeAbility = null;
