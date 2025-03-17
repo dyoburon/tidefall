@@ -34,26 +34,60 @@ class CannonShot {
     }
 
     onExecute(targetPosition) {
-        // 
-
         // Find nearest cannon position
         const cannonPosition = this.getNearestCannonPosition(targetPosition);
         const cannonName = this.getCannonNameFromPosition(cannonPosition);
 
+        // IMPROVED DIRECTION CALCULATION:
+        // Get the ship's orientation vectors
+        const shipUp = new THREE.Vector3(0, 1, 0);
+        const shipForward = new THREE.Vector3(0, 0, 1).applyQuaternion(boat.quaternion);
+        const shipRight = new THREE.Vector3(1, 0, 0).applyQuaternion(boat.quaternion);
 
-        // Calculate direction from cannon to target
-        const direction = new THREE.Vector3().subVectors(targetPosition, cannonPosition);
-        direction.normalize();
+        // Calculate raw direction from cannon to target (keeping vertical component)
+        const rawDirection = new THREE.Vector3().subVectors(targetPosition, cannonPosition);
 
+        // Calculate the horizontal component relative to the ship
+        const horizontalLength = Math.sqrt(
+            Math.pow(rawDirection.dot(shipForward), 2) +
+            Math.pow(rawDirection.dot(shipRight), 2)
+        );
 
-        // --- Create Cannonball (NEW LOGIC) ---
+        // Get vertical angle but constrain it to a reasonable range (-30 to +85 degrees)
+        const verticalAngle = Math.atan2(
+            rawDirection.dot(shipUp),
+            horizontalLength
+        );
+
+        // Clamp vertical angle between -30 and +85 degrees (-0.52 to 1.48 radians)
+        const clampedVerticalAngle = Math.max(-0.52, Math.min(1.48, verticalAngle));
+
+        // Rebuild the direction vector using the horizontal components and clamped vertical angle
+        const direction = new THREE.Vector3();
+        direction.addScaledVector(shipForward, rawDirection.dot(shipForward) / horizontalLength * Math.cos(clampedVerticalAngle));
+        direction.addScaledVector(shipRight, rawDirection.dot(shipRight) / horizontalLength * Math.cos(clampedVerticalAngle));
+        direction.addScaledVector(shipUp, Math.sin(clampedVerticalAngle));
+
+        // Ensure we have a valid direction - fallback if calculations went wrong
+        if (direction.length() < 0.1) {
+            console.warn("Invalid cannon direction calculated, using fallback");
+            direction.copy(rawDirection).normalize();
+        } else {
+            direction.normalize();
+        }
+
+        // Add a minimum vertical component if it's too flat
+        if (Math.abs(direction.y) < 0.05) {
+            direction.y = 0.05;
+            direction.normalize();
+        }
+
+        // Create Cannonball
         this.createCannonball(cannonPosition, direction);
 
-        // Play sound
+        // Play sound and create effects
         playCannonSound();
-
-        // Create smoke effect (using existing function)
-        this.createCannonSmoke(cannonName); // Use the correct name
+        this.createCannonSmoke(cannonName);
     }
 
     onCancel() {
