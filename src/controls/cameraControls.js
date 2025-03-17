@@ -7,24 +7,81 @@ const ORBIT_SENSITIVITY = 0.01; // Rotation sensitivity
 const MIN_POLAR_ANGLE = 0.1; // Minimum angle (don't go completely overhead)
 const MAX_POLAR_ANGLE = Math.PI / 2 - 0.1; // Maximum angle (don't go below horizon)
 const MIN_DISTANCE = 5; // Minimum distance from boat
-const MAX_DISTANCE = 250; // Maximum distance from boat
-const DEFAULT_DISTANCE = 50; // Increased default distance (was 15)
+const MAX_DISTANCE = 350; // Increased maximum distance (was 250)
+const DEFAULT_DISTANCE = 80; // Increased default distance (was 50)
 
 // Camera state
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
 
+// Track camera lock state - NEW
+let cameraLocked = true; // Default to locked
+let lastBoatRotation = 0; // Store last boat rotation to detect changes
+
 // Expose camera orbit position to window so it's accessible by touch controls
 window.cameraOrbitPosition = {
     distance: DEFAULT_DISTANCE,
-    phi: Math.PI / 4, // Polar angle (up/down)
-    theta: Math.PI    // Azimuthal angle (left/right) - initialized to PI to start behind boat
+    phi: Math.PI / 5, // Lower angle to position camera a bit lower (was Math.PI/4)
+    theta: Math.PI // Azimuthal angle (left/right)
 };
 
 // Track if we're currently in a zoom transition
 let isZooming = false;
 let zoomTarget = 120;
 let zoomSpeed = 350.0; // How fast to zoom (units per second)
+
+// NEW: Function to toggle camera lock
+function toggleCameraLock(forceLock = null) {
+    if (forceLock !== null) {
+        cameraLocked = forceLock;
+    } else {
+        cameraLocked = !cameraLocked;
+    }
+
+    // If locking, store the current boat rotation
+    if (cameraLocked && boat) {
+        lastBoatRotation = getBoatRotationY();
+    }
+
+    // Display feedback message
+    const message = cameraLocked ? "Camera locked to ship" : "Camera unlocked";
+    showCameraMessage(message);
+
+    console.log(message);
+    return cameraLocked;
+}
+
+// NEW: Function to show temporary on-screen message
+function showCameraMessage(text) {
+    let messageElement = document.getElementById('camera-message');
+
+    if (!messageElement) {
+        messageElement = document.createElement('div');
+        messageElement.id = 'camera-message';
+        messageElement.style.position = 'absolute';
+        messageElement.style.top = '20%';
+        messageElement.style.left = '50%';
+        messageElement.style.transform = 'translate(-50%, -50%)';
+        messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        messageElement.style.color = 'white';
+        messageElement.style.padding = '10px 20px';
+        messageElement.style.borderRadius = '5px';
+        messageElement.style.fontFamily = 'Arial, sans-serif';
+        messageElement.style.fontSize = '18px';
+        messageElement.style.transition = 'opacity 0.5s';
+        messageElement.style.zIndex = '1000';
+        document.body.appendChild(messageElement);
+    }
+
+    // Set message and make visible
+    messageElement.textContent = text;
+    messageElement.style.opacity = '1';
+
+    // Fade out after 2 seconds
+    setTimeout(() => {
+        messageElement.style.opacity = '0';
+    }, 2000);
+}
 
 // Expose event handlers to window for touchControls to disable them
 function onMouseDown(event) {
@@ -38,7 +95,11 @@ function onMouseDown(event) {
             x: event.clientX,
             y: event.clientY
         };
-        //event.preventDefault();
+
+        // NEW: Unlock camera when user starts dragging
+        if (cameraLocked) {
+            toggleCameraLock(false);
+        }
     }
 }
 
@@ -71,8 +132,6 @@ function onMouseMove(event) {
     if (newPhi >= MIN_POLAR_ANGLE && newPhi <= MAX_POLAR_ANGLE) {
         window.cameraOrbitPosition.phi = newPhi;
     }
-
-    //event.preventDefault();
 }
 
 function onMouseUp(event) {
@@ -80,7 +139,6 @@ function onMouseUp(event) {
     if (touchControlsActive) return;
 
     isDragging = false;
-    //event.preventDefault();
 }
 
 function onTouchStart(event) {
@@ -93,6 +151,12 @@ function onTouchStart(event) {
             x: event.touches[0].clientX,
             y: event.touches[0].clientY
         };
+
+        // NEW: Unlock camera when user starts touch dragging
+        if (cameraLocked) {
+            toggleCameraLock(false);
+        }
+
         event.preventDefault();
     }
 }
@@ -131,7 +195,6 @@ function onTouchEnd(event) {
     if (touchControlsActive) return;
 
     isDragging = false;
-    //event.preventDefault();
 }
 
 function onMouseWheel(event) {
@@ -152,6 +215,32 @@ function onMouseWheel(event) {
     isZooming = true;
 }
 
+// NEW: Keyboard event handler for 'L' key
+function onKeyDown(event) {
+    // Check if L key was pressed
+    if (event.key.toLowerCase() === 'l') {
+        toggleCameraLock();
+    }
+}
+
+// NEW: Helper function to get boat's Y rotation
+function getBoatRotationY() {
+    if (!boat) return 0;
+
+    // Get the boat's forward direction vector (negative Z in boat's local space)
+    const boatDirection = new THREE.Vector3(0, 0, -1);
+    boatDirection.applyQuaternion(boat.quaternion);
+
+    // Project onto XZ plane (ignore Y component) and normalize
+    boatDirection.y = 0;
+    boatDirection.normalize();
+
+    // Calculate angle in XZ plane
+    const angle = Math.atan2(boatDirection.x, boatDirection.z);
+
+    return angle;
+}
+
 // Expose handlers to window for touch controls to disable them
 window.cameraMouseDown = onMouseDown;
 window.cameraMouseMove = onMouseMove;
@@ -159,6 +248,9 @@ window.cameraMouseUp = onMouseUp;
 window.cameraTouchStart = onTouchStart;
 window.cameraTouchMove = onTouchMove;
 window.cameraTouchEnd = onTouchEnd;
+
+// NEW: Expose camera lock functions to window
+window.toggleCameraLock = toggleCameraLock;
 
 // Initialize camera controls
 export function initCameraControls() {
@@ -173,34 +265,92 @@ export function initCameraControls() {
     // Add event listener for zooming
     document.addEventListener('wheel', onMouseWheel, { passive: false });
 
+    // NEW: Add keyboard listener for lock toggle
+    document.addEventListener('keydown', onKeyDown);
+
     // Set initial camera position behind the boat
     updateCameraPosition();
+
+    // Initialize with camera locked to boat
+    lastBoatRotation = getBoatRotationY();
 
     console.log("✅ Camera orbit controls initialized");
 }
 
 // Update camera position around the boat
 export function updateCameraPosition() {
-    // Check if fly mode is enabled (from command system)
-    if (window.flyModeEnabled) {
-        return; // Skip camera update when in fly mode
-    }
-
+    // Check if fly mode is enabled
+    if (window.flyModeEnabled) return;
     if (!boat) return;
 
     // Handle camera zoom update first
     handleCameraZoom();
 
-    // Calculate camera position in spherical coordinates
-    const x = boat.position.x + window.cameraOrbitPosition.distance * Math.sin(window.cameraOrbitPosition.phi) * Math.cos(window.cameraOrbitPosition.theta);
-    const y = boat.position.y + window.cameraOrbitPosition.distance * Math.cos(window.cameraOrbitPosition.phi);
-    const z = boat.position.z + window.cameraOrbitPosition.distance * Math.sin(window.cameraOrbitPosition.phi) * Math.sin(window.cameraOrbitPosition.theta);
+    // If camera is locked, align directly with boat orientation
+    if (cameraLocked) {
+        // SIMPLIFIED 180-DEGREE APPROACH:
+        // Instead of using forward/backward vectors, use the boat's forward direction
+        // and simply flip it 180 degrees
+
+        // Start with the boat's local front direction
+        const shipForwardLocal = new THREE.Vector3(0, 0, -1); // Local front direction
+
+        // Convert to world space direction
+        const shipForwardWorld = shipForwardLocal.clone();
+        shipForwardWorld.applyQuaternion(boat.quaternion);
+
+        // Flip 180 degrees (multiply by -1) to get the opposite direction
+        // This guarantees we're on the opposite side of the ship
+        const cameraDirection = shipForwardWorld.clone().multiplyScalar(10);
+
+        // Ensure we're level with the water (zero Y component)
+        cameraDirection.y = 0;
+        cameraDirection.normalize();
+
+        // Calculate distance components
+        const distance = window.cameraOrbitPosition.distance + 40;
+        const phi = window.cameraOrbitPosition.phi;
+        const horizontalDistance = distance * Math.cos(phi);
+        const height = distance * Math.sin(phi) - 40;
+
+        // Position camera opposite the ship's forward direction
+        const cameraPosition = new THREE.Vector3();
+        cameraPosition.copy(boat.position);
+        cameraPosition.addScaledVector(cameraDirection, horizontalDistance);
+        cameraPosition.y += height;
+
+        // Update camera position
+        camera.position.copy(cameraPosition);
+
+        // Look at the boat (slightly above)
+        const targetOffset = new THREE.Vector3(0, 1, 0);
+        const lookTarget = boat.position.clone().add(targetOffset);
+        camera.lookAt(lookTarget);
+
+        // Update theta for when camera is unlocked
+        const dx = camera.position.x - boat.position.x;
+        const dz = camera.position.z - boat.position.z;
+        window.cameraOrbitPosition.theta = Math.atan2(dz, dx) + Math.PI / 2;
+
+        return;
+    }
+
+    // Only used when camera is unlocked - standard spherical calculation
+    const phi = window.cameraOrbitPosition.phi;
+    const theta = window.cameraOrbitPosition.theta;
+    const distance = window.cameraOrbitPosition.distance;
+
+    const x = boat.position.x + distance * Math.sin(phi) * Math.cos(theta);
+    const y = boat.position.y + distance * Math.cos(phi);
+    const z = boat.position.z + distance * Math.sin(phi) * Math.sin(theta);
 
     // Update camera position
     camera.position.set(x, y, z);
 
-    // Look at the boat
-    camera.lookAt(boat.position);
+    // Look at the boat with the same offset as in locked mode
+    const targetOffset = new THREE.Vector3(0, 1, 0);
+    const lookTarget = boat.position.clone().add(targetOffset);
+    camera.lookAt(lookTarget);
 }
 
 // Function that handles camera zoom in a single frame
@@ -225,15 +375,18 @@ function handleCameraZoom() {
     window.cameraOrbitPosition.distance += step;
 }
 
-// Reset camera to default position - updated to be behind boat
+// Reset camera to default position - updated with new values
 export function resetCameraPosition() {
     // Reset to initial values
     window.cameraOrbitPosition.distance = DEFAULT_DISTANCE;
-    window.cameraOrbitPosition.phi = Math.PI / 4;
+    window.cameraOrbitPosition.phi = Math.PI / 5; // Updated angle
     window.cameraOrbitPosition.theta = Math.PI; // Behind boat
 
     // Update camera immediately
     updateCameraPosition();
+
+    // Lock camera after reset
+    toggleCameraLock(true);
 
     console.log("Camera position reset");
 }
