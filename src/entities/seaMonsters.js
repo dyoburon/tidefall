@@ -30,7 +30,7 @@ const MONSTER_TYPE_WEIGHTS = {
     [MONSTER_TYPES.SEA_SERPENT]: 0.0,     // 20% chance 
     [MONSTER_TYPES.PHANTOM_JELLYFISH]: 0.0 // 20% chance
 };
-const MONSTER_SPEED = 0.02;
+const MONSTER_SPEED = 0.08;
 const MONSTER_DETECTION_RANGE = 200;
 const MONSTER_ATTACK_RANGE = 50;
 const MONSTER_DEPTH = -20;
@@ -38,7 +38,7 @@ const MONSTER_SURFACE_TIME = 10; // seconds monster stays on surface
 const MONSTER_DIVE_TIME = 1; // seconds monster stays underwater before considering resurfacing
 
 // Add a new constant for surfacing speed - much faster than regular movement
-const MONSTER_SURFACING_SPEED = 0.06; // Significantly faster than MONSTER_SPEED (0.11)
+const MONSTER_SURFACING_SPEED = 0.24; // Significantly faster than MONSTER_SPEED (0.11)
 
 // Monster states
 const MONSTER_STATE = {

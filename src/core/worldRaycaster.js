@@ -3,7 +3,7 @@ import { camera, scene } from '../core/gameState.js';
 
 /**
  * WorldRaycaster provides utilities for translating screen coordinates
- * into 3D world positions through raycasting.
+ * into 3D world positions through raycasting - optimized for performance.
  */
 class WorldRaycaster {
     constructor() {
@@ -12,6 +12,17 @@ class WorldRaycaster {
 
         // Create a water plane at y=0 for intersection with mouse
         this.waterPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+        // Reusable objects to avoid creating new ones
+        this.reusableVector = new THREE.Vector3();
+        this.reusableNDC = { x: 0, y: 0 };
+        this.lastScreenX = -1;
+        this.lastScreenY = -1;
+        this.cachedWorldPosition = new THREE.Vector3();
+
+        // Throttling state
+        this.lastUpdateTime = 0;
+        this.throttleDelay = 16; // ~60fps
 
         // Store screen dimensions
         this.updateScreenSize();
@@ -38,95 +49,81 @@ class WorldRaycaster {
 
     /**
      * Convert screen coordinates to normalized device coordinates (-1 to +1)
+     * Reuses the same object for better performance.
+     * 
      * @param {number} screenX - X coordinate on screen
      * @param {number} screenY - Y coordinate on screen
      * @returns {Object} Normalized device coordinates {x, y}
      */
     screenToNDC(screenX, screenY) {
-        return {
-            x: (screenX / this.screenWidth) * 2 - 1,
-            y: -(screenY / this.screenHeight) * 2 + 1  // Y is inverted
-        };
+        this.reusableNDC.x = (screenX / this.screenWidth) * 2 - 1;
+        this.reusableNDC.y = -(screenY / this.screenHeight) * 2 + 1;
+        return this.reusableNDC;
     }
 
     /**
      * Get world position from screen coordinates by raycasting
-     * against the water plane (y=0)
+     * against the water plane (y=0) - with performance optimizations
      * 
      * @param {number} screenX - X coordinate on screen
      * @param {number} screenY - Y coordinate on screen
-     * @returns {THREE.Vector3|null} World position or null if no intersection
+     * @param {boolean} forceUpdate - Bypass throttling and caching
+     * @returns {THREE.Vector3} World position
      */
-    screenToWorld(screenX, screenY) {
-        // Convert to normalized device coordinates
+    screenToWorld(screenX, screenY, forceUpdate = false) {
+        // Check if we can use cached result
+        if (!forceUpdate &&
+            screenX === this.lastScreenX &&
+            screenY === this.lastScreenY &&
+            Date.now() - this.lastUpdateTime < this.throttleDelay) {
+            return this.cachedWorldPosition.clone();
+        }
+
+        // Update tracking values
+        this.lastScreenX = screenX;
+        this.lastScreenY = screenY;
+        this.lastUpdateTime = Date.now();
+
+        // Convert to normalized device coordinates (reuses object)
         const ndc = this.screenToNDC(screenX, screenY);
 
         // Update the raycaster
         this.raycaster.setFromCamera(ndc, camera);
 
         // Get intersection with water plane
-        const target = new THREE.Vector3();
-        const hit = this.raycaster.ray.intersectPlane(this.waterPlane, target);
+        const hit = this.raycaster.ray.intersectPlane(this.waterPlane, this.reusableVector);
 
         if (hit) {
-            return target;
+            // Cache the result and return a clone
+            this.cachedWorldPosition.copy(this.reusableVector);
+            return this.cachedWorldPosition.clone();
         }
 
-        // No intersection - try to get a point at reasonable distance
-        const rayDirection = this.raycaster.ray.direction.clone();
-        return this.raycaster.ray.origin.clone().add(
-            rayDirection.multiplyScalar(100)  // 100 units along ray
-        );
+        // No intersection - get a point at reasonable distance
+        this.reusableVector.copy(this.raycaster.ray.direction).multiplyScalar(100);
+        this.cachedWorldPosition.copy(this.raycaster.ray.origin).add(this.reusableVector);
+        return this.cachedWorldPosition.clone();
     }
 
     /**
-     * Get world position from screen coordinates by raycasting against provided mesh(es)
-     * 
-     * @param {number} screenX - X coordinate on screen
-     * @param {number} screenY - Y coordinate on screen
-     * @param {Array|THREE.Mesh} targetMeshes - Mesh(es) to check for intersection
-     * @returns {Object|null} Intersection data or null if no intersection
+     * Get world position with throttling for better performance
+     * This is the main method to use for continuous updates (like mouse movement)
      */
-    screenToObject(screenX, screenY, targetMeshes) {
-        // Convert to normalized device coordinates
-        const ndc = this.screenToNDC(screenX, screenY);
-
-        // Update the raycaster
-        this.raycaster.setFromCamera(ndc, camera);
-
-        // Ensure targetMeshes is an array
-        const meshes = Array.isArray(targetMeshes) ? targetMeshes : [targetMeshes];
-
-        // Get intersections
-        const intersections = this.raycaster.intersectObjects(meshes, true);
-
-        if (intersections.length > 0) {
-            return intersections[0];  // Return the closest intersection
-        }
-
-        return null;
+    screenToWorldThrottled(screenX, screenY) {
+        return this.screenToWorld(screenX, screenY, false);
     }
 
     /**
-     * Gets target position for abilities, prioritizing object intersections
-     * but falling back to water plane
+     * Gets target position for abilities - optimized version
+     * Only does full raycasting for critical moments (like ability execution)
      * 
      * @param {number} screenX - X coordinate on screen
      * @param {number} screenY - Y coordinate on screen
-     * @param {Array} [targetMeshes=[]] - Optional meshes to check for intersection
+     * @param {boolean} forceAccurate - Force full precision raycast
      * @returns {THREE.Vector3} Target position in world space
      */
-    getAbilityTargetPosition(screenX, screenY, targetMeshes = []) {
-        // First try to hit objects if provided
-        if (targetMeshes.length > 0) {
-            const objectHit = this.screenToObject(screenX, screenY, targetMeshes);
-            if (objectHit) {
-                return objectHit.point;
-            }
-        }
-
-        // Fall back to water plane intersection
-        return this.screenToWorld(screenX, screenY);
+    getAbilityTargetPosition(screenX, screenY, forceAccurate = false) {
+        return this.screenToWorld(screenX, screenY, forceAccurate);
     }
 
     /**

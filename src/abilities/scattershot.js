@@ -16,7 +16,7 @@ class ScatterShot {
         this.name = 'Scatter Shot';
         this.canCancel = true;
         this.staysActiveAfterExecution = false;
-        this.cannonballSpeed = 20; // Slightly slower than regular cannonballs
+        this.cannonballSpeed = 35; // Slightly slower than regular cannonballs
         this.gravity = 80;         // Lower gravity for wider spread
 
         // ScatterShot specific properties

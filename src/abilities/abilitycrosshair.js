@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { isTouchDevice } from '../controls/touchControls.js';
-import worldRaycaster from '../core/worldRaycaster.js'; // Import our raycaster
+import worldRaycaster from '../core/worldRaycaster.js';
 
 /**
  * Manages the crosshair/aiming UI for all abilities
@@ -14,6 +14,10 @@ class AbilityCrosshair {
         this.mousePosition = new THREE.Vector2();
         this.targetPosition = new THREE.Vector3();
         this.raycaster = new THREE.Raycaster();
+
+        // Throttling mouse movement updates
+        this.lastUpdateTime = 0;
+        this.updateThrottle = 32; // Update at ~30fps for aiming
 
         // Create a DOM element for the crosshair
         this.createCrosshairElement();
@@ -97,7 +101,6 @@ class AbilityCrosshair {
 
         // Get current mouse position from the most recent event or browser API
         if (!this.screenPosition) {
-            // If we don't have a position yet, use the current cursor position
             this.screenPosition = {
                 x: event?.clientX || window.mouseX || window.innerWidth / 2,
                 y: event?.clientY || window.mouseY || window.innerHeight / 2
@@ -107,8 +110,8 @@ class AbilityCrosshair {
             this.mousePosition.x = (this.screenPosition.x / window.innerWidth) * 2 - 1;
             this.mousePosition.y = -(this.screenPosition.y / window.innerHeight) * 2 + 1;
 
-            // Also update the target position immediately using the WorldRaycaster
-            this.updateTargetPosition();
+            // Initial update - force accurate position
+            this.updateTargetPosition(true);
         }
 
         // Update crosshair position before showing it
@@ -141,7 +144,7 @@ class AbilityCrosshair {
     }
 
     /**
-     * Mouse move event handler
+     * Mouse move event handler - optimized to reduce calculations
      */
     onMouseMove(event) {
         // Store actual screen coordinates
@@ -158,11 +161,15 @@ class AbilityCrosshair {
         this.mousePosition.x = (event.clientX / window.innerWidth) * 2 - 1;
         this.mousePosition.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        // Update target position using the improved WorldRaycaster
-        this.updateTargetPosition();
-
-        // Update crosshair DOM element position
+        // Update crosshair DOM element position (this is cheap)
         this.updateCrosshairPosition();
+
+        // Only update the 3D target position if enough time has passed
+        const now = Date.now();
+        if (now - this.lastUpdateTime > this.updateThrottle) {
+            this.lastUpdateTime = now;
+            this.updateTargetPosition(false);
+        }
     }
 
     /**
@@ -179,15 +186,17 @@ class AbilityCrosshair {
     }
 
     /**
-     * Updates the target position in world space using the WorldRaycaster
+     * Updates the target position in world space using the optimized WorldRaycaster
+     * @param {boolean} forceAccurate - Force high accuracy update
      */
-    updateTargetPosition() {
+    updateTargetPosition(forceAccurate = false) {
         if (!this.screenPosition) return;
 
-        // Use the WorldRaycaster to get a more accurate world position
+        // Use the throttled raycaster version for better performance
         const worldPos = worldRaycaster.getAbilityTargetPosition(
             this.screenPosition.x,
-            this.screenPosition.y
+            this.screenPosition.y,
+            forceAccurate
         );
 
         // Update our internal target position
@@ -196,24 +205,17 @@ class AbilityCrosshair {
 
     /**
      * Calculates the target position in 3D space
-     * Now uses the improved WorldRaycaster for more accurate targeting
+     * Uses caching to improve performance
      * 
-     * @param {Array} [targetMeshes=[]] - Optional meshes to check for intersection
+     * @param {boolean} [accurate=true] - Whether to force an accurate raycast (for firing)
      * @returns {THREE.Vector3} The target position in world space
      */
-    getTargetPosition(targetMeshes = []) {
-        // If we have specific target meshes, try to intersect with them
-        if (targetMeshes.length > 0 && this.screenPosition) {
-            const worldPos = worldRaycaster.getAbilityTargetPosition(
-                this.screenPosition.x,
-                this.screenPosition.y,
-                targetMeshes
-            );
-            return worldPos;
+    getTargetPosition(accurate = true) {
+        // Always do an accurate update when the ability is actually fired
+        if (accurate) {
+            this.updateTargetPosition(true);
         }
 
-        // Otherwise return our cached target position
-        // which is already updated by updateTargetPosition()
         return this.targetPosition.clone();
     }
 
@@ -221,9 +223,7 @@ class AbilityCrosshair {
      * Main update function called each frame
      */
     update() {
-        if (!this.isActive) return;
-
-        // Could add additional visual effects or animations here
+        // No per-frame updates needed - we update on mouse movement instead
     }
 }
 
