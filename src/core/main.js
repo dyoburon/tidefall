@@ -44,7 +44,6 @@ import { showMessageOfDay, shouldShowMessageOfDay, forceShowMessageOfDay } from 
 import { startScreenSequence, resetScreenSequence } from '../ui/messages.js';
 import { getCurrentUser } from '../ui/auth.js';
 import { getPlayerInfo } from '../ui/login.js';
-import { spawnBlockCave } from '../world/blockCave.js';
 import { setupFog, updateFog, toggleFog, setFogColor } from '../environment/fog.js';
 import { getTimeOfDay } from '../environment/skybox.js';
 import { updateShipMovement } from './shipController.js';
@@ -269,7 +268,7 @@ spawnMassiveIsland(scene);
 */
 
 // Add this line to spawn your block cave instead
-const blockCave = spawnBlockCave(scene, new THREE.Vector3(0, 0, 0));
+//const blockCave = spawnBlockCave(scene, new THREE.Vector3(0, 0, 0));
 
 
 spawnMassiveIsland(scene);
@@ -1559,30 +1558,6 @@ function initializeGameAfterLogin(user) {
     } else {
 
     }
-}
-
-function initializeWorld() {
-    // ... existing setup code ...
-
-
-
-    // Only spawn block cave
-    if (typeof spawnBlockCave === 'function') {
-        spawnBlockCave(scene, new THREE.Vector3(0, 0, 0));
-    }
-
-    // Ensure these don't run by replacing calls with console logs
-    if (typeof spawnMassiveIsland === 'function') {
-
-        // Do NOT call spawnMassiveIsland
-    }
-
-    if (typeof spawnCoastalCliffScene === 'function') {
-
-        // Do NOT call spawnCoastalCliffScene
-    }
-
-    // ... rest of initialization ...
 }
 
 // Initialize fog system with appropriate color
