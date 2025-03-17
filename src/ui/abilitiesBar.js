@@ -220,6 +220,7 @@ class AbilitiesBar {
                 'inset 0 0 8px rgba(20, 15, 10, 0.8)';
         }, 200);
 
+        /*
         this.abilityManager = window.abilityManager;
         // If we have an ability manager, directly call its key handler
         if (this.abilityManager) {
@@ -229,7 +230,7 @@ class AbilitiesBar {
 
             // Call the handler directly
             this.abilityManager.handleKeyDown(simpleEvent);
-        }
+        }*/
     }
 
     // Method to start a cooldown on an ability
