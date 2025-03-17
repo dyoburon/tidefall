@@ -102,28 +102,81 @@ function getMonsterTypeHealth(typeId) {
  * Spawn monsters in a specific chunk
  */
 export function spawnMonstersInChunk(chunkKey, chunkX, chunkZ, options = {}) {
-    // TESTING: Force 100% spawn rate
-    const spawnChance = 1.0; // Force 100% spawn chance for testing
+    // Default options
+    const defaultOptions = {
+        spawnChance: 0.15,
+        minCount: 0,
+        maxCount: 1,
+        chunkSize: 500,
+        depth: -20,
+        typeWeights: { 'yellowBeast': 1.0 }
+    };
 
-    // Calculate position within chunk (add some randomness)
-    const posX = chunkX * (options.chunkSize || 500) + Math.random() * (options.chunkSize || 500);
-    const posZ = chunkZ * (options.chunkSize || 500) + Math.random() * (options.chunkSize || 500);
-    const depth = -5; // Even shallower for better visibility
+    // Merge with provided options
+    const settings = { ...defaultOptions, ...options };
 
-    // Create monster in SURFACING state to make it immediately visible
-    const monster = createMonster('yellowBeast', {
-        position: new THREE.Vector3(posX, depth, posZ),
-        state: 'surfacing',
-        stateTimer: 1 // Very short timer to reach surface quickly
-    });
+    // Check random chance before spawning anything
+    if (Math.random() > settings.spawnChance) {
+        console.log(`[SPAWN] No monsters spawned in chunk ${chunkKey} (rolled above ${settings.spawnChance * 100}% chance)`);
+        return; // Skip spawning based on random chance
+    }
 
-    if (monster) {
+    // Determine how many monsters to spawn
+    let numToSpawn = Math.floor(Math.random() * (settings.maxCount - settings.minCount + 1)) + settings.minCount;
+    console.log(`[SPAWN] Will spawn ${numToSpawn} monsters in chunk ${chunkKey}`);
+
+    // Calculate the world-space bounds of this chunk
+    const chunkMinX = chunkX * settings.chunkSize;
+    const chunkMaxX = (chunkX + 1) * settings.chunkSize;
+    const chunkMinZ = chunkZ * settings.chunkSize;
+    const chunkMaxZ = (chunkZ + 1) * settings.chunkSize;
+
+    console.log(`[SPAWN] Chunk bounds: X(${chunkMinX} to ${chunkMaxX}), Z(${chunkMinZ} to ${chunkMaxZ})`);
+
+    // Create an array to hold the spawned monsters
+    const spawnedMonsters = [];
+
+    // Create the monsters first without specific positions
+    for (let i = 0; i < numToSpawn; i++) {
+        // Select monster type based on weights (currently just using yellowBeast)
+        const monsterType = 'yellowBeast'; // For now, hardcoded
+
+        // Create monster with a temporary position
+        const monster = createMonster(monsterType, {
+            position: new THREE.Vector3(0, 0, 0), // Temporary position
+            state: 'surfacing',
+            stateTimer: 1 + Math.random() * 2 // Stagger surfacing slightly
+        });
+
+        if (monster) {
+            spawnedMonsters.push(monster);
+            console.log(`[SPAWN] Monster ${i + 1}/${numToSpawn} successfully created`);
+        } else {
+            console.log(`[SPAWN] Failed to create monster ${i + 1}/${numToSpawn}`);
+        }
+    }
+
+    // Set positions for all monsters at the end
+    spawnedMonsters.forEach((monster, index) => {
+        // Calculate a position within the chunk with some margin from edges
+        const margin = settings.chunkSize * 0.1; // 10% margin from chunk edges
+        const posX = chunkMinX + margin + Math.random() * (settings.chunkSize - margin * 2);
+        const posZ = chunkMinZ + margin + Math.random() * (settings.chunkSize - margin * 2);
+
+        // Vary the depth slightly for each monster
+        const depth = settings.depth + (Math.random() * 5 - 2.5); // ±2.5 units of variation
+
+        // Set the position
+        monster.mesh.position.set(posX, depth, posZ);
+
+        // Update the monster in the entity chunk system - FIXED: pass the position as the third parameter
+        updateEntityChunk('monsters', monster, monster.mesh.position);
+
         // Force monster to be visible
         ensureMonsterVisibility(monster);
 
-        // TEST - Also move monster above water for easy visibility
-        monster.mesh.position.y = 5; // Position above water for easy visibility
-    }
+        console.log(`[SPAWN] Set monster ${index + 1}/${spawnedMonsters.length} position to (${posX.toFixed(1)}, ${depth.toFixed(1)}, ${posZ.toFixed(1)})`);
+    });
 }
 
 /**
@@ -278,8 +331,13 @@ function updateMonsterVisibility() {
             // Group states by monster type
             const statesByType = {};
 
+            console.log(`[MONSTER-DEBUG] Attempting to respawn monsters in chunk ${chunkKey}, received ${monsterStates.length} states`);
+
             monsterStates.forEach(state => {
-                if (!state || !state.typeId) return;
+                if (!state || !state.typeId) {
+                    console.log(`[MONSTER-DEBUG] Invalid monster state found:`, state);
+                    return;
+                }
 
                 if (!statesByType[state.typeId]) {
                     statesByType[state.typeId] = [];
@@ -287,10 +345,14 @@ function updateMonsterVisibility() {
                 statesByType[state.typeId].push(state);
             });
 
-            // Respawn each type of monster
+            // Log info about respawn attempts
             Object.entries(statesByType).forEach(([typeId, states]) => {
+                console.log(`[MONSTER-DEBUG] Attempting to respawn ${states.length} monsters of type ${typeId} in chunk ${chunkKey}`);
                 const typeInfo = monsterTypes.get(typeId);
-                if (!typeInfo || !typeInfo.respawnFn) return;
+                if (!typeInfo || !typeInfo.respawnFn) {
+                    console.log(`[MONSTER-DEBUG] ERROR: Missing typeInfo or respawnFn for ${typeId}`);
+                    return;
+                }
 
                 typeInfo.respawnFn(states, chunkKey);
             });

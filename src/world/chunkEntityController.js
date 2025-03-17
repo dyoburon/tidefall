@@ -119,15 +119,14 @@ export function getEntityStatesForChunk(entityType, chunkKey) {
  * @param {Function} respawnFn - Function to respawn entities from states
  */
 export function updateEntityVisibility(visibleChunks, entityType, getStateFn, cleanupFn, respawnFn) {
-
-
-    /* COMMENTED OUT - DISABLE DESPAWNING FOR TESTING
     // Find entities to remove (in chunks that are no longer visible)
     const entitiesToRemove = [];
+    const chunksBeingDespawned = new Set();
 
     entityChunkMap[entityType].forEach((chunkKey, entity) => {
         if (!visibleChunks.has(chunkKey)) {
             entitiesToRemove.push(entity);
+            chunksBeingDespawned.add(chunkKey);
         }
     });
 
@@ -135,9 +134,16 @@ export function updateEntityVisibility(visibleChunks, entityType, getStateFn, cl
     entitiesToRemove.forEach(entity => {
         saveEntityState(entityType, entity, getStateFn, cleanupFn);
     });
-    */
 
-    // KEEP ONLY THE RESPAWNING PART ACTIVE
+    // Remove chunks from populatedChunks when we despawn all their entities
+    // This ensures they'll be repopulated when we return to them
+    chunksBeingDespawned.forEach(chunkKey => {
+        if (entityType === 'monsters') {
+            populatedChunks.delete(chunkKey);
+            console.log(`[CHUNK] Removed chunk ${chunkKey} from populated list for future repopulation`);
+        }
+    });
+
     // Check for chunks that are now visible and need entities respawned
     visibleChunks.forEach(chunkKey => {
         if (inactiveEntityStates[entityType].has(chunkKey)) {
@@ -175,31 +181,32 @@ export function updateAllEntityChunks() {
     const playerChunkCoords = getChunkCoords(boat.position.x, boat.position.z);
     const playerChunkKey = getChunkKey(playerChunkCoords.x, playerChunkCoords.z);
 
-    // Check if player has entered a new chunk
+    // On first load or entering a new chunk, only populate the current chunk
     if (currentPlayerChunk !== playerChunkKey) {
-
+        console.log(`[CHUNK] Player moved to new chunk: ${playerChunkKey}`);
         currentPlayerChunk = playerChunkKey;
 
-        // Force check for this chunk to ensure monsters spawn immediately
+        // Only populate player's current chunk if needed
         if (!populatedChunks.has(playerChunkKey) && !inactiveEntityStates.monsters.has(playerChunkKey)) {
-
+            console.log(`[CHUNK] Populating player's current chunk: ${playerChunkKey}`);
             populateChunkWithEntities(playerChunkKey);
             populatedChunks.add(playerChunkKey);
         }
     }
 
+    // Get visible chunks but DO NOT populate them all
     const visibleChunks = getVisibleChunks();
 
-    // Check for newly visible chunks that need population
-    visibleChunks.forEach(chunkKey => {
-        if (!populatedChunks.has(chunkKey) && !inactiveEntityStates.monsters.has(chunkKey)) {
-            // This is a new chunk with no saved monsters - populate it
-            populateChunkWithEntities(chunkKey);
-            populatedChunks.add(chunkKey);
-        }
-    });
+    // REMOVED: The code that was populating all visible chunks
+    // visibleChunks.forEach(chunkKey => {
+    //    if (!populatedChunks.has(chunkKey) && !inactiveEntityStates.monsters.has(chunkKey)) {
+    //        populateChunkWithEntities(chunkKey);
+    //        populatedChunks.add(chunkKey);
+    //    }
+    // });
 
-    return visibleChunks; // Return for use by entity systems
+    // Still need to return visible chunks for other systems
+    return visibleChunks;
 }
 
 /**
@@ -233,19 +240,19 @@ function populateChunkWithMonsters(chunkKey, chunkX, chunkZ) {
 
     // Skip if already has monsters
     if (chunkHasMonsters) {
-
+        console.log(`[CHUNK] Chunk ${chunkKey} already has monsters, skipping spawning`);
         return;
     }
 
-
+    console.log(`[CHUNK] Populating chunk ${chunkKey} at world coordinates range: (${chunkX * chunkSize} to ${(chunkX + 1) * chunkSize}, ${chunkZ * chunkSize} to ${(chunkZ + 1) * chunkSize})`);
 
     // Use the enhanced monster manager to spawn monsters in this chunk
     spawnMonstersInChunk(chunkKey, chunkX, chunkZ, {
         chunkSize: chunkSize,
         depth: -20, // Underwater depth
-        spawnChance: 0.7, // 70% chance to spawn monsters
+        spawnChance: 1.0, // Always spawn monsters when we request a new chunk
         minCount: 1,
-        maxCount: 1, // Just one monster per chunk
+        maxCount: 2, // Up to 2 monsters per chunk
         typeWeights: {
             'yellowBeast': 1.0,
             'kraken': 0.0,
@@ -276,4 +283,16 @@ export function removeEntity(entityType, entity) {
     }
 
     return wasRemoved;
+}
+
+/**
+ * Get all monsters currently in the game
+ * @returns {Array} Array of all active monsters
+ */
+export function getAllMonsters() {
+    if (!entityChunkMap || !entityChunkMap.monsters) {
+        console.warn("[DEBUG] entityChunkMap or entityChunkMap.monsters is undefined");
+        return []; // Return empty array as fallback
+    }
+    return Array.from(entityChunkMap.monsters.keys());
 } 

@@ -12,7 +12,8 @@ import {
     registerEntity,
     updateEntityChunk,
     getVisibleChunks,
-    removeEntity
+    removeEntity,
+    getAllMonsters
 } from '../world/chunkEntityController.js';
 
 // Sea monster configuration
@@ -80,12 +81,6 @@ export function setupSeaMonsters(boat) {
     } catch (error) {
         return [];
     }
-}
-
-// Also completely disable the night respawning
-function respawnMonstersAtNight() {
-    // FULLY DISABLED: Do not spawn any monsters here
-    return;
 }
 
 export function flashMonsterRed(monster, hadGreenLine = false) {
@@ -733,12 +728,7 @@ function keepMonsterInWorld(monster) {
 
 // Export monsters array for other modules
 export function getMonsters() {
-    // Convert the monsters Map entries to an array of monsters
-    if (!entityChunkMap || !entityChunkMap.monsters) {
-        console.warn("[DEBUG] entityChunkMap or entityChunkMap.monsters is undefined");
-        return []; // Return empty array as fallback
-    }
-    return Array.from(entityChunkMap.monsters.keys());
+    return getAllMonsters();
 }
 
 function createYellowBeastMonster(options = {}) {
@@ -837,7 +827,7 @@ function createYellowBeastMonster(options = {}) {
     monster.add(rightFin);
 
     // Position and configure monster
-    setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, MONSTER_TYPES.YELLOW_BEAST);
+    //setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, MONSTER_TYPES.YELLOW_BEAST);
 
     // After creating the monster meshes, add this logging:
     console.log(`[DEBUG] Created new monster, checking material instances:`);
@@ -881,11 +871,11 @@ function setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, 
     );
 
     // Add monster to scene
-    scene.add(monster);
+    //scene.add(monster);
 
     // Determine initial state randomly for more natural behavior
     let initialState;
-    const stateRoll = Math.random();
+    /*const stateRoll = Math.random();
 
     if (stateRoll < 0.7) {
         // 70% chance to start lurking underwater
@@ -896,7 +886,7 @@ function setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, 
     } else {
         // 10% chance to start in attacking mode (for immediate challenge)
         initialState = MONSTER_STATE.ATTACKING;
-    }
+    }*/
 
     // Create the monster data object
     const monsterData = {
@@ -921,7 +911,7 @@ function setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, 
     };
 
     // Register the monster with the chunk entity system
-    registerEntity('monsters', monsterData, monster.position);
+    //registerEntity('monsters', monsterData, monster.position);
 
     // Apply styling with outline
     applyMonsterStyle(monsterData);
@@ -1547,39 +1537,6 @@ function createMonsterByType(monsterType, position = null) {
     }
 }
 
-// Helper function to get a random spawn position away from player
-function getRandomSpawnPosition() {
-    // Get vector pointing in random direction
-    const angle = Math.random() * Math.PI * 2;
-    const direction = new THREE.Vector3(
-        Math.cos(angle),
-        0,
-        Math.sin(angle)
-    );
-
-    // Position the monster at least 300 units away from player
-    // but not more than 800 units away
-    const distance = 300 + Math.random() * 500;
-    const spawnPosition = new THREE.Vector3();
-
-    // If boat exists, spawn relative to it
-    if (boat) {
-        spawnPosition.copy(boat.position);
-        spawnPosition.add(direction.multiplyScalar(distance));
-    } else {
-        // Fallback if no player boat
-        spawnPosition.set(
-            (Math.random() - 0.5) * 1000,
-            MONSTER_DEPTH,
-            (Math.random() - 0.5) * 1000
-        );
-    }
-
-    spawnPosition.y = MONSTER_DEPTH; // Always spawn at monster depth
-
-    return spawnPosition;
-}
-
 // Modify the createTreasureDrop function to use the new system
 export function handleMonsterTreasureDrop(monster) {
     // Call the imported createTreasureDrop function from treasure.js
@@ -1832,6 +1789,7 @@ export function registerSeaMonsterTypes() {
         cleanupFn: cleanupMonster
     });
 
+    /*
     // Kraken monster
     registerMonsterType(MONSTER_TYPES.KRAKEN, {
         createFn: createKrakenMonster,
@@ -1848,7 +1806,7 @@ export function registerSeaMonsterTypes() {
         getStateFn: getMonsterState,
         respawnFn: respawnMonster,
         cleanupFn: cleanupMonster
-    });
+    });*/
 
     // More monster types can be added similarly
 }
@@ -1868,6 +1826,7 @@ function getMonsterState(monster) {
 
 // Generic respawn function to use with monster manager
 function respawnMonster(states, chunkKey) {
+    return;
 
 
     states.forEach(state => {

@@ -187,6 +187,7 @@ export function applyYellowBeastStyle(monster) {
  * @returns {boolean} True if custom behavior was applied, false to use default behavior
  */
 export function updateYellowBeastBehavior(monster, allMonsters, deltaTime) {
+    return;
     // Only handle when on surface (attacking)
     if (monster.state !== 'attacking') {
         return false; // Use default behavior for other states
@@ -243,6 +244,7 @@ export function updateYellowBeastBehavior(monster, allMonsters, deltaTime) {
  * Handle circling behavior - monsters circle around player at a distance
  */
 function handleCirclingBehavior(monster, deltaTime) {
+    return;
     const attackPattern = monster.attackPattern;
     const time = getTime();
 
@@ -362,6 +364,7 @@ function handlePreparingBehavior(monster, deltaTime) {
  * Handle swiping behavior - fast attack directly at the player
  */
 function handleSwipingBehavior(monster, deltaTime) {
+    return;
     const attackPattern = monster.attackPattern;
     const time = getTime();
 
@@ -475,6 +478,7 @@ function coordinateWithOtherMonsters(monster, allMonsters) {
  * Create a dramatic effect before an attack
  */
 function createPreAttackEffect(position) {
+    return;
     // Create a water disturbance effect
     const rippleCount = 12;
     const rippleMaterial = new THREE.MeshBasicMaterial({
