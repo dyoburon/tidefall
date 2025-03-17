@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { isTouchDevice } from '../controls/touchControls.js';
-
+import worldRaycaster from '../core/worldRaycaster.js'; // Import our raycaster
 
 /**
  * Manages the crosshair/aiming UI for all abilities
@@ -106,6 +106,9 @@ class AbilityCrosshair {
             // Update normalized coordinates for raycasting
             this.mousePosition.x = (this.screenPosition.x / window.innerWidth) * 2 - 1;
             this.mousePosition.y = -(this.screenPosition.y / window.innerHeight) * 2 + 1;
+
+            // Also update the target position immediately using the WorldRaycaster
+            this.updateTargetPosition();
         }
 
         // Update crosshair position before showing it
@@ -155,6 +158,9 @@ class AbilityCrosshair {
         this.mousePosition.x = (event.clientX / window.innerWidth) * 2 - 1;
         this.mousePosition.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
+        // Update target position using the improved WorldRaycaster
+        this.updateTargetPosition();
+
         // Update crosshair DOM element position
         this.updateCrosshairPosition();
     }
@@ -173,18 +179,41 @@ class AbilityCrosshair {
     }
 
     /**
+     * Updates the target position in world space using the WorldRaycaster
+     */
+    updateTargetPosition() {
+        if (!this.screenPosition) return;
+
+        // Use the WorldRaycaster to get a more accurate world position
+        const worldPos = worldRaycaster.getAbilityTargetPosition(
+            this.screenPosition.x,
+            this.screenPosition.y
+        );
+
+        // Update our internal target position
+        this.targetPosition.copy(worldPos);
+    }
+
+    /**
      * Calculates the target position in 3D space
-     * @param {number} distance - How far to project the ray
+     * Now uses the improved WorldRaycaster for more accurate targeting
+     * 
+     * @param {Array} [targetMeshes=[]] - Optional meshes to check for intersection
      * @returns {THREE.Vector3} The target position in world space
      */
-    getTargetPosition(distance = 100) {
-        // Update the picking ray
-        this.raycaster.setFromCamera(this.mousePosition, this.camera);
+    getTargetPosition(targetMeshes = []) {
+        // If we have specific target meshes, try to intersect with them
+        if (targetMeshes.length > 0 && this.screenPosition) {
+            const worldPos = worldRaycaster.getAbilityTargetPosition(
+                this.screenPosition.x,
+                this.screenPosition.y,
+                targetMeshes
+            );
+            return worldPos;
+        }
 
-        // Calculate target point along ray
-        this.targetPosition.copy(this.raycaster.ray.origin)
-            .add(this.raycaster.ray.direction.clone().multiplyScalar(distance));
-
+        // Otherwise return our cached target position
+        // which is already updated by updateTargetPosition()
         return this.targetPosition.clone();
     }
 

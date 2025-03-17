@@ -7,6 +7,7 @@ import {
     applyCannonballSplash
 } from './damageSystem.js';
 import { getAllMonsters } from '../entities/monsterManager.js';
+import AimingSystem from './aimingSystem.js';
 
 /**
  * Cannon Shot ability - Fires a single cannonball towards the target location.
@@ -21,73 +22,36 @@ class CannonShot {
         this.gravity = 100;      // Adjust as needed.  Increased significantly.
 
         this.cannonPositions = [
-            { name: 'leftFront', x: -2.5, z: -3 },
-            { name: 'leftRear', x: -2.5, z: 3 },
-            { name: 'rightFront', x: 2.5, z: -3 },
-            { name: 'rightRear', x: 2.5, z: 3 }
+            { name: 'leftFront', x: -2.5, y: 1.5, z: -3 },
+            { name: 'leftRear', x: -2.5, y: 1.5, z: 3 },
+            { name: 'rightFront', x: 2.5, y: 1.5, z: -3 },
+            { name: 'rightRear', x: 2.5, y: 1.5, z: 3 }
         ];
     }
 
     onAimStart(crosshair) {
-
-        // Could change crosshair color/shape here if desired
+        // Could change crosshair appearance if desired
     }
 
     onExecute(targetPosition) {
-        // Find nearest cannon position
-        const cannonPosition = this.getNearestCannonPosition(targetPosition);
-        const cannonName = this.getCannonNameFromPosition(cannonPosition);
+        // Get the nearest cannon
+        const { worldPosition: cannonPosition, config: cannonConfig } =
+            AimingSystem.getNearestFiringPosition(this.cannonPositions, targetPosition);
 
-        // IMPROVED DIRECTION CALCULATION:
-        // Get the ship's orientation vectors
-        const shipUp = new THREE.Vector3(0, 1, 0);
-        const shipForward = new THREE.Vector3(0, 0, 1).applyQuaternion(boat.quaternion);
-        const shipRight = new THREE.Vector3(1, 0, 0).applyQuaternion(boat.quaternion);
+        // Calculate direction using the unified aiming system
+        const direction = AimingSystem.calculateFiringDirection(cannonPosition, targetPosition);
 
-        // Calculate raw direction from cannon to target (keeping vertical component)
-        const rawDirection = new THREE.Vector3().subVectors(targetPosition, cannonPosition);
-
-        // Calculate the horizontal component relative to the ship
-        const horizontalLength = Math.sqrt(
-            Math.pow(rawDirection.dot(shipForward), 2) +
-            Math.pow(rawDirection.dot(shipRight), 2)
-        );
-
-        // Get vertical angle but constrain it to a reasonable range (-30 to +85 degrees)
-        const verticalAngle = Math.atan2(
-            rawDirection.dot(shipUp),
-            horizontalLength
-        );
-
-        // Clamp vertical angle between -30 and +85 degrees (-0.52 to 1.48 radians)
-        const clampedVerticalAngle = Math.max(-0.52, Math.min(1.48, verticalAngle));
-
-        // Rebuild the direction vector using the horizontal components and clamped vertical angle
-        const direction = new THREE.Vector3();
-        direction.addScaledVector(shipForward, rawDirection.dot(shipForward) / horizontalLength * Math.cos(clampedVerticalAngle));
-        direction.addScaledVector(shipRight, rawDirection.dot(shipRight) / horizontalLength * Math.cos(clampedVerticalAngle));
-        direction.addScaledVector(shipUp, Math.sin(clampedVerticalAngle));
-
-        // Ensure we have a valid direction - fallback if calculations went wrong
-        if (direction.length() < 0.1) {
-            console.warn("Invalid cannon direction calculated, using fallback");
-            direction.copy(rawDirection).normalize();
-        } else {
-            direction.normalize();
-        }
-
-        // Add a minimum vertical component if it's too flat
-        if (Math.abs(direction.y) < 0.05) {
-            direction.y = 0.05;
-            direction.normalize();
-        }
-
-        // Create Cannonball
+        // Create and fire cannonball
         this.createCannonball(cannonPosition, direction);
 
-        // Play sound and create effects
+        // Visual and audio effects
         playCannonSound();
-        this.createCannonSmoke(cannonName);
+        this.createCannonSmoke(cannonConfig.name);
+
+        // Notify camera system to maintain lock
+        if (window.notifyCameraAbilityUsed) {
+            window.notifyCameraAbilityUsed();
+        }
     }
 
     onCancel() {
