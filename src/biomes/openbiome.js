@@ -96,11 +96,11 @@ class OpenBiome extends BiomeInterface {
      * @param {number} chunkX - Chunk X coordinate
      * @param {number} chunkZ - Chunk Z coordinate
      * @param {number} chunkSize - Size of the chunk in world units
-     * @param {THREE.Scene} scene - The scene to add entities to
+     * @param {THREE.Group} chunkGroup - The chunk group to add entities to
      * @param {number} seed - World seed for consistent generation
      * @returns {Array} Array of spawned entities
      */
-    processChunk(chunkX, chunkZ, chunkSize, scene, seed) {
+    processChunk(chunkX, chunkZ, chunkSize, chunkGroup, seed) {
         // Create a unique key for this chunk
         const chunkKey = `${chunkX},${chunkZ}`;
 
@@ -142,8 +142,8 @@ class OpenBiome extends BiomeInterface {
 
                     // Check for collisions with a larger radius to ensure spacing
                     if (!checkAllIslandCollisions(position, this.properties.islandMinDistance || 200)) {
-                        // Create the island
-                        const island = createIsland(finalX, finalZ, seed * (finalX * finalZ), scene);
+                        // Create the island and pass chunkGroup instead of scene
+                        const island = createIsland(finalX, finalZ, seed * (finalX * finalZ), chunkGroup);
 
                         if (island) {
                             this.spawnedEntities.islands.push(island);
@@ -166,7 +166,8 @@ class OpenBiome extends BiomeInterface {
 
             // Ensure we're not too close to other structures
             if (!checkAllIslandCollisions(position, 500)) {
-                const cave = spawnBlockCaveFromIsland(scene, position);
+                // Pass chunkGroup instead of scene
+                const cave = spawnBlockCaveFromIsland(chunkGroup, position);
                 if (cave) {
                     this.spawnedEntities.structures.push(cave);
                     spawnedInThisChunk.push({
@@ -320,6 +321,7 @@ class OpenBiome extends BiomeInterface {
      * @param {THREE.Vector3} lastUpdatePosition - Position during last visibility update
      */
     updateEntityVisibility(lastUpdatePosition) {
+        return;
         // Get player position for distance calculations
         const playerPosition = playerObject.position;
 

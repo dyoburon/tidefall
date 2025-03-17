@@ -39,7 +39,7 @@ import {
     spawnMassiveIsland,
 } from '../world/islands.js';
 import { updateAllIslandVisibility, initializeChunkSystem, updateChunkSystem } from '../world/chunkControl.js';
-import { createTestRockyIsland, createTestRockyIslandCluster } from '../world/testRockyIslands.js';
+//import { createTestRockyIsland, createTestRockyIslandCluster } from '../world/testRockyIslands.js';
 import { showMessageOfDay, shouldShowMessageOfDay, forceShowMessageOfDay } from '../ui/motd.js';
 import { startScreenSequence, resetScreenSequence } from '../ui/messages.js';
 import { getCurrentUser } from '../ui/auth.js';
@@ -209,7 +209,7 @@ const TEST_ROCKY_ISLANDS = true;
 if (TEST_ROCKY_ISLANDS) {
 
     // Create a single test rocky island further from the starting position
-    createTestRockyIslandCluster(scene, 4, 800, new THREE.Vector3(boat.position.x, 0, boat.position.z));
+    //createTestRockyIslandCluster(scene, 4, 800, new THREE.Vector3(boat.position.x, 0, boat.position.z));
 }
 
 // Expanded Water with Slower Shader

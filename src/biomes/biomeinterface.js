@@ -75,7 +75,7 @@ class BiomeInterface {
      * @param {number} seed - World seed for consistent generation
      * @returns {Array} Array of spawned entities
      */
-    processChunk(chunkX, chunkZ, chunkSize, scene, seed) {
+    processChunk(chunkX, chunkZ, chunkSize, scene, chunkGroup, seed) {
         throw new Error("processChunk() must be implemented by biome classes");
     }
 

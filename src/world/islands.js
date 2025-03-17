@@ -55,8 +55,15 @@ const SPAWN_CONTROLS = {
     blockCave: false,
 };
 
-// Function to create a single island with specified parameters
-function createIsland(x, z, seed, scene) {
+/**
+ * Creates an island at the specified position
+ * @param {number} x - X-coordinate in world space
+ * @param {number} z - Z-coordinate in world space
+ * @param {number} seed - Seed for randomizing island features
+ * @param {THREE.Group} chunkGroup - Group to add the island to
+ * @returns {Object} Created island object
+ */
+function createIsland(x, z, seed, chunkGroup) {
     // Use the seed to create deterministic randomness for this island
     const random = () => {
         seed = (seed * 9301 + 49297) % 233280;
@@ -77,7 +84,9 @@ function createIsland(x, z, seed, scene) {
     // Island group to hold all parts
     const island = new THREE.Group();
     island.position.set(x, 0, z);
-    scene.add(island);
+
+    // Add island to chunk group instead of scene
+    chunkGroup.add(island);
 
     // Add island collider
     const collider = {
@@ -347,8 +356,9 @@ function createIsland(x, z, seed, scene) {
 
     activeIslands.set(islandId, islandEntry);
 
-    // Add shore effect if enabled
-    if (areShoreEffectsEnabled() && scene) {
+    // Add shore effect if enabled - get scene from chunkGroup's parent
+    if (areShoreEffectsEnabled() && chunkGroup.parent) {
+        const scene = chunkGroup.parent;
         const shore = createShoreEffect(island, collider, scene);
         islandEntry.shore = shore;
     }
@@ -400,7 +410,7 @@ function createIsland(x, z, seed, scene) {
         });
     }
 
-    return islandEntry;
+    return island;
 }
 
 // Function to create and cache a sand texture with grainy appearance

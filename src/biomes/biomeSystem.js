@@ -171,20 +171,18 @@ function getBiomePropertiesForChunk(chunkX, chunkZ) {
  * Process a chunk using its assigned biome
  * @param {number} chunkX - Chunk X coordinate
  * @param {number} chunkZ - Chunk Z coordinate
- * @param {THREE.Scene} scene - Scene to add entities to
+ * @param {number} chunkSize - Size of the chunk in world units
+ * @param {THREE.Group} chunkGroup - Group to add entities to (instead of scene)
  * @param {number} seed - World seed
  * @returns {Array} Array of spawned entities
  */
-function processChunk(chunkX, chunkZ, scene, seed) {
+function processChunk(chunkX, chunkZ, chunkSize, chunkGroup, seed) {
     const biome = getBiomeForChunk(chunkX, chunkZ);
-
 
     if (!biome && !(getPlayerBiome().name === biome.name)) return [];
 
-
-    //
-
-    return biome.processChunk(chunkX, chunkZ, chunkSize, scene, seed);
+    // Call the biome's processChunk method, passing the chunk group
+    return biome.processChunk(chunkX, chunkZ, chunkSize, chunkGroup, seed);
 }
 
 /**
@@ -195,15 +193,19 @@ function processChunk(chunkX, chunkZ, scene, seed) {
  * @returns {Array} Array of spawned entities
  */
 function spawnAroundPosition(scene, seed, radius = 2) {
+    return;
     let allSpawned = [];
 
-    // get chunk based on where the boat is
+    // Get chunk based on where the boat is
     const biome = getBiomeForChunk(boat.position.x, boat.position.z);
-
 
     if (getPlayerBiome().name === biome.name) {
         const centerChunkX = Math.floor(centerPosition.x / chunkSize);
         const centerChunkZ = Math.floor(centerPosition.z / chunkSize);
+
+        // Create a temporary group for spawning
+        const tempGroup = new THREE.Group();
+        scene.add(tempGroup);
 
         // Process chunks in radius
         for (let dx = -radius; dx <= radius; dx++) {
@@ -211,7 +213,7 @@ function spawnAroundPosition(scene, seed, radius = 2) {
                 const chunkX = centerChunkX + dx;
                 const chunkZ = centerChunkZ + dz;
 
-                const spawned = processChunk(chunkX, chunkZ, scene, seed);
+                const spawned = processChunk(chunkX, chunkZ, chunkSize, tempGroup, seed);
                 allSpawned = allSpawned.concat(spawned);
             }
         }
@@ -231,7 +233,6 @@ function updateAllBiomes(deltaTime, playerPosition) {
 
     // Update current biome reference if needed
     if (!currentPlayerBiome || (playerBiome && playerBiome.name !== currentPlayerBiome.name)) {
-
         currentPlayerBiome = playerBiome;
     }
 

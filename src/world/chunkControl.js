@@ -44,6 +44,9 @@ export const CLEANUP_RADIUS = chunkSize * 4; // Distance beyond which to remove 
 export const generatedChunks = new Set(); // Tracks fully processed chunks (both base and biome features)
 export const activeWaterChunks = new Map(); // Maps water chunk ID to water mesh
 
+// Add this map to store chunk groups
+export const chunkGroups = new Map(); // Maps chunk keys to THREE.Group objects
+
 // Declare at module scope, outside any function
 const lastChunkUpdatePosition = new THREE.Vector3();
 
@@ -146,33 +149,28 @@ function generateChunk(chunkX, chunkZ, scene) {
     const biome = getBiomeForChunk(chunkX, chunkZ);
     const biomeProperties = biome ? biome.getProperties() : {};
 
+    // Create a group for all objects in this chunk
+    const chunkGroup = new THREE.Group();
+    chunkGroup.name = `Chunk_${chunkKey}`;
+    scene.add(chunkGroup);
 
+    // Store the group in our map
+    chunkGroups.set(chunkKey, chunkGroup);
 
     // Calculate chunk world coordinates
     const worldX = chunkX * chunkSize;
     const worldZ = chunkZ * chunkSize;
 
-    // Create water for this chunk, possibly modified by biome properties
-    /*const waterMesh = createWaterChunk(chunkX, chunkZ, scene, waterShader);
-
-    // If biome specifies a water color, apply it
-    if (waterMesh && biomeProperties.waterColor) {
-        // Apply water color from biome (implementation depends on your water system)
-        if (waterMesh.material && waterMesh.material.uniforms && waterMesh.material.uniforms.waterColor) {
-            waterMesh.material.uniforms.waterColor.value = biomeProperties.waterColor;
-        }
-    }*/
-
-    // Process biome-specific features (like islands) as part of chunk generation
+    // Process biome-specific features (like islands) using the chunk group
     if (biome) {
-        // Use the biome's processChunk method to generate biome-specific features
-        biome.processChunk(chunkX, chunkZ, chunkSize, scene, WORLD_SEED);
+        // Pass the chunk group to the biome's processChunk method
+        biome.processChunk(chunkX, chunkZ, chunkSize, chunkGroup, WORLD_SEED);
     }
 
-    // Mark chunk as fully generated (includes both base chunk and biome features)
+    // Mark chunk as fully generated
     generatedChunks.add(chunkKey);
 
-    return { chunkKey };
+    return { chunkKey, chunkGroup };
 }
 
 /**
@@ -199,18 +197,14 @@ export function updateChunkSystem(deltaTime) {
 }
 
 /**
- * Update which water chunks should be visible
- * This now only handles base terrain/water chunks, not entities
+ * Update which chunks should be visible
  */
 export function updateVisibleChunks(lastChunkUpdatePosition) {
-    //
-
     // Get current chunk coordinates based on boat position
     const currentChunk = getChunkCoords(boat.position.x, boat.position.z);
 
     // Set to track chunks that should be visible
     const chunksToKeep = new Set();
-    //const waterChunksToKeep = new Set();
 
     // Generate chunks in view distance
     for (let xOffset = -maxViewDistance; xOffset <= maxViewDistance; xOffset++) {
@@ -222,33 +216,21 @@ export function updateVisibleChunks(lastChunkUpdatePosition) {
             // Add to set of chunks to keep
             chunksToKeep.add(chunkKey);
 
-            // For water, we need a slightly larger view distance to avoid seeing edges
-            if (Math.abs(xOffset) <= maxViewDistance + 1 && Math.abs(zOffset) <= maxViewDistance + 1) {
-                //waterChunksToKeep.add(chunkKey);
-                // Create water chunk if needed
-                generateChunk(chunkX, chunkZ, scene);
-            }
-
             // Generate this chunk if needed
             generateChunk(chunkX, chunkZ, scene);
         }
     }
 
-    // Remove water chunks that are too far
-    /*const waterToRemove = [];
-    activeWaterChunks.forEach((water, id) => {
-        if (!waterChunksToKeep.has(id)) {
-            waterToRemove.push(id);
+    // Show/hide chunk groups based on visibility
+    chunkGroups.forEach((group, chunkKey) => {
+        if (chunksToKeep.has(chunkKey)) {
+            // Chunk should be visible
+            group.visible = true;
+        } else {
+            // Chunk should be hidden
+            group.visible = false;
         }
     });
-
-    waterToRemove.forEach(id => {
-        const water = activeWaterChunks.get(id);
-        if (water) {
-            scene.remove(water);
-            activeWaterChunks.delete(id);
-        }
-    });*/
 
     // Update the last chunk update position
     lastChunkUpdatePosition.copy(boat.position);
