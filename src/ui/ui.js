@@ -10,6 +10,7 @@ import { areShoreEffectsEnabled } from '../world/islands.js';
 import playerList from './playerList.js';
 import { initGameTerminal } from './gameTerminal.js';
 import AbilitiesBar from './abilitiesBar.js'; // Import the new AbilitiesBar component
+import { isTouchDevice } from '../controls/touchControls.js';
 
 // Create a UI class to manage all interface elements
 class GameUI {
@@ -34,6 +35,7 @@ class GameUI {
         this.createSettingsPanel();
 
         // Create mini-map container
+        /*
         this.miniMapContainer = document.createElement('div');
         this.miniMapContainer.id = 'mini-map';
         this.miniMapContainer.style.position = 'absolute';
@@ -44,7 +46,7 @@ class GameUI {
         this.miniMapContainer.style.backgroundColor = 'rgba(0, 30, 60, 0.5)';
         this.miniMapContainer.style.borderRadius = '50%';
         this.miniMapContainer.style.border = '2px solid rgba(100, 200, 255, 0.7)';
-        document.body.appendChild(this.miniMapContainer);
+        document.body.appendChild(this.miniMapContainer);*/
 
         // Initialize elements as an empty object first
         this.elements = {};
@@ -74,7 +76,7 @@ class GameUI {
         this.selfMarker.style.backgroundColor = '#ffff00';
         this.selfMarker.style.borderRadius = '50%';
         this.selfMarker.style.transform = 'translate(-50%, -50%)';
-        this.miniMapContainer.appendChild(this.selfMarker);
+        //this.miniMapContainer.appendChild(this.selfMarker);
 
         // Initialize the abilities bar
         this.abilitiesBar = new AbilitiesBar();
@@ -107,6 +109,7 @@ class GameUI {
         element.style.border = '1px solid rgba(120, 80, 40, 0.8)';
         element.style.color = '#E6C68A';
         element.style.fontFamily = 'serif';
+        element.style.fontSize = isTouchDevice() ? '9px' : '12px';
 
         // If this is the player count element, make it look clearly clickable
         if (text.startsWith('Players:')) {
@@ -284,7 +287,9 @@ class GameUI {
         fishingContainer.style.position = 'absolute';
         fishingContainer.style.bottom = '20px';
         fishingContainer.style.left = '20px';
-        fishingContainer.style.width = '180px';
+        fishingContainer.style.width = isTouchDevice() ? '110px' : '180px';
+        fishingContainer.style.height = isTouchDevice() ? '150px' : '170px';
+        fishingContainer.style.fontSize = isTouchDevice() ? '9px' : '12px';
         fishingContainer.style.backgroundColor = '#3A2616'; // Rich dark wood
         fishingContainer.style.padding = '0'; // No padding, will add internal container
         fishingContainer.style.borderRadius = '8px';
@@ -330,7 +335,6 @@ class GameUI {
         fishingLabel.style.color = '#FFD700'; // Brighter gold for header
         fishingLabel.style.fontFamily = 'serif';
         fishingLabel.style.fontWeight = 'bold';
-        fishingLabel.style.fontSize = '16px';
         fishingLabel.style.letterSpacing = '1px';
         fishingLabel.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
         headerBar.appendChild(fishingLabel);
@@ -356,7 +360,6 @@ class GameUI {
         castButton.style.fontWeight = 'bold';
         castButton.style.cursor = 'pointer';
         castButton.style.fontFamily = 'serif';
-        castButton.style.fontSize = '15px';
         castButton.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
         castButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)';
         contentContainer.appendChild(castButton);
@@ -376,7 +379,6 @@ class GameUI {
         fishingStatus.style.margin = '8px 0';
         fishingStatus.style.fontFamily = 'serif';
         fishingStatus.style.fontStyle = 'italic';
-        fishingStatus.style.fontSize = '14px';
         fishingStatus.style.textAlign = 'center';
         fishingStatus.style.width = '100%';
         contentContainer.appendChild(fishingStatus);
@@ -853,7 +855,7 @@ class GameUI {
         fpsElement.style.position = 'absolute';
         fpsElement.style.top = '5px';
         fpsElement.style.left = '5px';
-        fpsElement.style.fontSize = '12px';
+        fpsElement.style.fontSize = isTouchDevice() ? '9px' : '12px';
         fpsElement.style.padding = '3px 6px';
         fpsElement.style.backgroundColor = 'rgba(50, 25, 0, 0.8)';
         fpsElement.style.color = '#E6C68A';

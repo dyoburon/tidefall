@@ -2,6 +2,7 @@ import { getPlayerStateFromDb } from '../core/gameState.js';
 import { getPlayerStats, requestLeaderboard } from '../core/network.js';
 import { gameUI } from './ui.js';
 import { registerOpenUI, unregisterOpenUI } from './ui.js';
+import { isTouchDevice } from '../controls/touchControls.js';
 
 // Sample leaderboard data (will be replaced with real data later)
 const sampleLeaderboardData = {
@@ -122,7 +123,7 @@ export function updatePlayerStatsInLeaderboard() {
     fishValue.style.padding = '10px';
     fishValue.style.borderBottom = '1px solid rgba(139, 69, 19, 0.3)';
     fishValue.style.textAlign = 'right';
-    fishValue.style.fontSize = '18px';
+    fishValue.style.fontSize = isTouchDevice() ? '9px' : '18px';
     fishRow.appendChild(fishValue);
 
     statsTable.appendChild(fishRow);
@@ -143,7 +144,7 @@ export function updatePlayerStatsInLeaderboard() {
     monsterValue.style.padding = '10px';
     monsterValue.style.borderBottom = '1px solid rgba(139, 69, 19, 0.3)';
     monsterValue.style.textAlign = 'right';
-    monsterValue.style.fontSize = '18px';
+    monsterValue.style.fontSize = isTouchDevice() ? '9px' : '18px';
     monsterRow.appendChild(monsterValue);
 
     statsTable.appendChild(monsterRow);
@@ -162,7 +163,7 @@ export function updatePlayerStatsInLeaderboard() {
     moneyValue.textContent = `${playerStats.money || 0} 🪙`;
     moneyValue.style.padding = '10px';
     moneyValue.style.textAlign = 'right';
-    moneyValue.style.fontSize = '18px';
+    moneyValue.style.fontSize = isTouchDevice() ? '9px' : '18px';
     moneyValue.style.color = '#B8860B'; // Gold color
     moneyRow.appendChild(moneyValue);
 
@@ -293,9 +294,9 @@ function createLeaderboardUI() {
     bookIcon.className = 'captains-diary-book';
     bookIcon.style.position = 'absolute';
     bookIcon.style.top = '10px';
-    bookIcon.style.right = '180px';
-    bookIcon.style.width = '50px';
-    bookIcon.style.height = '60px';
+    bookIcon.style.right = isTouchDevice() ? '140px' : '180px';
+    bookIcon.style.width = isTouchDevice() ? '40px' : '50px';
+    bookIcon.style.height = isTouchDevice() ? '44px' : '60px';
     bookIcon.style.cursor = 'pointer';
     bookIcon.style.zIndex = '100';
     bookIcon.style.pointerEvents = 'auto';
@@ -453,8 +454,8 @@ function createLeaderboardUI() {
     bookPanel.style.top = '50%';
     bookPanel.style.left = '50%';
     bookPanel.style.transform = 'translate(-50%, -50%)';
-    bookPanel.style.width = '800px'; // Wider to accommodate book spread
-    bookPanel.style.height = '500px'; // Taller for a book look
+    bookPanel.style.width = isTouchDevice() ? '600px' : '800px'; // Wider to accommodate book spread
+    bookPanel.style.height = isTouchDevice() ? '340px' : '500px'; // Taller for a book look
     bookPanel.style.display = 'none';
     bookPanel.style.zIndex = '1000';
     bookPanel.style.pointerEvents = 'auto';
@@ -473,7 +474,7 @@ function createLeaderboardUI() {
     bookBinding.style.position = 'absolute';
     bookBinding.style.top = '0';
     bookBinding.style.left = '50%';
-    bookBinding.style.width = '20px';
+    bookBinding.style.width = isTouchDevice() ? '15px' : '20px';
     bookBinding.style.height = '100%';
     bookBinding.style.transform = 'translateX(-50%)';
     bookBinding.style.backgroundImage = 'linear-gradient(to right, #654321, #8B4513, #654321)';
@@ -519,7 +520,7 @@ function createLeaderboardUI() {
     diaryTitle.textContent = "Captain's Diary";
     diaryTitle.style.textAlign = 'center';
     diaryTitle.style.fontFamily = '"Pirata One", "Bookman Old Style", cursive';
-    diaryTitle.style.fontSize = '28px';
+    diaryTitle.style.fontSize = isTouchDevice() ? '15px' : '28px';
     diaryTitle.style.color = '#4B2D0A';
     diaryTitle.style.borderBottom = '2px solid #8B4513';
     diaryTitle.style.paddingBottom = '10px';
@@ -582,7 +583,7 @@ function createLeaderboardUI() {
         const entryIcon = document.createElement('span');
         entryIcon.textContent = entry.icon;
         entryIcon.style.marginRight = '10px';
-        entryIcon.style.fontSize = '20px';
+        entryIcon.style.fontSize = isTouchDevice() ? '9px' : '20px';
 
         const entryText = document.createElement('span');
         entryText.textContent = entry.name;
@@ -792,7 +793,7 @@ function createLeaderboardUI() {
     closeButton.style.display = 'flex';
     closeButton.style.justifyContent = 'center';
     closeButton.style.alignItems = 'center';
-    closeButton.style.fontSize = '14px';
+    closeButton.style.fontSize = isTouchDevice() ? '9px' : '14px';
     closeButton.style.fontWeight = 'bold';
     closeButton.style.cursor = 'pointer';
     closeButton.style.zIndex = '1001';

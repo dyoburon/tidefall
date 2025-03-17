@@ -1677,8 +1677,8 @@ function checkBoatMonsterCollisions() {
 
             // Check if monster is defeated
             if (monster.health <= 0) {
-                console.log(`[DEBUG] Monster defeated - changing to dying state`);
-                console.log(`[DEBUG] Active monsters before death: ${getMonsters().length}`);
+                // console.log(`[DEBUG] Monster defeated - changing to dying state`);
+                // console.log(`[DEBUG] Active monsters before death: ${getMonsters().length}`);
 
                 // Check if any other monsters are using the same materials
                 const dyingMaterials = new Set();

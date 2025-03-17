@@ -1,6 +1,7 @@
 // InventoryUI.js - Manages all inventory-related UI components
 
 import { getPlayerInventory } from '../core/network.js';
+import { isTouchDevice } from '../controls/touchControls.js';
 
 class InventoryUI {
     constructor() {
@@ -27,8 +28,8 @@ class InventoryUI {
         inventoryChest.style.position = 'absolute';
         inventoryChest.style.top = '15px';
         inventoryChest.style.right = '60px';
-        inventoryChest.style.width = '65px';
-        inventoryChest.style.height = '60px';
+        inventoryChest.style.width = isTouchDevice() ? '48px' : '65px';
+        inventoryChest.style.height = isTouchDevice() ? '44px' : '60px';
         inventoryChest.style.cursor = 'pointer';
         inventoryChest.style.transition = 'transform 0.3s';
         inventoryChest.style.zIndex = '100';
@@ -200,8 +201,8 @@ class InventoryUI {
         inventoryPanel.style.top = '50%';
         inventoryPanel.style.left = '50%';
         inventoryPanel.style.transform = 'translate(-50%, -50%)';
-        inventoryPanel.style.width = '600px';
-        inventoryPanel.style.height = '400px';
+        inventoryPanel.style.width = isTouchDevice() ? '300px' : '600px';
+        inventoryPanel.style.height = isTouchDevice() ? '200px' : '400px';
         inventoryPanel.style.backgroundColor = '#8B4513'; // Wood brown color
         inventoryPanel.style.border = '8px solid #A0522D'; // Lighter wood border
         inventoryPanel.style.borderRadius = '10px';
@@ -298,7 +299,7 @@ class InventoryUI {
         closeButton.style.backgroundColor = '#DAA520'; // Gold color
         closeButton.style.border = '2px solid #B8860B'; // Darker gold border
         closeButton.style.color = '#654321'; // Dark wood color
-        closeButton.style.fontSize = '16px';
+        closeButton.style.fontSize = isTouchDevice() ? '12px' : '16px';
         closeButton.style.fontWeight = 'bold';
         closeButton.style.cursor = 'pointer';
         closeButton.style.padding = '2px 8px';
@@ -466,14 +467,14 @@ class InventoryUI {
         const cannonName = document.createElement('div');
         cannonName.textContent = 'Cannons';
         cannonName.style.fontWeight = 'bold';
-        cannonName.style.fontSize = '16px';
+        cannonName.style.fontSize = isTouchDevice() ? '12px' : '16px';
         cannonName.style.color = '#FFD700'; // Gold text
         cannonName.style.marginBottom = '4px';
 
         const cannonCount = document.createElement('div');
         cannonCount.textContent = 'Quantity: 200';
         cannonCount.style.color = '#FFF';
-        cannonCount.style.fontSize = '14px';
+        cannonCount.style.fontSize = isTouchDevice() ? '10px' : '14px';
 
         cannonDetails.appendChild(cannonName);
         cannonDetails.appendChild(cannonCount);
@@ -724,7 +725,7 @@ class InventoryUI {
 
             const tierHeader = document.createElement('div');
             tierHeader.textContent = tier.name;
-            tierHeader.style.fontSize = '18px';
+            tierHeader.style.fontSize = isTouchDevice() ? '12px' : '18px';
             tierHeader.style.fontWeight = 'bold';
             tierHeader.style.color = tier.color;
             tierHeader.style.borderBottom = `1px solid ${tier.color}`;
@@ -769,13 +770,13 @@ class InventoryUI {
                 // Fish count
                 const fishCount = document.createElement('div');
                 fishCount.textContent = `Count: ${fish.count}`;
-                fishCount.style.fontSize = '12px';
+                fishCount.style.fontSize = isTouchDevice() ? '10px' : '12px';
                 fishCard.appendChild(fishCount);
 
                 // Fish value
                 const fishValue = document.createElement('div');
                 fishValue.textContent = `Value: ${fish.value}`;
-                fishValue.style.fontSize = '12px';
+                fishValue.style.fontSize = isTouchDevice() ? '10px' : '12px';
                 fishCard.appendChild(fishValue);
 
                 fishGrid.appendChild(fishCard);
@@ -875,21 +876,21 @@ class InventoryUI {
             // Treasure count with safe default
             const countElement = document.createElement('div');
             countElement.textContent = `Count: ${treasureData.count || 1}`;
-            countElement.style.fontSize = '12px';
+            countElement.style.fontSize = isTouchDevice() ? '10px' : '12px';
             countElement.style.marginBottom = '5px';
             treasureCard.appendChild(countElement);
 
             // Treasure value with safe default
             const valueElement = document.createElement('div');
             valueElement.textContent = `Value: ${treasureData.value || 5}`;
-            valueElement.style.fontSize = '12px';
+            valueElement.style.fontSize = isTouchDevice() ? '10px' : '12px';
             treasureCard.appendChild(valueElement);
 
             // Treasure description (if available)
             if (treasureData.description) {
                 const descElement = document.createElement('div');
                 descElement.textContent = treasureData.description;
-                descElement.style.fontSize = '11px';
+                descElement.style.fontSize = isTouchDevice() ? '9px' : '11px';
                 descElement.style.marginTop = '8px';
                 descElement.style.color = 'rgba(200, 200, 200, 0.9)';
                 descElement.style.fontStyle = 'italic';

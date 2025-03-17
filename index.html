@@ -3,19 +3,116 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
     <link rel="stylesheet" href="src/style.css">
+    <style>
+        /* Styling for orientation messages */
+        #orientation-message {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            text-align: center;
+            z-index: 9999;
+            font-family: Arial, sans-serif;
+            box-sizing: border-box;
+            padding-top: 40vh;
+        }
+
+        #orientation-message img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 20px;
+            animation: rotate 1.5s infinite ease-in-out;
+        }
+
+        @keyframes rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            50% {
+                transform: rotate(90deg);
+            }
+
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+
+        /* Hide game canvas in portrait mode on mobile */
+        @media screen and (max-width: 768px) and (orientation: portrait) {
+            canvas {
+                display: none;
+            }
+
+            #orientation-message {
+                display: block;
+            }
+        }
+
+        /* Show game canvas in landscape mode */
+        @media screen and (orientation: landscape) {
+            #orientation-message {
+                display: none;
+            }
+
+            canvas {
+                display: block;
+            }
+        }
+    </style>
 </head>
 
 <body oncontextmenu="return false;">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
-
-
+    <!-- Orientation message for mobile devices -->
+    <div id="orientation-message">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xNi40OCAxNS44Yy0uMzguNDAyLS45NS40MDItMS4zMyAwbC00LjI5LTMuMTljLS4yNC0uMTgyLS40Mi0uNDU1LS40Ni0uNzU1LS4wNC0uMy4wOC0uNTk2LjMzLS43OGw0LjI5LTMuMTdjLjM4LS40MDIuOTUtLjQwMiAxLjMzIDBzLjM4IDEuMDU3IDAgMS40NTlsLTIuOTYgMi40NSAyLjk2IDIuNDVjLjM4LjQwMi4zOCAxLjA1NyAwIDEuNDU5em0tMi0yLjg0MXptLTMuMDYgMC0yLjk2LTIuNDVjLS4zOC0uNDAyLS4zOC0xLjA1NyAwLTEuNDU5cy45NS0uNDAyIDEuMzMgMGw0LjI5IDMuMTljLjI0LjE4Mi40Mi40NTUuNDYuNzU1LjA0LjMtLjA4LjU5Ni0uMzMuNzhsLTQuMjkgMy4xOWMtLjM4LjQwMi0uOTUuNDAyLTEuMzMgMHMtLjM4LTEuMDU3IDAtMS40NTlsMi45Ni0yLjQ1eiIvPjwvc3ZnPg=="
+            alt="Rotate Device">
+        <h2>Please Rotate Your Device</h2>
+        <p>This game works best in landscape mode.</p>
+    </div>
 
     <!-- Visual Effects Status -->
 
     <script type="module" src="src/core/main.js"></script>
+
+    <script>
+        // Force landscape orientation if possible
+        function forceOrientation() {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape')
+                    .catch(function (error) {
+                        console.log('Screen orientation lock failed: ' + error);
+                    });
+            }
+        }
+
+        // Try to force orientation on page load
+        document.addEventListener('DOMContentLoaded', forceOrientation);
+
+        // Listen for orientation changes
+        window.addEventListener('orientationchange', function () {
+            // Check if device is in portrait mode
+            const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+            const orientationMessage = document.getElementById('orientation-message');
+
+            if (orientationMessage) {
+                // Show/hide orientation message based on orientation
+                orientationMessage.style.display = isPortrait ? 'block' : 'none';
+            }
+
+            // Try to force landscape again after orientation change
+            forceOrientation();
+        });
+    </script>
 </body>
 
 </html>

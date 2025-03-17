@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { isTouchDevice } from '../controls/touchControls.js';
+
 
 /**
  * Manages the crosshair/aiming UI for all abilities

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { sendChatMessage, getRecentMessages, onChatMessage, onRecentMessages } from '../core/network.js';
 // Import the command system
 import { initCommandSystem, isCommand, processCommand } from '../commands/commandSystem.js';
+import { isTouchDevice } from '../controls/touchControls.js';
 
 export class ChatSystem {
     constructor() {
@@ -18,6 +19,10 @@ export class ChatSystem {
 
         // Set up Socket.IO event listeners
         this.setupSocketEvents();
+
+        // Add resize and orientation change listeners to update the UI if needed
+        window.addEventListener('resize', this.updateLayoutForDevice.bind(this));
+        window.addEventListener('orientationchange', this.updateLayoutForDevice.bind(this));
     }
 
     createChatUI() {
@@ -25,9 +30,10 @@ export class ChatSystem {
         this.controlPanel = document.createElement('div');
         this.controlPanel.className = 'ship-control-panel';
         this.controlPanel.style.position = 'absolute';
-        this.controlPanel.style.bottom = '20px';
-        this.controlPanel.style.right = '20px';
-        this.controlPanel.style.width = '200px';
+        this.controlPanel.style.bottom = isTouchDevice() ? '10px' : '20px';
+        this.controlPanel.style.right = isTouchDevice() ? '10px' : '20px';
+        this.controlPanel.style.width = isTouchDevice() ? '100px' : '200px';
+        //this.controlPanel.style.height = '100px';
         this.controlPanel.style.backgroundColor = '#8B5A2B'; // Medium cedar wood
         this.controlPanel.style.borderRadius = '8px';
         this.controlPanel.style.boxShadow = '0 0 15px rgba(0, 0, 0, 0.7), inset 0 0 10px rgba(0, 0, 0, 0.3)'; // Worn wood look
@@ -40,13 +46,13 @@ export class ChatSystem {
         // Panel header with navigation station look
         const panelHeader = document.createElement('div');
         panelHeader.className = 'control-panel-header';
-        panelHeader.style.height = '30px';
+        panelHeader.style.height = isTouchDevice() ? '18px' : '30px';
         panelHeader.style.backgroundColor = '#654321'; // Darker wood
-        panelHeader.style.borderBottom = '2px solid #D2B48C'; // Tan border like worn leather
+        panelHeader.style.borderBottom = isTouchDevice() ? '1px solid #D2B48C' : '2px solid #D2B48C';
         panelHeader.style.display = 'flex';
         panelHeader.style.justifyContent = 'space-between';
         panelHeader.style.alignItems = 'center';
-        panelHeader.style.padding = '0 10px';
+        panelHeader.style.padding = isTouchDevice() ? '0 4px' : '0 10px';
         this.controlPanel.appendChild(panelHeader);
 
         // Ship systems label (now NAVIGATION STATION)
@@ -55,7 +61,7 @@ export class ChatSystem {
         systemsLabel.style.color = '#DAA520'; // Golden text
         systemsLabel.style.fontFamily = 'serif';
         systemsLabel.style.fontWeight = 'bold';
-        systemsLabel.style.fontSize = '14px';
+        systemsLabel.style.fontSize = isTouchDevice() ? '9px' : '14px';
         systemsLabel.style.letterSpacing = '1px';
         panelHeader.appendChild(systemsLabel);
 
@@ -72,33 +78,33 @@ export class ChatSystem {
         // Create tabbed interface (styled as weathered book tabs)
         const tabsContainer = document.createElement('div');
         tabsContainer.style.display = 'flex';
-        tabsContainer.style.borderBottom = '1px solid #D2B48C'; // Tan border
+        tabsContainer.style.borderBottom = isTouchDevice() ? '0.5px solid #D2B48C' : '1px solid #D2B48C';
         this.controlPanel.appendChild(tabsContainer);
 
         // Navigator's Map tab (renamed from Radar)
         this.radarTab = document.createElement('div');
-        this.radarTab.textContent = 'CHART';
-        this.radarTab.style.padding = '6px 10px';
+        this.radarTab.textContent = isTouchDevice() ? 'MAP' : 'CHART';
+        this.radarTab.style.padding = isTouchDevice() ? '3px 3px' : '6px 10px';
         this.radarTab.style.backgroundColor = '#654321'; // Darker wood
         this.radarTab.style.color = '#DAA520'; // Golden text
         this.radarTab.style.fontFamily = 'serif';
-        this.radarTab.style.fontSize = '12px';
+        this.radarTab.style.fontSize = isTouchDevice() ? '8px' : '12px';
         this.radarTab.style.cursor = 'pointer';
         this.radarTab.style.flex = '1';
         this.radarTab.style.textAlign = 'center';
-        this.radarTab.style.borderRight = '1px solid #D2B48C'; // Tan border
+        this.radarTab.style.borderRight = isTouchDevice() ? '0.5px solid #D2B48C' : '1px solid #D2B48C';
         this.radarTab.style.borderTop = '2px solid #DAA520'; // Gold top accent
         this.radarTab.dataset.active = 'true';
         tabsContainer.appendChild(this.radarTab);
 
         // Comms tab (styled as a logbook tab)
         this.commsTab = document.createElement('div');
-        this.commsTab.textContent = 'LOGBOOK';
-        this.commsTab.style.padding = '6px 10px';
+        this.commsTab.textContent = isTouchDevice() ? 'LOG' : 'LOGBOOK';
+        this.commsTab.style.padding = isTouchDevice() ? '3px 3px' : '6px 10px';
         this.commsTab.style.backgroundColor = 'transparent';
         this.commsTab.style.color = '#B8860B'; // Darker gold/brass
         this.commsTab.style.fontFamily = 'serif';
-        this.commsTab.style.fontSize = '12px';
+        this.commsTab.style.fontSize = isTouchDevice() ? '8px' : '12px';
         this.commsTab.style.cursor = 'pointer';
         this.commsTab.style.flex = '1';
         this.commsTab.style.textAlign = 'center';
@@ -133,8 +139,20 @@ export class ChatSystem {
         radarScreen.style.top = '50%';
         radarScreen.style.left = '50%';
         radarScreen.style.transform = 'translate(-50%, -50%)';
-        radarScreen.style.width = '150px';
-        radarScreen.style.height = '150px';
+
+        // Check if on mobile device
+        if (isTouchDevice()) {
+            // Mobile size (50% smaller)
+            radarScreen.style.width = '75px';
+            radarScreen.style.height = '75px';
+            // Also make the container smaller
+            contentArea.style.height = '100px'; // Half the original height
+        } else {
+            // Desktop size (original)
+            radarScreen.style.width = '150px';
+            radarScreen.style.height = '150px';
+        }
+
         radarScreen.style.borderRadius = '50%';
         radarScreen.style.border = '2px solid #B8860B'; // Brass border
         radarScreen.style.boxShadow = 'inset 0 0 10px rgba(184, 134, 11, 0.4)'; // Darker gold inner glow
@@ -145,30 +163,30 @@ export class ChatSystem {
         const directions = ['N', 'E', 'S', 'W'];
         directions.forEach((dir, i) => {
             const dirMarker = document.createElement('div');
+            dirMarker.className = 'direction-marker';
             dirMarker.textContent = dir;
             dirMarker.style.position = 'absolute';
             dirMarker.style.color = '#8B4513'; // Dark brown text
-            dirMarker.style.fontSize = '10px';
+
+            // Slightly larger font on mobile for better visibility
+            if (isTouchDevice()) {
+                dirMarker.style.fontSize = '7px';
+            } else {
+                dirMarker.style.fontSize = '10px';
+            }
+
             dirMarker.style.fontFamily = 'serif';
             dirMarker.style.fontWeight = 'bold';
 
-            // Position based on direction
+            // Position based on direction - move slightly further from edges
             if (dir === 'N') {
-                dirMarker.style.top = '5px';
-                dirMarker.style.left = '50%';
-                dirMarker.style.transform = 'translateX(-50%)';
+                dirMarker.style.top = isTouchDevice() ? '4px' : '5px';
             } else if (dir === 'E') {
-                dirMarker.style.right = '5px';
-                dirMarker.style.top = '50%';
-                dirMarker.style.transform = 'translateY(-50%)';
+                dirMarker.style.right = isTouchDevice() ? '4px' : '5px';
             } else if (dir === 'S') {
-                dirMarker.style.bottom = '5px';
-                dirMarker.style.left = '50%';
-                dirMarker.style.transform = 'translateX(-50%)';
+                dirMarker.style.bottom = isTouchDevice() ? '4px' : '5px';
             } else {
-                dirMarker.style.left = '5px';
-                dirMarker.style.top = '50%';
-                dirMarker.style.transform = 'translateY(-50%)';
+                dirMarker.style.left = isTouchDevice() ? '4px' : '5px';
             }
 
             radarScreen.appendChild(dirMarker);
@@ -177,12 +195,20 @@ export class ChatSystem {
         // Add distance rings
         for (let i = 1; i <= 2; i++) {
             const ring = document.createElement('div');
+            ring.className = 'radar-ring';
             ring.style.position = 'absolute';
             ring.style.top = `${50 - i * 25}%`;
             ring.style.left = `${50 - i * 25}%`;
             ring.style.width = `${i * 50}%`;
             ring.style.height = `${i * 50}%`;
-            ring.style.border = '1px dashed #8B4513'; // Dark brown dashed line
+
+            // Thinner border on mobile
+            if (isTouchDevice()) {
+                ring.style.border = '0.5px dashed #8B4513'; // Thinner dashed line for mobile
+            } else {
+                ring.style.border = '1px dashed #8B4513'; // Standard dashed line for desktop
+            }
+
             ring.style.borderRadius = '50%';
             radarScreen.appendChild(ring);
         }
@@ -233,12 +259,13 @@ export class ChatSystem {
         this.messagesArea = document.createElement('div');
         this.messagesArea.className = 'chat-messages';
         this.messagesArea.style.flex = '1';
-        this.messagesArea.style.padding = '5px 8px';
+        this.messagesArea.style.padding = isTouchDevice() ? '2px 3px' : '5px 8px';
         this.messagesArea.style.overflowY = 'auto';
         this.messagesArea.style.color = '#8B4513'; // Dark brown text
-        this.messagesArea.style.fontSize = '12px';
+        this.messagesArea.style.fontSize = isTouchDevice() ? '7px' : '12px';
         this.messagesArea.style.fontFamily = 'serif';
-        this.messagesArea.style.height = '140px';
+        this.messagesArea.style.height = isTouchDevice() ? '70px' : '140px';
+        this.messagesArea.style.lineHeight = isTouchDevice() ? '10px' : '20px';
         this.chatContainer.appendChild(this.messagesArea);
 
         // Input area (quill and ink design)
@@ -253,33 +280,37 @@ export class ChatSystem {
         // Message input (styled as a quill writing area)
         this.messageInput = document.createElement('input');
         this.messageInput.type = 'text';
-        this.messageInput.placeholder = 'Write in logbook...';
+        this.messageInput.placeholder = isTouchDevice() ? 'Write...' : 'Write in logbook...';
         this.messageInput.style.flex = '1';
-        this.messageInput.style.padding = '5px';
+        this.messageInput.style.padding = isTouchDevice() ? '1px 2px' : '5px';
         this.messageInput.style.border = '1px solid #8B4513'; // Dark brown border
         this.messageInput.style.borderRadius = '3px';
         this.messageInput.style.backgroundColor = '#E6D2B5'; // Lighter parchment
         this.messageInput.style.color = '#3D1C00'; // Very dark brown
         this.messageInput.style.fontFamily = 'serif';
         this.messageInput.style.fontStyle = 'italic';
+        this.messageInput.style.height = isTouchDevice() ? '14px' : 'auto';
         inputArea.appendChild(this.messageInput);
 
         // Send button (styled as a wax seal)
         this.sendButton = document.createElement('button');
-        this.sendButton.textContent = 'SEAL';
-        this.sendButton.style.marginLeft = '5px';
-        this.sendButton.style.padding = '5px';
+        this.sendButton.textContent = isTouchDevice() ? '✓' : 'SEAL';
+        this.sendButton.style.marginLeft = isTouchDevice() ? '2px' : '5px';
+        this.sendButton.style.padding = isTouchDevice() ? '0' : '5px';
         this.sendButton.style.border = '1px solid #8B4513'; // Dark brown border
         this.sendButton.style.borderRadius = '50%';
-        this.sendButton.style.width = '40px';
-        this.sendButton.style.height = '40px';
+        this.sendButton.style.width = isTouchDevice() ? '16px' : '40px';
+        this.sendButton.style.height = isTouchDevice() ? '16px' : '40px';
         this.sendButton.style.backgroundColor = '#B22222'; // Firebrick red for wax seal
         this.sendButton.style.color = '#FFD700'; // Gold text
         this.sendButton.style.cursor = 'pointer';
         this.sendButton.style.fontFamily = 'serif';
-        this.sendButton.style.fontSize = '10px';
+        this.sendButton.style.fontSize = isTouchDevice() ? '8px' : '10px';
         this.sendButton.style.fontWeight = 'bold';
         this.sendButton.style.boxShadow = 'inset 0 0 5px rgba(0, 0, 0, 0.3)';
+        this.sendButton.style.display = 'flex';
+        this.sendButton.style.justifyContent = 'center';
+        this.sendButton.style.alignItems = 'center';
         inputArea.appendChild(this.sendButton);
 
         // Unread indicator (styled as a small ink blot)
@@ -441,11 +472,11 @@ export class ChatSystem {
         // Create message element with quill-written appearance
         const messageEl = document.createElement('div');
         messageEl.className = 'chat-message';
-        messageEl.style.marginBottom = '5px';
+        messageEl.style.marginBottom = isTouchDevice() ? '2px' : '5px';
         messageEl.style.wordBreak = 'break-word';
         messageEl.style.fontFamily = 'serif';
-        messageEl.style.fontSize = '12px';
-        messageEl.style.lineHeight = '20px';
+        messageEl.style.fontSize = isTouchDevice() ? '7px' : '12px';
+        messageEl.style.lineHeight = isTouchDevice() ? '9px' : '20px';
 
         // Format timestamp
         let timeStr = '';
@@ -457,7 +488,7 @@ export class ChatSystem {
             // Sanitize the string message to prevent XSS
             const sanitizedMessage = this.sanitizeText(message);
             messageEl.innerHTML = `
-                <span style="color: #8B4513; font-size: 10px; font-style: italic;">${timeStr}</span>
+                <span style="color: #8B4513; font-size: ${isTouchDevice() ? '6px' : '10px'}; font-style: italic;">${timeStr}</span>
                 <span style="color: #3D1C00;">${sanitizedMessage}</span>
             `;
         } else if (message && typeof message === 'object') {
@@ -539,7 +570,7 @@ export class ChatSystem {
 
             // Create message HTML with quill writing style
             messageEl.innerHTML = `
-                <span style="color: #8B4513; font-size: 10px; font-style: italic;">${timeStr}</span>
+                <span style="color: #8B4513; font-size: ${isTouchDevice() ? '6px' : '10px'}; font-style: italic;">${timeStr}</span>
                 <span style="font-weight: bold;"> ${formattedSenderName}: </span>
                 <span style="color: #3D1C00;">${messageContent}</span>
             `;
@@ -613,6 +644,46 @@ export class ChatSystem {
             this.unreadIndicator.style.display = 'flex';
         } else {
             this.unreadIndicator.style.display = 'none';
+        }
+    }
+
+    // New method to update layout if device detection changes
+    updateLayoutForDevice() {
+        // Get the current mobile state
+        const isMobile = isTouchDevice();
+
+        // Only update if the state has changed since last render
+        if (this._lastMobileState !== isMobile) {
+            this._lastMobileState = isMobile;
+
+            // Update all the size-dependent properties
+            // You could re-render the entire UI or just update specific properties
+            this.controlPanel.style.width = isMobile ? '100px' : '200px';
+            this.controlPanel.style.bottom = isMobile ? '10px' : '20px';
+            this.controlPanel.style.right = isMobile ? '10px' : '20px';
+
+            // ... update other properties as needed
+
+            // Specifically update the radar screen size
+            const radarScreen = this.radarScreen;
+            if (radarScreen) {
+                radarScreen.style.width = isMobile ? '75px' : '150px';
+                radarScreen.style.height = isMobile ? '75px' : '150px';
+            }
+
+            // Update content area height
+            const contentArea = this.controlPanel.querySelector('[style*="position: relative"]');
+            if (contentArea) {
+                contentArea.style.height = isMobile ? '100px' : '200px';
+            }
+
+            // Update messages area
+            if (this.messagesArea) {
+                this.messagesArea.style.height = isMobile ? '70px' : '140px';
+                this.messagesArea.style.fontSize = isMobile ? '7px' : '12px';
+            }
+
+            // ... update other dynamic elements
         }
     }
 }

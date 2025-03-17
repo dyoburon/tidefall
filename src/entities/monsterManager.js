@@ -286,7 +286,7 @@ export function updateAllMonsters(deltaTime) {
 
     // More frequent debugging - every 2 seconds
     if (Math.floor(getTime()) % 2 === 0) {
-        console.log(`[DEBUG] Active monsters count: ${monsters.length}`);
+        //console.log(`[DEBUG] Active monsters count: ${monsters.length}`);
     }
 
     // First update monster visibility based on chunks

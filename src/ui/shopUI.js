@@ -1,5 +1,6 @@
 // Shop UI component for selling fish - Parchment/Merchant Style
 import * as THREE from 'three';
+import { isTouchDevice } from '../controls/touchControls.js';
 
 // Sample fish data based on the fish types in fishing.js
 const sampleFishInventory = {
@@ -25,8 +26,8 @@ export function createShopUI() {
     shopContainer.style.top = '50%';
     shopContainer.style.left = '50%';
     shopContainer.style.transform = 'translate(-50%, -50%)';
-    shopContainer.style.width = '600px';
-    shopContainer.style.height = '500px';
+    shopContainer.style.width = isTouchDevice() ? '300px' : '600px';
+    shopContainer.style.height = isTouchDevice() ? '300px' : '500px';
     shopContainer.style.backgroundColor = '#f0e6d2'; // Parchment color
     shopContainer.style.backgroundImage = 'url("https://www.transparenttextures.com/patterns/parchment.png")';
     shopContainer.style.borderRadius = '8px';

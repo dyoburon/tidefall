@@ -55,6 +55,8 @@ import AbilityManager from '../abilities/abilitymanager.js';
 import { updateAllEntityChunks } from '../world/chunkEntityController.js';
 import { initMonsterManager, updateAllMonsters } from '../entities/monsterManager.js';
 import { updateProjectileCollisions, initDamageSystem } from '../abilities/damageSystem.js';
+import { initTouchControls, isTouchDevice } from '../controls/touchControls.js';
+
 
 // Define these variables at the file level scope (outside any functions)
 // so they're accessible throughout the file
@@ -179,6 +181,12 @@ composer.addPass(bloomPass);
 // Add sky setup here
 setupSky();
 // Enable realistic sky with clouds and stars
+
+
+if (isTouchDevice()) {
+    initTouchControls();
+    console.log('Touch controls enabled for mobile devices');
+}
 
 
 // Force removal of any existing sky before toggling
