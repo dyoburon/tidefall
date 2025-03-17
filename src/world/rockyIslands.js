@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createShoreEffect } from './shores.js';
 import { applyOutline } from '../theme/outlineStyles.js';
-
+import { scene } from '../core/gameState.js';
 // Constants for island generation
 const ISLAND_SIZE_MULTIPLIER = 2.0; // Makes islands 2x bigger than regular islands
 const MAX_ROCKS_PER_ISLAND = 25;
@@ -36,7 +36,7 @@ function rockyIslandExists(islandId) {
  * @param {THREE.Scene} scene - The scene to add the island to
  * @returns {Object} - The created island entry with mesh and collider info
  */
-export function createRockyIsland(x, z, seed, scene) {
+export function createRockyIsland(x, z, seed, chunkGroup) {
     // Create a deterministic random function based on the seed
     const random = () => {
         seed = (seed * 9301 + 49297) % 233280;
@@ -57,7 +57,7 @@ export function createRockyIsland(x, z, seed, scene) {
     // Create island container
     const island = new THREE.Group();
     island.position.set(x, 0, z);
-    scene.add(island);
+    chunkGroup.add(island);
 
     // Create island collider 
     const collider = {

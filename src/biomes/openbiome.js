@@ -13,6 +13,7 @@ import BiomeInterface from './biomeinterface.js';
 import { boat as playerObject } from '../core/gameState.js';
 import { toggleFog, setFogProperties, transitionFogType } from '../environment/fog.js';
 import { initRain, startRain, updateRain } from '../weather/rain.js';
+import { createRockyIsland } from '../world/rockyIslands.js';
 
 export const OPEN_FOG_CONFIG = {
     color: 0xD3D3D3,           // Red fog
@@ -142,13 +143,26 @@ class OpenBiome extends BiomeInterface {
 
                     // Check for collisions with a larger radius to ensure spacing
                     if (!checkAllIslandCollisions(position, this.properties.islandMinDistance || 200)) {
-                        // Create the island and pass chunkGroup instead of scene
-                        const island = createIsland(finalX, finalZ, seed * (finalX * finalZ), chunkGroup);
+                        // Decide if this should be a regular island or a rocky island (30% chance of rocky)
+                        const isRocky = Math.random() < 0.3;
+
+                        let island;
+                        if (isRocky) {
+                            // Create rocky island with the chunk group
+                            const rockySeed = Math.floor(Math.random() * 1000000);
+                            island = createRockyIsland(finalX, finalZ, rockySeed, chunkGroup);
+                        } else {
+                            // Create regular island with the chunk group
+                            island = createIsland(finalX, finalZ, seed * (finalX * finalZ), chunkGroup);
+                        }
 
                         if (island) {
+                            // Store island type in the entity for later reference
+                            island.islandType = isRocky ? 'rocky' : 'standard';
+
                             this.spawnedEntities.islands.push(island);
                             spawnedInThisChunk.push({
-                                type: 'island',
+                                type: isRocky ? 'rockyIsland' : 'island',
                                 entity: island,
                                 position: new THREE.Vector3(finalX, 0, finalZ)
                             });
