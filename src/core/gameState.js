@@ -129,7 +129,7 @@ export function getPlayerInfo() {
 // Update existing updateAllPlayers function to store the players data
 export function updateAllPlayers(players) {
     allPlayers = players;
-    console.log("🌍 GAME STATE: All players updated:", allPlayers);
+    //console.log("🌍 GAME STATE: All players updated:", allPlayers);
     return allPlayers;
 }
 

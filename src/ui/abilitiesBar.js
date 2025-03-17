@@ -220,17 +220,18 @@ class AbilitiesBar {
                 'inset 0 0 8px rgba(20, 15, 10, 0.8)';
         }, 200);
 
-        /*
+        // Get the ability manager from the window
+
         this.abilityManager = window.abilityManager;
-        // If we have an ability manager, directly call its key handler
+        console.log('i am here');
+
+        // If we have an ability manager, call its activateAbilityByKey method
         if (this.abilityManager) {
             console.log('Ability manager found');
-            // Create a simple event-like object with just the key property
-            const simpleEvent = { key: keyBinding };
 
-            // Call the handler directly
-            this.abilityManager.handleKeyDown(simpleEvent);
-        }*/
+            // Call the method directly with the key binding
+            this.abilityManager.activateAbilityByKey(keyBinding);
+        }
     }
 
     // Method to start a cooldown on an ability
@@ -270,6 +271,7 @@ class AbilitiesBar {
 
     // Check for key presses to activate abilities
     enableKeyboardShortcuts() {
+        /*
         document.addEventListener('keydown', (event) => {
             // Handle the Shift key separately
             if (event.key === 'Shift') {
@@ -283,7 +285,7 @@ class AbilitiesBar {
             if (index !== -1) {
                 this.activateAbility(index);
             }
-        });
+        });*/
     }
 
     // New method to update layout if device detection changes
@@ -358,4 +360,4 @@ function imageExists(url) {
 }
 
 // Export the class
-export default AbilitiesBar; 
+export default AbilitiesBar;

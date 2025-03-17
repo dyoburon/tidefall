@@ -80,7 +80,7 @@ class GameUI {
 
         // Initialize the abilities bar
         this.abilitiesBar = new AbilitiesBar();
-        this.abilitiesBar.enableKeyboardShortcuts();
+        // this.abilitiesBar.enableKeyboardShortcuts();
 
         // Initialize the chat system
         this.chat = initChat();

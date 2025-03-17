@@ -442,6 +442,102 @@ class AbilityManager {
             this.backgroundAbilities.delete(ability);
         }
     }
+
+    /**
+     * Activates an ability by its key binding - specifically for UI clicks
+     * This method is called by the UI when an ability icon is clicked
+     * @param {string} keyBinding - The key binding associated with the ability
+     */
+    activateAbilityByKey(keyBinding) {
+        const key = keyBinding.toLowerCase();
+        console.log(`UI activating ability with key: ${key}`);
+
+        // Special handling for shift key (sprinting)
+        if (key === 'shift') {
+            const sprintId = 'sprint';
+            const sprint = this.abilities.get(sprintId);
+
+            if (sprint) {
+                // Toggle sprint state
+                if (this.activeAbility && this.activeAbility.id === sprintId) {
+                    this.cancelActiveAbility();
+                } else {
+                    // If another ability is active, cancel it first
+                    if (this.activeAbility) {
+                        this.cancelActiveAbility();
+                    }
+
+                    // Start sprint (toggle on)
+                    this.startAbilityAiming(sprint);
+
+                    // Execute immediately since sprint doesn't need aiming
+                    this.executeActiveAbility(null);
+                }
+            }
+            return;
+        }
+
+        // Check if this key is bound to an ability
+        if (this.keyBindings.has(key)) {
+            const abilityId = this.keyBindings.get(key);
+            const ability = this.abilities.get(abilityId);
+
+            if (ability) {
+                // SPECIAL HANDLING FOR HARPOON
+                if (abilityId === 'harpoonShot') {
+                    // Modified harpoon behavior
+                    if (this.isAbilityActive('harpoonShot') || this.backgroundAbilities.has(ability)) {
+                        // If harpoon is in use, call onCancel to start reeling
+                        if (ability.isHarpoonInUse && ability.isHarpoonInUse()) {
+                            ability.onCancel();
+
+                            // Don't deactivate it - just let it keep running in background
+                            if (!this.backgroundAbilities.has(ability)) {
+                                this.backgroundAbilities.add(ability);
+                            }
+                        } else {
+                            // If no harpoon in use, remove from background abilities
+                            this.backgroundAbilities.delete(ability);
+                            if (this.activeAbility === ability) {
+                                this.activeAbility = null;
+                            }
+                        }
+                    } else {
+                        // If harpoon is not active, start aiming
+                        this.startAbilityAiming(ability);
+                    }
+                    return;
+                }
+
+                // HANDLING FOR OTHER ABILITIES
+                // Check if this ability is already active - if so, toggle it off
+                if (this.activeAbility && this.activeAbility.id === ability.id) {
+                    this.cancelActiveAbility();
+                    return;
+                }
+
+                // Deactivate the current active ability for UI/aiming, but don't cancel background abilities
+                if (this.activeAbility && this.activeAbility !== ability) {
+                    const currentActive = this.activeAbility;
+
+                    // If the current active is a persistent ability (like harpoon), keep it running
+                    if (currentActive.id === 'harpoonShot' && currentActive.isHarpoonInUse()) {
+                        // Add to background instead of cancelling
+                        this.backgroundAbilities.add(currentActive);
+                    } else {
+                        // Otherwise, cancel it normally
+                        this.cancelAbility(currentActive);
+                    }
+
+                    // Clear active ability but don't call cancel on it
+                    this.activeAbility = null;
+                }
+
+                // Start aiming with this ability
+                this.startAbilityAiming(ability);
+            }
+        }
+    }
 }
 
 export default AbilityManager; 
