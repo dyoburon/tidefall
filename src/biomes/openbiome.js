@@ -144,7 +144,7 @@ class OpenBiome extends BiomeInterface {
                     // Check for collisions with a larger radius to ensure spacing
                     if (!checkAllIslandCollisions(position, this.properties.islandMinDistance || 200)) {
                         // Decide if this should be a regular island or a rocky island (30% chance of rocky)
-                        const isRocky = Math.random() < 0.3;
+                        const isRocky = Math.random() < 0.1;
 
                         let island;
                         if (isRocky) {

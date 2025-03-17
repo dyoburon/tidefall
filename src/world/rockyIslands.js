@@ -7,6 +7,11 @@ const ISLAND_SIZE_MULTIPLIER = 2.0; // Makes islands 2x bigger than regular isla
 const MAX_ROCKS_PER_ISLAND = 25;
 const SHORE_GRADIENT_LAYERS = 5; // Number of layers for the gradual shore slope
 
+// At the top of the file, add these constants to control performance
+const PERFORMANCE_MODE = true; // Toggle for easy switching
+const GEOMETRY_DETAIL = PERFORMANCE_MODE ? 0.5 : 1.0; // Reduces geometry detail by 50%
+const OBJECT_COUNT = PERFORMANCE_MODE ? 0.4 : 1.0; // Reduces object counts by 60%
+
 // Cache for texture generation
 const textureCache = {
     rock: new Map(),
@@ -229,12 +234,17 @@ function createGradualShoreBase(island, baseRadius, random) {
         return ((Math.sin(seedValue) + 1) / 2);
     };
 
-    // For more interesting shapes, we'll vary the segment count per layer
-    const baseSegments = 32 + Math.floor(random() * 16); // Between 32-48 segments
+    // PERFORMANCE: Reduce segment count significantly
+    const baseSegments = PERFORMANCE_MODE ?
+        16 + Math.floor(random() * 8) : // 16-24 segments (reduced)
+        32 + Math.floor(random() * 16); // 32-48 segments (original)
 
-    for (let i = 0; i < SHORE_GRADIENT_LAYERS; i++) {
+    // PERFORMANCE: Reduce number of shore layers
+    const layerCount = PERFORMANCE_MODE ? 3 : SHORE_GRADIENT_LAYERS; // Reduce from 5 to 3
+
+    for (let i = 0; i < layerCount; i++) {
         // Calculate each layer's parameters
-        const layerRatio = i / SHORE_GRADIENT_LAYERS;
+        const layerRatio = i / layerCount;
         const innerRadius = baseRadius * (0.75 + layerRatio * 0.25);
         const outerRadius = baseRadius * (0.8 + layerRatio * 0.25);
         const height = 1.5 * (1 - layerRatio);
@@ -244,8 +254,8 @@ function createGradualShoreBase(island, baseRadius, random) {
         const irregularity = 0.2 + (layerRatio * 0.3);
 
         // Create irregular geometry with jagged edges
-        // Outer layers have more segments for more detail
-        const segments = baseSegments - Math.floor(layerRatio * 8);
+        // PERFORMANCE: Reduced segments
+        const segments = Math.max(12, baseSegments - Math.floor(layerRatio * 8));
         const layerGeometry = createIrregularCylinderGeometry(
             innerRadius,
             outerRadius,
@@ -282,8 +292,10 @@ function addRockyTerrain(island, islandRadius, random) {
     // Add some terrain variations like small hills and elevations
     addTerrainVariations(island, islandRadius, random);
 
-    // Create rock clusters
-    const numRocks = 10 + Math.floor(random() * MAX_ROCKS_PER_ISLAND);
+    // PERFORMANCE: Reduce rock count dramatically
+    const numRocks = PERFORMANCE_MODE ?
+        5 + Math.floor(random() * (MAX_ROCKS_PER_ISLAND * 0.4)) : // 5-15 rocks (reduced)
+        10 + Math.floor(random() * MAX_ROCKS_PER_ISLAND);         // 10-35 rocks (original)
 
     for (let i = 0; i < numRocks; i++) {
         // Rock properties
@@ -312,8 +324,10 @@ function addRockyTerrain(island, islandRadius, random) {
         island.add(rock);
     }
 
-    // Create some rock formations (larger clusters)
-    const numFormations = 2 + Math.floor(random() * 3);
+    // PERFORMANCE: Drastically reduce rock formations (most expensive part)
+    const numFormations = PERFORMANCE_MODE ?
+        (random() < 0.5 ? 1 : 0) :                  // 0-1 formations (reduced)
+        2 + Math.floor(random() * 3);               // 2-4 formations (original)
 
     for (let i = 0; i < numFormations; i++) {
         createRockFormation(island, islandRadius, random);
@@ -624,24 +638,48 @@ function createRock(size, height, random) {
     const rockType = Math.floor(random() * 4);
     let baseGeometry;
 
-    // Create different rock shapes based on type
+    // PERFORMANCE: Reduce geometry complexity
+    const detailFactor = PERFORMANCE_MODE ? 0.5 : 1.0;
+
+    // Create different rock shapes based on type with lower segment counts
     switch (rockType) {
         case 0: // Angular jagged rock
-            baseGeometry = new THREE.BoxGeometry(size, height, size, 4, 6, 4);
+            baseGeometry = new THREE.BoxGeometry(
+                size, height, size,
+                Math.max(2, Math.floor(4 * detailFactor)),
+                Math.max(3, Math.floor(6 * detailFactor)),
+                Math.max(2, Math.floor(4 * detailFactor))
+            );
             break;
         case 1: // Rounded rock
-            baseGeometry = new THREE.SphereGeometry(size * 0.7, 8, 8);
+            baseGeometry = new THREE.SphereGeometry(
+                size * 0.7,
+                Math.max(4, Math.floor(8 * detailFactor)),
+                Math.max(4, Math.floor(8 * detailFactor))
+            );
             break;
         case 2: // Elongated rock
-            baseGeometry = new THREE.CylinderGeometry(size * 0.5, size * 0.7, height, 8, 4);
+            baseGeometry = new THREE.CylinderGeometry(
+                size * 0.5, size * 0.7, height,
+                Math.max(4, Math.floor(8 * detailFactor)),
+                Math.max(2, Math.floor(4 * detailFactor))
+            );
             break;
         case 3: // Flat rock
-            baseGeometry = new THREE.CylinderGeometry(size, size * 1.2, height * 0.6, 8, 2);
+            baseGeometry = new THREE.CylinderGeometry(
+                size, size * 1.2, height * 0.6,
+                Math.max(4, Math.floor(8 * detailFactor)),
+                2
+            );
             break;
         default: // Fallback to simple box if somehow rockType is invalid
             baseGeometry = new THREE.BoxGeometry(size, height, size);
             break;
     }
+
+    // PERFORMANCE: Simplify vertex distortion in performance mode
+    // Calculate once to reuse in the distortion loop
+    const distortionFactor = PERFORMANCE_MODE ? 0.7 : 1.0;
 
     // Check that geometry was created successfully
     if (!baseGeometry || !baseGeometry.attributes || !baseGeometry.attributes.position) {
@@ -655,6 +693,7 @@ function createRock(size, height, random) {
 
     // Make sure vertices exist before processing
     if (vertices && vertices.count) {
+        // Only compute directions if we're actually going to use them
         // First pass: compute directions for consistent distortion
         for (let i = 0; i < vertices.count; i++) {
             const x = vertices.getX(i);
@@ -675,7 +714,7 @@ function createRock(size, height, random) {
             }
         }
 
-        // Second pass: apply distortion with multiple levels of noise
+        // PERFORMANCE: Reduce noise complexity
         for (let i = 0; i < vertices.count; i++) {
             const x = vertices.getX(i);
             const y = vertices.getY(i);
@@ -684,16 +723,19 @@ function createRock(size, height, random) {
             // Get the normalized direction to this vertex
             const dir = directions[i];
 
-            // Add noise to vertices with more variation at the vertices
-            // Variable noise at different frequencies for more natural look
-            const highFreqNoise = (random() - 0.5) * size * 0.2;
-            const midFreqNoise = Math.sin(x * 5 + y * 3 + z * 4) * size * 0.15;
-            const lowFreqNoise = Math.cos(x * 0.8 + z * 0.7) * size * 0.3;
+            // PERFORMANCE: Simpler noise calculation
+            const highFreqNoise = (random() - 0.5) * size * 0.2 * distortionFactor;
+
+            // Only compute these more expensive noises in full detail mode
+            const midFreqNoise = PERFORMANCE_MODE ? 0 :
+                Math.sin(x * 5 + y * 3 + z * 4) * size * 0.15;
+            const lowFreqNoise = PERFORMANCE_MODE ? highFreqNoise * 0.5 :
+                Math.cos(x * 0.8 + z * 0.7) * size * 0.3;
 
             // Different noise for different coordinates to make it more natural
-            let noiseX = highFreqNoise + midFreqNoise * 0.8 + lowFreqNoise * 0.5;
-            let noiseY = highFreqNoise * 0.7 + midFreqNoise + lowFreqNoise * 0.3;
-            let noiseZ = highFreqNoise * 0.5 + midFreqNoise * 0.6 + lowFreqNoise;
+            let noiseX = highFreqNoise + (PERFORMANCE_MODE ? 0 : (midFreqNoise * 0.8 + lowFreqNoise * 0.5));
+            let noiseY = highFreqNoise * 0.7 + (PERFORMANCE_MODE ? 0 : (midFreqNoise + lowFreqNoise * 0.3));
+            let noiseZ = highFreqNoise * 0.5 + (PERFORMANCE_MODE ? 0 : (midFreqNoise * 0.6 + lowFreqNoise));
 
             // Apply rock-type-specific adjustments
             if (rockType === 0) { // Angular rock - amplify the jaggedness
@@ -722,7 +764,7 @@ function createRock(size, height, random) {
         baseGeometry.computeVertexNormals();
     }
 
-    // Create material for the rock - vary by rock type
+    // Create material for the rock
     const hue = 0.05 + random() * 0.05;
     const saturation = 0.2 + random() * 0.3;
     let lightness = 0.3 + random() * 0.2;
@@ -736,14 +778,12 @@ function createRock(size, height, random) {
 
     const rockColor = new THREE.Color().setHSL(hue, saturation, lightness);
 
-    // Generate texture based on rock type
-    const roughness = 0.7 + random() * 0.3;
-    const rockTexture = createRockTexture(rockColor, roughness);
-
+    // PERFORMANCE: Simplify rock materials in performance mode
     const rockMaterial = new THREE.MeshPhongMaterial({
         color: rockColor,
-        map: rockTexture,
-        bumpMap: rockTexture,
+        // Only use texture in full detail mode, or for large rocks
+        map: (!PERFORMANCE_MODE || size > 5) ? createRockTexture(rockColor, 0.7) : null,
+        bumpMap: (!PERFORMANCE_MODE || size > 5) ? createRockTexture(rockColor, 0.7) : null,
         bumpScale: 0.5 + random() * 0.5,
         shininess: 5 + random() * 10
     });
@@ -756,8 +796,8 @@ function createRock(size, height, random) {
         scale: 1.12 + (rockType === 0 ? 0.05 : 0) // More pronounced outline for angular rocks
     });
 
-    // For some rock types, add extra details
-    if (rockType === 0 && random() < 0.6) {
+    // PERFORMANCE: Skip details in performance mode
+    if (!PERFORMANCE_MODE && rockType === 0 && random() < 0.6) {
         // Add cracks or seams for angular rocks
         try {
             addRockDetail(rock, size, height, random);
