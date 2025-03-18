@@ -251,10 +251,10 @@ function populateChunkWithMonsters(chunkKey, chunkX, chunkZ) {
         chunkSize: chunkSize,
         depth: -20, // Underwater depth
         spawnChance: 1.0, // Always spawn monsters when we request a new chunk
-        minCount: 1,
-        maxCount: 2, // Up to 2 monsters per chunk
+        minCount: 0,
+        maxCount: 0, // Up to 2 monsters per chunk
         typeWeights: {
-            'yellowBeast': 1.0,
+            'yellowBeast': 0.0,
             'kraken': 0.0,
             'seaSerpent': 0.0,
             'phantomJellyfish': 0.0

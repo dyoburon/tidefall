@@ -46,7 +46,7 @@ export function createActiveVolcanoIsland(x, z, seed, scene, options = {}) {
     };
 
     // Create base volcanic island shape
-    createVolcanoBase(island, baseRadius, volcanoHeight, craterRadius, craterDepth, random);
+    // createVolcanoBase(island, baseRadius, volcanoHeight, craterRadius, craterDepth, random);
 
     // Add lava flows to the volcano
     //addLavaFlows(island, baseRadius, volcanoHeight, random);
