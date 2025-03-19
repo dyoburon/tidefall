@@ -1217,8 +1217,6 @@ function animate() {
     // Update birds with delta time
     updateBirds(deltaTime);
 
-    updateProjectileCollisions();
-
     // Update sea monsters with delta time
     updateSeaMonsters(deltaTime);
 
@@ -1228,6 +1226,8 @@ function animate() {
     updateFishing();
 
     updateAllMonsters(deltaTime);
+
+    updateProjectileCollisions();
 
     // Update chunks
     updateChunkSystem(deltaTime);

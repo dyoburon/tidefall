@@ -1,5 +1,6 @@
 // src/combat/damageSystem.js (new file)
 import { getAllMonsters, removeMonster } from '../entities/monsterManager.js';
+import { updateHarpoons } from './harpoonDamageSystem.js';
 import * as THREE from 'three';
 
 // Centralized tracking of active projectiles
@@ -63,23 +64,43 @@ export function unregisterProjectile(id) {
  * @param {Number} amount - Amount of damage to apply
  * @returns {Boolean} True if monster was killed by this damage
  */
-export function applyDamage(monster, amount) {
+export function applyDamage(monster, amount, options = {}) {
     if (!monster || monster.health <= 0) return false;
 
-    // FORCE LETHAL DAMAGE: Set health to 0 instead of subtracting
-    console.log(`Monster ${monster.typeId} hit! Original health: ${monster.health}`);
-    monster.health = 0; // Force to zero for guaranteed kill
-    console.log(`Health now set to 0 - Monster should be killed!`);
+    const { forceLethal = false } = options;
 
-    // Create visual feedback
-    createDamageEffect(monster, amount);
+    // Check if this is a harpoon (damage is 0 or we have a specific flag)
+    const isHarpoon = amount === 0 || options.isHarpoon;
 
-    // Handle monster death
-    handleMonsterDeath(monster);
+    if (isHarpoon) {
+        // For harpoons, don't apply damage at all - just visual feedback
+        console.log(`Harpoon attached to ${monster.typeId}! Health remains: ${monster.health}`);
+        createDamageEffect(monster, amount);
+        return false; // Not killed
+    }
 
-    return true; // Always return true since we're forcing kills
+    if (forceLethal) {
+        // Original behavior for cannonballs and other lethal weapons
+        console.log(`Monster ${monster.typeId} hit! Original health: ${monster.health}`);
+        monster.health = 0; // Force to zero for guaranteed kill
+        console.log(`Health now set to 0 - Monster should be killed!`);
+    } else {
+        // Normal damage application for non-lethal weapons
+        monster.health -= amount;
+        console.log(`Monster ${monster.typeId} hit! Health reduced by ${amount} to ${monster.health}`);
+    }
+
+    // Check if monster is now dead
+    if (monster.health <= 0) {
+        // Handle monster death
+        handleMonsterDeath(monster);
+        return true; // Killed
+    } else {
+        // Still alive - just visual feedback
+        createDamageEffect(monster, amount);
+        return false; // Not killed
+    }
 }
-
 /**
  * Handle a monster's death
  * @param {Object} monster - The monster that died
@@ -141,6 +162,12 @@ export function updateProjectileCollisions() {
     if (!collisionSystemInitialized) {
         console.warn("Damage system not initialized before checking collisions");
         return;
+    }
+
+    // Update all active harpoons first
+    // This ensures tether logic happens before collision detection
+    if (typeof updateHarpoons === 'function') {
+        updateHarpoons();
     }
 
     const monsters = getAllMonsters();

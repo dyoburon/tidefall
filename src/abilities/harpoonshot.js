@@ -2,9 +2,17 @@ import * as THREE from 'three';
 import { boat, scene, getTime } from '../core/gameState.js';
 import { flashMonsterRed } from '../entities/seaMonsters.js';
 import { getAllMonsters } from '../entities/monsterManager.js';
+import {
+    registerHarpoonProjectile,
+    checkHarpoonCollisions,
+    attachHarpoonToMonster,
+    detachHarpoon,
+    updateHarpoons,
+    activeHarpoons
+} from './harpoonDamageSystem.js';
+
 /**
- * Harpoon Shot ability - Fires a harpoon towards the target location.
- * If it hits an enemy, it attaches to them.
+ * Harpoon Shot ability - Fires a harpoon that can attach to monsters and reel them in.
  */
 class HarpoonShot {
     constructor() {
@@ -12,7 +20,7 @@ class HarpoonShot {
         this.name = 'Harpoon Shot';
         this.canCancel = true;
         this.staysActiveAfterExecution = true; // Keep active while harpoon is attached
-        this.harpoonSpeed = 25;
+        this.harpoonSpeed = 35;
         this.gravity = 0.3; // Very small gravity value to start with
 
         // Track the harpoon state
@@ -25,8 +33,14 @@ class HarpoonShot {
         this.isPersisting = false; // Track if harpoon is in persistence state
         this.isReset = true; // Track if harpoon is in ready state
 
+        // Unique ID for this harpoon instance
+        this.harpoonId = null;
+
         // Reeling speed (units per second)
         this.reelingSpeed = 30;
+
+        // Monster pull speed (slower than harpoon reeling)
+        this.monsterPullSpeed = 20;
 
         // Fixed position on the boat front where the harpoon is fired from
         this.harpoonPosition = { x: 0, y: 2, z: -4 }; // Front of boat
@@ -36,15 +50,15 @@ class HarpoonShot {
 
         // Flag to help with background execution
         this.isExecuting = false;
+
+        // Line thickness
+        this.lineThickness = 0.1;
     }
 
     onAimStart(crosshair) {
-
         // Change crosshair color/shape for harpoon
         if (crosshair && crosshair.crosshairElement) {
             crosshair.crosshairElement.style.borderColor = '#FFD700'; // Gold color for harpoon
-        } else {
-
         }
     }
 
@@ -54,12 +68,9 @@ class HarpoonShot {
 
         // If harpoon is already fired but not reeling, start reeling instead of firing again
         if (this.harpoon && !this.isReset) {
-
             this.startReeling();
             return true;
         }
-
-
 
         // Get harpoon firing position (from front of boat)
         this.firingPosition = this.getHarpoonFiringPosition();
@@ -67,7 +78,6 @@ class HarpoonShot {
         // Calculate direction from firing position to target
         const direction = new THREE.Vector3().subVectors(targetPosition, this.firingPosition);
         direction.normalize();
-
 
         // Create and fire the harpoon
         this.fireHarpoon(this.firingPosition, direction, targetPosition);
@@ -80,14 +90,11 @@ class HarpoonShot {
     }
 
     onCancel() {
-
-
         // Only do something if harpoon exists and we're not already reeling
         if (!this.harpoon || this.isReeling) return true;
 
         // Start reeling in the harpoon
         if (this.isAttached || this.isPersisting) {
-
             this.startReeling();
         }
 
@@ -106,7 +113,6 @@ class HarpoonShot {
                 endPos = this.harpoon.position;
             } else {
                 // If somehow harpoon is missing but line exists, use the boat position
-                // This should not happen but prevents errors
                 endPos = startPos.clone();
             }
 
@@ -126,7 +132,6 @@ class HarpoonShot {
 
         // If harpoon exists but somehow there's no line, recreate the line
         if (this.harpoon && !this.harpoonLine) {
-
             this.createHarpoonLine(this.getHarpoonFiringPosition(), this.harpoon.position);
         }
     }
@@ -162,9 +167,24 @@ class HarpoonShot {
         // Create the harpoon line
         this.createHarpoonLine(position, position);
 
+        // Generate a unique ID for this harpoon instance
+        this.harpoonId = `harpoon-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+        // Register with the harpoon damage system
+        registerHarpoonProjectile(this.harpoonId, {
+            mesh: this.harpoon,
+            line: this.harpoonLine,
+            isReeling: this.isReeling,
+            controls: {
+                onAttach: (monster) => this.handleHarpoonAttached(monster),
+                onDetach: () => this.handleHarpoonDetached(),
+                onDamageTick: (monster) => this.handleDamageTick(monster),
+                updateLineThickness: (thickness) => this.updateLineThickness(thickness)
+            }
+        });
+
         // Calculate target distance
         const targetDistance = position.distanceTo(targetPosition);
-
 
         // Animate the harpoon
         const startTime = getTime();
@@ -187,14 +207,15 @@ class HarpoonShot {
             verticalVelocity -= this.gravity * 0.16;
             this.harpoon.position.y += verticalVelocity;
 
-            // Note: We don't need to update the line here anymore since the main update() does it
-
-            // Check for enemy collisions
-            this.checkEnemyCollisions();
+            // Check for collision with monsters using the damage system
+            const hitMonster = checkHarpoonCollisions(this.harpoonId);
+            if (hitMonster) {
+                attachHarpoonToMonster(this.harpoonId, hitMonster);
+                return;
+            }
 
             // Check for water collision
             if (this.harpoon.position.y <= 0) {
-
                 this.isPersisting = true;
                 this.harpoon.position.y = 0.1; // Keep slightly above water
                 return;
@@ -219,14 +240,15 @@ class HarpoonShot {
             this.harpoonLine = null;
         }
 
-        // REPLACE SIMPLE LINE WITH TUBE GEOMETRY
         // Calculate direction and length
         const direction = new THREE.Vector3().subVectors(endPos, startPos);
         const length = direction.length();
 
+        // Use the stored thickness or default
+        const tubeRadius = this.lineThickness || 0.1;
+
         // Create a tube geometry instead of a line
         // This will be visible from all angles
-        const tubeRadius = 0.1; // Thickness of the rope/tube
         const tubeRadialSegments = 8; // Level of detail around the tube
         const path = new THREE.LineCurve3(startPos, endPos);
         const tubeGeometry = new THREE.TubeGeometry(
@@ -251,7 +273,6 @@ class HarpoonShot {
 
         // Add to scene
         scene.add(this.harpoonLine);
-
     }
 
     updateHarpoonLine(startPos, endPos) {
@@ -260,41 +281,17 @@ class HarpoonShot {
         this.createHarpoonLine(startPos, endPos);
     }
 
-    checkEnemyCollisions() {
-        if (!this.harpoon || this.isAttached) return;
-
-        // Get monsters from seaMonsters.js
-        const monsters = getAllMonsters();
-
-        if (monsters && monsters.length > 0) {
-            for (const monster of monsters) {
-                // Simple distance-based collision check
-                const distanceToEnemy = this.harpoon.position.distanceTo(monster.mesh.position);
-                const collisionThreshold = 10; // Adjust based on monster size
-
-                if (distanceToEnemy < collisionThreshold) {
-
-                    this.attachToEnemy(monster);
-
-                    // Flash the monster red to indicate it was hit
-                    flashMonsterRed(monster, true);
-
-                    break;
-                }
-            }
-        }
-    }
-
-    attachToEnemy(enemy) {
+    // Callback for when the harpoon attaches to a monster through the damage system
+    handleHarpoonAttached(monster) {
         this.isAttached = true;
-        this.attachedEnemy = enemy;
+        this.attachedEnemy = monster;
 
         // Position harpoon at enemy center
-        this.harpoon.position.copy(enemy.mesh.position);
+        if (monster && monster.mesh) {
+            this.harpoon.position.copy(monster.mesh.position);
+        }
 
-
-
-        // Indicate visually that we're attached (e.g., change color)
+        // Indicate visually that we're attached
         if (this.harpoon.material) {
             this.harpoon.material.color.set(0xff0000); // Red when attached
         }
@@ -302,27 +299,44 @@ class HarpoonShot {
         // Change line color to indicate tension
         if (this.harpoonLine.material) {
             this.harpoonLine.material.color.set(0xff8800); // Orange for tension
-            this.harpoonLine.material.linewidth = 3; // Thicker line when attached
         }
+
+        console.log(`Harpoon attached to ${monster.typeId}`);
+    }
+
+    // Callback for when the harpoon detaches
+    handleHarpoonDetached() {
+        // Visual indication of detachment already handled in startReeling
+        console.log("Harpoon detached from monster");
+    }
+
+    // Callback for damage ticks (if implemented)
+    handleDamageTick(monster) {
+        console.log(`Applied damage tick to ${monster.typeId}`);
     }
 
     startReeling() {
         // Start reeling in the harpoon
         this.isReeling = true;
 
-        // If attached to an enemy, detach
-        if (this.attachedEnemy) {
+        // Update the harpoon data in the damage system to know we're reeling
+        if (this.harpoonId) {
+            const harpoonData = activeHarpoons.get(this.harpoonId);
+            if (harpoonData) {
+                harpoonData.isReeling = true;
+            }
+        }
 
+        // If attached to an enemy, notify the damage system to detach
+        if (this.attachedEnemy && this.harpoonId) {
+            detachHarpoon(this.harpoonId);
 
-            // Flash the monster to indicate detachment
-            flashMonsterRed(this.attachedEnemy, false);
-
-            this.isAttached = false;
-            this.attachedEnemy = null;
+            // But we're still keeping track of the monster to pull it
+            console.log(`Starting to reel in monster: ${this.attachedEnemy.typeId}`);
         }
 
         // Change line color to indicate reeling
-        if (this.harpoonLine.material) {
+        if (this.harpoonLine && this.harpoonLine.material) {
             this.harpoonLine.material.color.set(0x00ff00); // Green when reeling
         }
     }
@@ -334,19 +348,39 @@ class HarpoonShot {
         const direction = new THREE.Vector3().subVectors(boatPosition, this.harpoon.position);
         const distance = direction.length();
 
-        // SIMPLIFIED: Only remove harpoon when it's very close to the boat
+        // If we're close enough to the boat, remove the harpoon
         if (distance < 3) {
-
             this.removeHarpoon();
             return;
         }
 
-        // Normalize direction and move harpoon toward boat
+        // Normalize direction
         direction.normalize();
 
-        // Move at reeling speed, scaled by deltaTime for frame rate independence
+        // Move the harpoon toward the boat
         const moveAmount = this.reelingSpeed * (deltaTime || 0.016);
-        this.harpoon.position.add(direction.multiplyScalar(moveAmount));
+        this.harpoon.position.add(direction.clone().multiplyScalar(moveAmount));
+
+        // If we have an attached enemy, pull it too (but slower)
+        if (this.attachedEnemy && this.attachedEnemy.mesh) {
+            // Calculate pull direction toward boat
+            const pullDirection = new THREE.Vector3().subVectors(boatPosition, this.attachedEnemy.mesh.position);
+            const monsterDistance = pullDirection.length();
+
+            // Don't pull if already very close to boat
+            if (monsterDistance > 5) {
+                pullDirection.normalize();
+
+                // Pull monster toward boat (slower than harpoon itself)
+                const monsterMoveAmount = this.monsterPullSpeed * (deltaTime || 0.016);
+                this.attachedEnemy.mesh.position.add(pullDirection.multiplyScalar(monsterMoveAmount));
+
+                // If monster has physics or collisions, update those too
+                if (this.attachedEnemy.updatePhysics) {
+                    this.attachedEnemy.updatePhysics();
+                }
+            }
+        }
 
         // Update harpoon rotation to point along movement direction
         this.harpoon.quaternion.setFromUnitVectors(
@@ -375,6 +409,7 @@ class HarpoonShot {
         this.isReeling = false;
         this.isPersisting = false;
         this.attachedEnemy = null;
+        this.harpoonId = null;
 
         // Mark as no longer executing
         this.isExecuting = false;
@@ -394,6 +429,14 @@ class HarpoonShot {
     // Utility to check if this ability should stay active in background
     shouldKeepActive() {
         return this.isExecuting && !this.isReset;
+    }
+
+    updateLineThickness(thickness) {
+        // Store the current thickness for recreating the line
+        this.lineThickness = thickness || 0.1;
+
+        // Line thickness is set when creating the line, so we don't need
+        // to do anything else here - the next updateHarpoonLine call will use this value
     }
 }
 
