@@ -11,6 +11,7 @@ import {
     activeHarpoons
 } from './harpoonDamageSystem.js';
 import { initDragEffects, cleanupDragEffects } from '../animations/monsterDragEffects.js';
+import AimingSystem from './aimingSystem.js';
 
 /**
  * Harpoon Shot ability - Fires a harpoon that can attach to monsters and reel them in.
@@ -21,7 +22,7 @@ class HarpoonShot {
         this.name = 'Harpoon Shot';
         this.canCancel = true;
         this.staysActiveAfterExecution = true; // Keep active while harpoon is attached
-        this.harpoonSpeed = 35;
+        this.harpoonSpeed = 30;
         this.gravity = 0.3; // Very small gravity value to start with
 
         // Track the harpoon state
@@ -38,10 +39,10 @@ class HarpoonShot {
         this.harpoonId = null;
 
         // Reeling speed (units per second)
-        this.reelingSpeed = 30;
+        this.reelingSpeed = 60;
 
         // Monster pull speed (slower than harpoon reeling)
-        this.monsterPullSpeed = 20;
+        this.monsterPullSpeed = 30;
 
         // Fixed position on the boat front where the harpoon is fired from
         this.harpoonPosition = { x: 0, y: 2, z: -4 }; // Front of boat
@@ -76,9 +77,15 @@ class HarpoonShot {
         // Get harpoon firing position (from front of boat)
         this.firingPosition = this.getHarpoonFiringPosition();
 
-        // Calculate direction from firing position to target
-        const direction = new THREE.Vector3().subVectors(targetPosition, this.firingPosition);
-        direction.normalize();
+        // Calculate direction using improved targeting with trajectory adjustment
+        const direction = AimingSystem.calculateFiringDirection(this.firingPosition, targetPosition, {
+            adaptiveTrajectory: true,
+            minVerticalAdjust: -0.15,       // Allow downward shots for close targets
+            maxVerticalAdjust: 0.3,      // More upward arc for distant targets
+            minDistance: 10,
+            maxDistance: 120,         // Good max range
+            allowDownwardShots: true  // Allow firing down if needed
+        });
 
         // Create and fire the harpoon
         this.fireHarpoon(this.firingPosition, direction, targetPosition);
