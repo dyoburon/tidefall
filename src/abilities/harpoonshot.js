@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { boat, scene, getTime } from '../core/gameState.js';
+import { boat, scene, getTime, boatVelocity } from '../core/gameState.js';
 import { flashMonsterRed } from '../entities/seaMonsters.js';
 import { getAllMonsters } from '../entities/monsterManager.js';
 import {
@@ -8,10 +8,12 @@ import {
     attachHarpoonToMonster,
     detachHarpoon,
     updateHarpoons,
-    activeHarpoons
+    activeHarpoons,
+    attachHarpoonToIsland
 } from './harpoonDamageSystem.js';
 import { initDragEffects, cleanupDragEffects } from '../animations/monsterDragEffects.js';
 import AimingSystem from './aimingSystem.js';
+import { checkAllIslandCollisions, islandColliders, activeIslands } from '../world/islands.js';
 
 /**
  * Harpoon Shot ability - Fires a harpoon that can attach to monsters and reel them in.
@@ -55,6 +57,11 @@ class HarpoonShot {
 
         // Line thickness
         this.lineThickness = 0.1;
+
+        // Add these properties for grappling
+        this.isGrappling = false;
+        this.grapplePoint = null;
+        this.grappleObject = null;
     }
 
     onAimStart(crosshair) {
@@ -187,6 +194,9 @@ class HarpoonShot {
                 onAttach: (monster) => this.handleHarpoonAttached(monster),
                 onDetach: () => this.handleHarpoonDetached(),
                 onDamageTick: (monster) => this.handleDamageTick(monster),
+                onAttachToIsland: (islandData) => this.handleIslandAttachment(islandData),
+                onDetachFromIsland: () => this.handleIslandDetachment(),
+                onReachGrapplePoint: () => this.removeHarpoon(),
                 updateLineThickness: (thickness) => this.updateLineThickness(thickness)
             }
         });
@@ -220,6 +230,32 @@ class HarpoonShot {
             if (hitMonster) {
                 attachHarpoonToMonster(this.harpoonId, hitMonster);
                 return;
+            }
+
+            // Check for collision with islands (simple sphere check)
+            const hitIsland = checkAllIslandCollisions(this.harpoon.position, 2);
+            if (hitIsland) {
+                // Find the specific island we hit
+                for (const collider of islandColliders) {
+                    const distance = this.harpoon.position.distanceTo(collider.center);
+                    if (distance < collider.radius + 2) {
+                        // Get the island from activeIslands
+                        const islandEntry = activeIslands.get(collider.id);
+                        if (islandEntry && islandEntry.mesh) {
+                            // Create island data for attachment
+                            const islandData = {
+                                hit: true,
+                                point: this.harpoon.position.clone(),
+                                object: islandEntry.mesh,
+                                islandId: collider.id
+                            };
+
+                            // Attach to this island
+                            this.attachToIsland(islandData);
+                            return;
+                        }
+                    }
+                }
             }
 
             // Check for water collision
@@ -352,6 +388,44 @@ class HarpoonShot {
     updateReeling(deltaTime) {
         if (!this.harpoon || !this.isReeling) return;
 
+        // Check if we're grappling to an island
+        if (this.isGrappling && this.grapplePoint) {
+            // This is island grappling - pull boat toward island
+            const boatPosition = boat.position.clone();
+            const grapplePoint = this.grapplePoint.clone();
+            const direction = new THREE.Vector3().subVectors(grapplePoint, boatPosition);
+            const distance = direction.length();
+
+            // If the boat is close enough to the island, stop grappling
+            if (distance < 10) {
+                console.log("Reached island, ending grapple");
+                this.removeHarpoon();
+                return;
+            }
+
+            // Normalize direction
+            direction.normalize();
+
+            // Calculate pull strength (stronger when closer for better control)
+            const pullStrength = Math.min(1.0, 60 / distance) * 1.2;
+
+            // Apply force to boat in direction of island
+            // Use boatVelocity directly from gameState
+            boatVelocity.add(direction.multiplyScalar(pullStrength * deltaTime * 60));
+
+            // Keep harpoon at grapple point
+            this.harpoon.position.copy(this.grapplePoint);
+
+            // Update harpoon rotation to point away from grapple point
+            this.harpoon.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0), // Default orientation
+                direction.clone().negate() // Point away from island
+            );
+
+            return;
+        }
+
+        // Original monster reeling logic continues below
         const boatPosition = this.getHarpoonFiringPosition();
         const direction = new THREE.Vector3().subVectors(boatPosition, this.harpoon.position);
         const distance = direction.length();
@@ -432,6 +506,11 @@ class HarpoonShot {
     }
 
     removeHarpoon() {
+        // Add these lines at the beginning
+        this.isGrappling = false;
+        this.grapplePoint = null;
+        this.grappleObject = null;
+
         // Clean up drag flag if attached
         if (this.attachedEnemy) {
             this.attachedEnemy.isBeingDragged = false;
@@ -485,6 +564,39 @@ class HarpoonShot {
 
         // Line thickness is set when creating the line, so we don't need
         // to do anything else here - the next updateHarpoonLine call will use this value
+    }
+
+    attachToIsland(islandData) {
+        // Use the damage system to handle the attachment
+        if (this.harpoonId) {
+            const success = attachHarpoonToIsland(this.harpoonId, islandData);
+            if (success) {
+                // Set local state based on damage system result
+                this.isGrappling = true;
+                this.isAttached = true;
+                this.grapplePoint = islandData.point.clone();
+                this.grappleObject = islandData.object;
+
+                // Visual changes remain the same
+                if (this.harpoon.material) {
+                    this.harpoon.material.color.set(0x00ffff);
+                }
+
+                if (this.harpoonLine && this.harpoonLine.material) {
+                    this.harpoonLine.material.color.set(0x00ccff);
+                }
+            }
+        }
+    }
+
+    handleIslandAttachment(islandData) {
+        console.log("Harpoon attached to island!");
+        // Any specific UI or feedback can go here
+    }
+
+    handleIslandDetachment() {
+        console.log("Harpoon detached from island");
+        // Any cleanup specific to the harpoon shot class
     }
 }
 
