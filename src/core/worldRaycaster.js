@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { camera, scene } from '../core/gameState.js';
+import { camera, scene, boat } from '../core/gameState.js';
 
 /**
  * WorldRaycaster provides utilities for translating screen coordinates
@@ -99,9 +99,36 @@ class WorldRaycaster {
             return this.cachedWorldPosition.clone();
         }
 
-        // No intersection - get a point at reasonable distance
-        this.reusableVector.copy(this.raycaster.ray.direction).multiplyScalar(100);
-        this.cachedWorldPosition.copy(this.raycaster.ray.origin).add(this.reusableVector);
+        // ---------- CHANGED CODE FOR SKY TARGETING ----------
+        // Handle sky targeting - when ray doesn't hit the water plane
+
+        // First get the ray direction (this is the direction from camera toward cursor)
+        const rayDirection = this.raycaster.ray.direction.clone();
+
+        // Check if this is likely a sky target (pointing above horizon)
+        const isSkyTarget = rayDirection.y > 0;
+
+        if (isSkyTarget) {
+            // For sky targets, we want a point at a reasonable distance along the ray
+            const targetDistance = 200; // Far enough to be "in the sky"
+
+            // Create a target point by extending the ray
+            const targetPoint = this.raycaster.ray.origin.clone().add(
+                rayDirection.multiplyScalar(targetDistance)
+            );
+
+            // Ensure the point has a substantial height
+            targetPoint.y = Math.max(targetPoint.y, 50);
+
+            this.cachedWorldPosition.copy(targetPoint);
+        } else {
+            // For other misses (rare), just put a point far along the ray
+            this.cachedWorldPosition.copy(this.raycaster.ray.origin).add(
+                rayDirection.multiplyScalar(100)
+            );
+        }
+        // ---------- END CHANGED CODE ----------
+
         return this.cachedWorldPosition.clone();
     }
 
