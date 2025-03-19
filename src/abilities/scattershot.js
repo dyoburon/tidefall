@@ -592,6 +592,107 @@ class ScatterShot {
             });
         }, 3000);
     }
+
+    createHitEffect(position, sizeScale = 1.0) {
+        // Create a flash effect at the hit point
+        const flashGeometry = new THREE.SphereGeometry(1.2 * sizeScale, 8, 8);
+        const flashMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff6600,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+        flash.position.copy(position);
+        scene.add(flash);
+
+        // Create some particle debris
+        const particleCount = Math.floor(8 * sizeScale);
+        const particles = [];
+
+        for (let i = 0; i < particleCount; i++) {
+            const particleGeometry = new THREE.SphereGeometry(0.2 * sizeScale, 4, 4);
+            const particleMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff3300,
+                transparent: true,
+                opacity: 0.7
+            });
+
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+            particle.position.copy(position);
+
+            // Random velocity for particles
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 2 * sizeScale,
+                (Math.random() - 0.3) * 2 * sizeScale,
+                (Math.random() - 0.5) * 2 * sizeScale
+            );
+
+            particle.userData.velocity = velocity;
+            scene.add(particle);
+            particles.push(particle);
+        }
+
+        // Animate the hit effect
+        const startTime = getTime();
+        const effectDuration = 0.5; // half second effect
+
+        const animateHitEffect = () => {
+            const elapsedTime = (getTime() - startTime) / 1000;
+
+            if (elapsedTime > effectDuration) {
+                // Clean up
+                scene.remove(flash);
+                flash.geometry.dispose();
+                flash.material.dispose();
+
+                particles.forEach(particle => {
+                    scene.remove(particle);
+                    particle.geometry.dispose();
+                    particle.material.dispose();
+                });
+
+                return;
+            }
+
+            // Flash animation
+            const progress = elapsedTime / effectDuration;
+            const scale = 1 + progress * 2;
+            flash.scale.set(scale, scale, scale);
+            flash.material.opacity = 0.8 * (1 - progress);
+
+            // Particle animation
+            particles.forEach(particle => {
+                // Apply velocity and gravity
+                particle.position.add(particle.userData.velocity.clone().multiplyScalar(0.05));
+                particle.userData.velocity.y -= 0.01 * sizeScale; // gravity
+
+                // Fade out
+                particle.material.opacity = 0.7 * (1 - progress);
+            });
+
+            requestAnimationFrame(animateHitEffect);
+        };
+
+        requestAnimationFrame(animateHitEffect);
+
+        // Backup cleanup
+        setTimeout(() => {
+            if (scene.children.includes(flash)) {
+                scene.remove(flash);
+                flash.geometry.dispose();
+                flash.material.dispose();
+            }
+
+            particles.forEach(particle => {
+                if (scene.children.includes(particle)) {
+                    scene.remove(particle);
+                    particle.geometry.dispose();
+                    particle.material.dispose();
+                }
+            });
+        }, effectDuration * 1000 + 200); // add a small buffer
+    }
 }
 
 export default ScatterShot; 

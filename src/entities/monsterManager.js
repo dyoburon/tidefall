@@ -9,15 +9,28 @@ import {
     removeEntity
 } from '../world/chunkEntityController.js';
 import { registerSeaMonsterTypes } from './seaMonsters.js';
+import { initTreasureSystem } from '../gameplay/treasure.js';
+// Add imports for treasure drops and outline styling
+import { createTreasureDrop } from '../gameplay/treasure.js';
+import { applyOutline } from '../theme/outlineStyles.js';
 
 // Central registry of monster types
 const monsterTypes = new Map();
 
+let playerBoat = null; // Store a reference to the player's boat
+
 /**
  * Initialize the monster manager
  * Register all monster types
+ * @param {THREE.Object3D} boat - The player's boat
  */
-export function initMonsterManager() {
+export function initMonsterManager(boat) {
+    // Store boat reference
+    playerBoat = boat;
+
+    // Initialize treasure system with boat reference
+    initTreasureSystem(boat);
+
     // Register all sea monster types
     registerSeaMonsterTypes();
 }
@@ -71,11 +84,41 @@ export function createMonster(typeId, options = {}) {
         // Register with entity chunk system
         registerEntity('monsters', monster, monster.mesh.position);
 
-        // No more adding to active lists - just use entityChunkMap
+        // Apply outline styling to monster
+        applyOutlineToMonster(monster);
 
         return monster;
     } catch (error) {
         return null;
+    }
+}
+
+/**
+ * Apply outline styling to a monster
+ * @param {Object} monster - The monster to apply outline to
+ */
+function applyOutlineToMonster(monster) {
+    if (!monster || !monster.mesh) return;
+
+    try {
+        // Apply outline to the monster mesh
+        applyOutline(monster.mesh, {
+            recursive: true,
+            scale: 1.05  // Slightly larger outline
+        });
+
+        // If monster has specific parts, apply outlines to them as well
+        ['dorsalFin', 'leftFin', 'rightFin'].forEach(part => {
+            if (monster[part]) {
+                applyOutline(monster[part], {
+                    scale: 1.05
+                });
+            }
+        });
+
+        console.log(`Applied outline to ${monster.typeId}`);
+    } catch (error) {
+        console.warn("Error applying outline to monster:", error);
     }
 }
 
@@ -223,11 +266,15 @@ export function ensureMonsterVisibility(monster) {
  * @param {Object} monster - Monster to remove
  */
 export function removeMonster(monster) {
+    if (!monster || !monster.mesh) return;
+
+    // Drop treasure at monster's position if it's dead
+    if (monster.health <= 0 || monster.state === 'dying') {
+        dropTreasureFromMonster(monster);
+    }
+
     // Remove from entityChunkMap
     removeEntity('monsters', monster);
-
-    // Find and remove from type-specific list - NO LONGER NEEDED
-    // We're not maintaining separate type-specific arrays anymore
 
     // Remove from scene
     scene.remove(monster.mesh);
@@ -236,6 +283,35 @@ export function removeMonster(monster) {
     const typeInfo = monsterTypes.get(monster.typeId);
     if (typeInfo && typeInfo.cleanupFn) {
         typeInfo.cleanupFn(monster);
+    }
+}
+
+/**
+ * Drop treasure when a monster dies
+ * @param {Object} monster - The monster that died
+ */
+function dropTreasureFromMonster(monster) {
+    if (!monster || !monster.mesh) return;
+
+    try {
+        // Get monster position for treasure drop
+        const position = monster.mesh.position.clone();
+
+        // Raise the position slightly above water level
+        position.y = 0.5;
+
+        // Make sure the treasure system has the latest boat reference
+        if (playerBoat && typeof playerBoat === 'object') {
+            // Re-initialize treasure system to ensure boat reference is current
+            initTreasureSystem(playerBoat);
+        }
+
+        // Create treasure drop at monster position
+        const treasure = createTreasureDrop(position, monster.typeId);
+
+        console.log(`Dropped treasure for ${monster.typeId} at position:`, position);
+    } catch (error) {
+        console.warn("Error dropping treasure from monster:", error);
     }
 }
 
@@ -270,6 +346,9 @@ export function setMonsters(newMonsters) {
     newMonsters.forEach(monster => {
         if (monster && monster.mesh) {
             registerEntity('monsters', monster, monster.mesh.position);
+
+            // Make sure outlines are applied to each monster
+            applyOutlineToMonster(monster);
         }
     });
 

@@ -361,8 +361,29 @@ class HarpoonShot {
         const moveAmount = this.reelingSpeed * (deltaTime || 0.016);
         this.harpoon.position.add(direction.clone().multiplyScalar(moveAmount));
 
-        // If we have an attached enemy, pull it too (but slower)
-        if (this.attachedEnemy && this.attachedEnemy.mesh) {
+        // Check if attached monster still exists and is alive
+        let monsterValid = false;
+        if (this.attachedEnemy) {
+            const monsters = getAllMonsters();
+            monsterValid = monsters.some(m => m === this.attachedEnemy) &&
+                this.attachedEnemy.health > 0 &&
+                this.attachedEnemy.state !== 'dying' &&
+                this.attachedEnemy.mesh;
+
+            // If monster no longer valid but we were tracking it, clean up the reference
+            if (!monsterValid && this.attachedEnemy) {
+                console.log("Monster died during reeling, continuing to reel harpoon only");
+                this.attachedEnemy = null;
+
+                // Force detach from damage system to ensure we're not stuck
+                if (this.harpoonId) {
+                    detachHarpoon(this.harpoonId);
+                }
+            }
+        }
+
+        // Only pull the monster if it's still valid
+        if (monsterValid && this.attachedEnemy.mesh) {
             // Calculate pull direction toward boat
             const pullDirection = new THREE.Vector3().subVectors(boatPosition, this.attachedEnemy.mesh.position);
             const monsterDistance = pullDirection.length();

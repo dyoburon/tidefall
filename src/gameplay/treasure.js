@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { scene, getTime, addToScene, removeFromScene, isInScene } from '../core/gameState.js';
+import { scene, getTime, addToScene, removeFromScene, isInScene, boat } from '../core/gameState.js';
 
 // Configuration
 const MAX_TREASURE_DROPS = 10; // Maximum number of treasure drops rendered at once
 const TREASURE_LIFETIME = 30; // Seconds before treasure disappears
-const COLLECT_DISTANCE = 12; // Distance at which player can collect treasures
+const COLLECT_DISTANCE = 25; // Increased from 12 to 25 for easier pickup
 const PARTICLE_COUNT = 12; // Number of particles orbiting each treasure
 
 // Treasure types with different colors and values
@@ -60,8 +60,9 @@ let treasureInventory = {};
 let playerBoat = null;
 
 // Initialize the treasure system
-export function initTreasureSystem(boat) {
-    playerBoat = boat;
+export function initTreasureSystem(boatRef) {
+    console.log("Treasure system initialized with boat reference");
+    playerBoat = boatRef;
     treasureDrops = [];
 
     return treasureInventory;
@@ -148,7 +149,8 @@ export function createTreasureDrop(position, monsterType) {
     addToScene(treasureGroup);
     treasureDrops.push(treasureGroup);
 
-
+    // Log creation for debugging
+    console.log(`Created treasure drop at position (${position.x}, ${position.y}, ${position.z}) for monster type: ${monsterType}`);
 
     return treasureGroup;
 }
@@ -280,6 +282,11 @@ export function updateTreasures(deltaTime) {
 
     const currentTime = getTime() / 1000;
 
+    // Debug info - log treasure counts periodically
+    if (Math.floor(currentTime) % 5 === 0 && treasureDrops.length > 0 && Math.random() < 0.1) {
+        console.log(`Active treasures: ${treasureDrops.length}`);
+    }
+
     // Update each treasure
     for (let i = treasureDrops.length - 1; i >= 0; i--) {
         const treasure = treasureDrops[i];
@@ -341,12 +348,22 @@ export function updateTreasures(deltaTime) {
             });
         }
 
-        // Check for player collection if boat exists
-        if (playerBoat) {
-            const boatPosition = playerBoat.position.clone();
-            boatPosition.y = 0.5; // Match Y level
+        // Check for player collection - IMPORTANT: Use imported boat directly instead of playerBoat
+        // This is the key change - accessing the boat directly from gameState
+        if (boat) {
+            const boatPosition = boat.position.clone();
+            boatPosition.y = 0.5; // Match Y level for distance calculation
 
-            if (treasure.position.distanceTo(boatPosition) < COLLECT_DISTANCE) {
+            const distance = treasure.position.distanceTo(boatPosition);
+
+            // Log when we're getting close to treasures (for debugging)
+            if (distance < COLLECT_DISTANCE * 1.5 && Math.random() < 0.05) {
+                console.log(`Treasure nearby! Distance: ${distance.toFixed(2)}, Collect threshold: ${COLLECT_DISTANCE}`);
+            }
+
+            if (distance < COLLECT_DISTANCE) {
+                console.log(`Collecting treasure at distance ${distance.toFixed(2)}!`);
+
                 // Collect treasure
                 collectTreasure(treasure);
 
@@ -359,6 +376,11 @@ export function updateTreasures(deltaTime) {
 
                 removeFromScene(treasure);
                 treasureDrops.splice(i, 1);
+            }
+        } else {
+            // Log missing boat reference (only occasionally to avoid spam)
+            if (Math.random() < 0.01) {
+                console.warn("Boat reference missing in treasure system!");
             }
         }
     }
@@ -379,7 +401,7 @@ function collectTreasure(treasure) {
         treasureInventory[treasureName].count++;
     }
 
-
+    console.log(`Collected ${treasureName}! Total: ${treasureInventory[treasureName].count}`);
 
     // Update the inventory UI if it exists
     updateTreasureInventoryDisplay();

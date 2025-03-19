@@ -24,6 +24,13 @@ const inactiveEntityStates = {
 // Track which chunks have already been populated with entities
 const populatedChunks = new Set();
 
+// Define monster despawn distance - monsters further than this will be despawned
+const MONSTER_DESPAWN_DISTANCE_SQ = chunkSize * chunkSize * 2.25; // 1.5 chunks squared
+
+// Add at the top of the file with other constants
+const MONSTER_KEEP_DISTANCE = chunkSize * 2; // Distance to keep monsters active
+const MONSTER_KEEP_DISTANCE_SQ = MONSTER_KEEP_DISTANCE * MONSTER_KEEP_DISTANCE; // Squared for efficiency
+
 let currentPlayerChunk = null;
 
 /**
@@ -124,9 +131,37 @@ export function updateEntityVisibility(visibleChunks, entityType, getStateFn, cl
     const chunksBeingDespawned = new Set();
 
     entityChunkMap[entityType].forEach((chunkKey, entity) => {
-        if (!visibleChunks.has(chunkKey)) {
-            entitiesToRemove.push(entity);
-            chunksBeingDespawned.add(chunkKey);
+        // Special handling for monsters - use distance-based check instead of chunk boundaries
+        if (entityType === 'monsters') {
+            // Only consider removal if the monster's chunk is not visible
+            if (!visibleChunks.has(chunkKey)) {
+                if (entity && entity.mesh && entity.mesh.position && boat && boat.position) {
+                    // Calculate squared distance to player for efficiency
+                    const dx = entity.mesh.position.x - boat.position.x;
+                    const dy = entity.mesh.position.y - boat.position.y;
+                    const dz = entity.mesh.position.z - boat.position.z;
+                    const distanceSquared = dx * dx + dy * dy + dz * dz;
+
+                    // Only despawn if beyond the keep distance
+                    if (distanceSquared > MONSTER_KEEP_DISTANCE_SQ) {
+                        entitiesToRemove.push(entity);
+                        chunksBeingDespawned.add(chunkKey);
+                        console.log(`[MONSTER] Despawning distant monster: ${Math.sqrt(distanceSquared).toFixed(2)} units away`);
+                    } else {
+                        console.log(`[MONSTER] Keeping nearby monster: ${Math.sqrt(distanceSquared).toFixed(2)} units away (outside visible chunks but within range)`);
+                    }
+                } else {
+                    // Entity is invalid, remove it
+                    entitiesToRemove.push(entity);
+                    chunksBeingDespawned.add(chunkKey);
+                }
+            }
+        } else {
+            // Standard chunk-based logic for other entity types
+            if (!visibleChunks.has(chunkKey)) {
+                entitiesToRemove.push(entity);
+                chunksBeingDespawned.add(chunkKey);
+            }
         }
     });
 
@@ -136,11 +171,18 @@ export function updateEntityVisibility(visibleChunks, entityType, getStateFn, cl
     });
 
     // Remove chunks from populatedChunks when we despawn all their entities
-    // This ensures they'll be repopulated when we return to them
     chunksBeingDespawned.forEach(chunkKey => {
         if (entityType === 'monsters') {
-            populatedChunks.delete(chunkKey);
-            console.log(`[CHUNK] Removed chunk ${chunkKey} from populated list for future repopulation`);
+            // Only mark a chunk as unpopulated if all monsters in it are gone
+            let monstersRemaining = 0;
+            entityChunkMap.monsters.forEach((entityChunkKey, monster) => {
+                if (entityChunkKey === chunkKey) monstersRemaining++;
+            });
+
+            if (monstersRemaining === 0) {
+                populatedChunks.delete(chunkKey);
+                console.log(`[CHUNK] Removed chunk ${chunkKey} from populated list for future repopulation`);
+            }
         }
     });
 
