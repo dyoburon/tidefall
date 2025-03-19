@@ -38,8 +38,15 @@ class CannonShot {
         const { worldPosition: cannonPosition, config: cannonConfig } =
             AimingSystem.getNearestFiringPosition(this.cannonPositions, targetPosition);
 
-        // Calculate direction using the unified aiming system
-        const direction = AimingSystem.calculateFiringDirection(cannonPosition, targetPosition);
+        // Calculate direction using the unified aiming system with adaptive trajectory
+        const direction = AimingSystem.calculateFiringDirection(cannonPosition, targetPosition, {
+            adaptiveTrajectory: true,
+            minVerticalAdjust: -0.15,           // CHANGED to allow downward trajectory
+            maxVerticalAdjust: 0.1,             // INCREASED for higher arcs on distant targets
+            minDistance: 5,                     // REDUCED to detect very close clicks
+            maxDistance: 150,                   // REDUCED from 1000 for more reasonable range
+            allowDownwardShots: true            // ADDED to enable downward firing
+        });
 
         // Create and fire cannonball
         this.createCannonball(cannonPosition, direction);
@@ -99,18 +106,16 @@ class CannonShot {
 
         scene.add(cannonball);
 
-        // Add a slight upward component to the direction
+        // We no longer need to manually adjust the direction
+        // as that's handled by AimingSystem.calculateFiringDirection
         const firingDirection = direction.clone();
-        firingDirection.y += 0.05; // Reduced upward angle
-        firingDirection.normalize();
-
         const velocity = firingDirection.clone().multiplyScalar(this.cannonballSpeed);
 
         // Create muzzle flash
         this.createMuzzleFlash(position, firingDirection);
 
         const startTime = getTime();
-        const maxDistance = 150;
+        const maxDistance = 700;
         const initialPosition = position.clone();
 
         // Generate a unique ID for this cannonball

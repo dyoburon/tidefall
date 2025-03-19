@@ -6,6 +6,7 @@ import {
     unregisterProjectile,
     applyCannonballSplash
 } from './damageSystem.js';
+import { AimingSystem } from './aimingSystem.js';
 
 /**
  * Scatter Shot ability - Fires multiple small cannonballs in a spread pattern.
@@ -55,8 +56,8 @@ class ScatterShot {
             // Create a variant of the base direction with random spread
             const spreadDirection = this.createSpreadDirection(baseDirection);
 
-            // Fire a smaller cannonball in this direction
-            this.fireScatterProjectile(cannonPosition, spreadDirection);
+            // Fire a smaller cannonball with adaptive trajectory
+            this.fireScatterProjectile(cannonPosition, spreadDirection, targetPosition);
         }
 
         // Play cannon sound (perhaps a special scatter sound)
@@ -131,7 +132,7 @@ class ScatterShot {
         return spreadDirection;
     }
 
-    fireScatterProjectile(position, direction) {
+    fireScatterProjectile(position, direction, targetPosition) {
         // Create a smaller cannonball
         const cannonballGeometry = new THREE.SphereGeometry(0.4, 12, 12); // Smaller size
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
@@ -140,10 +141,15 @@ class ScatterShot {
 
         scene.add(cannonball);
 
-        // Add a slight upward component
-        const firingDirection = direction.clone();
-        firingDirection.y += 0.05;
-        firingDirection.normalize();
+        // Calculate firing direction with adaptive trajectory and randomness
+        const firingDirection = AimingSystem.calculateFiringDirection(position, targetPosition, {
+            adaptiveTrajectory: true,
+            minVerticalAdjust: 0.05,
+            maxVerticalAdjust: 0.4,
+            minDistance: 10,
+            maxDistance: 180,
+            trajectoryRandomness: 0.4  // Add 40% randomness to create varied trajectories
+        });
 
         // Randomize speed slightly
         const speedVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
@@ -153,7 +159,7 @@ class ScatterShot {
         this.createMuzzleFlash(position, firingDirection, 0.6); // Smaller flash
 
         const startTime = getTime();
-        const maxDistance = 100; // Shorter max distance than regular cannonshot
+        const maxDistance = 300; // Shorter max distance than regular cannonshot
         const initialPosition = position.clone();
 
         // Generate unique ID
