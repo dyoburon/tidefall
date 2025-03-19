@@ -144,19 +144,25 @@ class ScatterShot {
         // Calculate firing direction with adaptive trajectory and randomness
         const firingDirection = AimingSystem.calculateFiringDirection(position, targetPosition, {
             adaptiveTrajectory: true,
-            minVerticalAdjust: 0.05,
-            maxVerticalAdjust: 0.4,
-            minDistance: 10,
-            maxDistance: 180,
-            trajectoryRandomness: 0.4  // Add 40% randomness to create varied trajectories
+            minVerticalAdjust: -0.15,       // Allow downward shots for close targets
+            maxVerticalAdjust: 0.3,         // REDUCED from 0.6 to 0.3 to prevent excessive vertical arcs
+            minDistance: 5,                 // Detect very close clicks
+            maxDistance: 180,               // Keep the same max distance
+            allowDownwardShots: true,       // Enable downward shots
+            trajectoryRandomness: 0.2,      // REDUCED randomness for better control
+            horizontalRandomness: 0.4       // NEW parameter - adds significant horizontal variance
         });
+
+        // IMPORTANT: Apply our spread AFTER the basic trajectory calculation
+        // This preserves the horizontal spread pattern
+        const finalDirection = this.applyHorizontalSpread(firingDirection);
 
         // Randomize speed slightly
         const speedVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-        const velocity = firingDirection.clone().multiplyScalar(this.cannonballSpeed * speedVariation);
+        const velocity = finalDirection.clone().multiplyScalar(this.cannonballSpeed * speedVariation);
 
         // Create small muzzle flash
-        this.createMuzzleFlash(position, firingDirection, 0.6); // Smaller flash
+        this.createMuzzleFlash(position, finalDirection, 0.6); // Smaller flash
 
         const startTime = getTime();
         const maxDistance = 300; // Shorter max distance than regular cannonshot
@@ -223,6 +229,35 @@ class ScatterShot {
         };
 
         animateCannonball();
+    }
+
+    // NEW METHOD: Apply horizontal spread while preserving some of the vertical trajectory
+    applyHorizontalSpread(direction) {
+        // Create a horizontal plane vector (remove Y component)
+        const horizontalDir = new THREE.Vector3(direction.x, 0, direction.z).normalize();
+
+        // Random angle within our spread cone (focused on horizontal spread)
+        const spreadAngle = (Math.random() - 0.5) * this.spreadAngle * 1.5; // Increased spread
+
+        // Create a rotation axis (always vertical for horizontal spread)
+        const rotationAxis = new THREE.Vector3(0, 1, 0);
+
+        // Apply the rotation around vertical axis (horizontal spread)
+        const spreadDirection = direction.clone();
+        spreadDirection.applyAxisAngle(rotationAxis, spreadAngle);
+
+        // Preserve some of the original vertical component
+        // But allow for more horizontal variation
+        const verticalFactor = 0.7; // How much of the original vertical component to keep
+        spreadDirection.y = direction.y * verticalFactor;
+
+        // Add a slight random vertical adjustment
+        spreadDirection.y += (Math.random() - 0.5) * 0.1;
+
+        // Ensure the direction is normalized
+        spreadDirection.normalize();
+
+        return spreadDirection;
     }
 
     createMuzzleFlash(position, direction, sizeScale = 1.0) {
