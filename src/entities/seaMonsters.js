@@ -30,7 +30,7 @@ const MONSTER_TYPE_WEIGHTS = {
     [MONSTER_TYPES.SEA_SERPENT]: 0.0,     // 20% chance 
     [MONSTER_TYPES.PHANTOM_JELLYFISH]: 0.0 // 20% chance
 };
-const MONSTER_SPEED = 0.08;
+const MONSTER_SPEED = 0.04;
 const MONSTER_DETECTION_RANGE = 200;
 const MONSTER_ATTACK_RANGE = 50;
 const MONSTER_DEPTH = -20;
@@ -848,7 +848,7 @@ function createYellowBeastMonster(options = {}) {
         targetPosition: new THREE.Vector3(),
         eyeGlow: 0,
         monsterType: 'yellowBeast',
-        health: 3
+        health: 1000
     };
 }
 
