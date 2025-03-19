@@ -56,6 +56,8 @@ import { updateAllEntityChunks } from '../world/chunkEntityController.js';
 import { initMonsterManager, updateAllMonsters } from '../entities/monsterManager.js';
 import { updateProjectileCollisions, initDamageSystem } from '../abilities/damageSystem.js';
 import { initTouchControls, isTouchDevice } from '../controls/touchControls.js';
+import { updateDragEffects, updateWaterDragEffects } from '../animations/monsterDragEffects.js';
+
 
 
 // Define these variables at the file level scope (outside any functions)
@@ -1237,6 +1239,12 @@ function animate() {
 
 
     abilityManager.update(deltaTime);
+
+
+    updateDragEffects(deltaTime);
+
+    updateWaterDragEffects(deltaTime);
+
 
 
     applyWindInfluence();

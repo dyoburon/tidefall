@@ -10,6 +10,7 @@ import {
     updateHarpoons,
     activeHarpoons
 } from './harpoonDamageSystem.js';
+import { initDragEffects, cleanupDragEffects } from '../animations/monsterDragEffects.js';
 
 /**
  * Harpoon Shot ability - Fires a harpoon that can attach to monsters and reel them in.
@@ -350,6 +351,10 @@ class HarpoonShot {
 
         // If we're close enough to the boat, remove the harpoon
         if (distance < 3) {
+            // Clean up drag effects if monster is attached
+            if (this.attachedEnemy) {
+                cleanupDragEffects(this.attachedEnemy);
+            }
             this.removeHarpoon();
             return;
         }
@@ -373,6 +378,10 @@ class HarpoonShot {
             // If monster no longer valid but we were tracking it, clean up the reference
             if (!monsterValid && this.attachedEnemy) {
                 console.log("Monster died during reeling, continuing to reel harpoon only");
+
+                // Clean up any drag effects
+                cleanupDragEffects(this.attachedEnemy);
+
                 this.attachedEnemy = null;
 
                 // Force detach from damage system to ensure we're not stuck
@@ -384,6 +393,11 @@ class HarpoonShot {
 
         // Only pull the monster if it's still valid
         if (monsterValid && this.attachedEnemy.mesh) {
+            // Mark the monster as being dragged for effect system
+            this.attachedEnemy.isBeingDragged = true;
+
+            // No need to call initDragEffects here, the effect system will detect it
+
             // Calculate pull direction toward boat
             const pullDirection = new THREE.Vector3().subVectors(boatPosition, this.attachedEnemy.mesh.position);
             const monsterDistance = pullDirection.length();
@@ -411,6 +425,12 @@ class HarpoonShot {
     }
 
     removeHarpoon() {
+        // Clean up drag flag if attached
+        if (this.attachedEnemy) {
+            this.attachedEnemy.isBeingDragged = false;
+            // Don't call cleanupDragEffects - the system will handle that
+        }
+
         // Clean up harpoon and line
         if (this.harpoon) {
             scene.remove(this.harpoon);

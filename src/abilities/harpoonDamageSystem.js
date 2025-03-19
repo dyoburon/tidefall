@@ -155,6 +155,9 @@ export function attachHarpoonToMonster(harpoonId, monster) {
         harpoonData.harpoonControls.onAttach(monster);
     }
 
+    // In the attachHarpoonToMonster function, add this line after attaching:
+    monster.isBeingDragged = true;
+
     console.log(`Harpoon ${harpoonId} attached to ${monster.typeId}`);
     return true;
 }
@@ -176,6 +179,11 @@ export function detachHarpoon(harpoonId) {
     // Notify harpoon controls about detachment if available
     if (harpoonData.harpoonControls && harpoonData.harpoonControls.onDetach) {
         harpoonData.harpoonControls.onDetach(monster);
+    }
+
+    // In the detachHarpoon function, add this line:
+    if (monster) {
+        monster.isBeingDragged = false;
     }
 
     console.log(`Harpoon ${harpoonId} detached from monster`);
