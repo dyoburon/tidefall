@@ -215,29 +215,47 @@ export class ChatSystem {
 
         this.miniMapContainer.appendChild(radarScreen);
 
-        // Spyglass sweep effect instead of radar sweep
-        const radarSweep = document.createElement('div');
-        radarSweep.style.position = 'absolute';
-        radarSweep.style.top = '0';
-        radarSweep.style.left = '50%';
-        radarSweep.style.width = '50%';
-        radarSweep.style.height = '100%';
-        radarSweep.style.background = 'linear-gradient(90deg, rgba(184, 134, 11, 0) 0%, rgba(184, 134, 11, 0.2) 100%)'; // Brass gradient
-        radarSweep.style.transformOrigin = '0 50%';
-        radarSweep.style.animation = 'radarSweep 4s infinite linear';
-        radarScreen.appendChild(radarSweep);
-
-        // Self marker (styled as a brass ship pin)
+        // Self marker (styled as a boat-shaped directional indicator)
         this.selfMarker = document.createElement('div');
         this.selfMarker.style.position = 'absolute';
-        this.selfMarker.style.width = '8px';
-        this.selfMarker.style.height = '8px';
-        this.selfMarker.style.backgroundColor = '#DAA520'; // Gold
-        this.selfMarker.style.borderRadius = '0'; // Square for ship marker
-        this.selfMarker.style.transform = 'translate(-50%, -50%) rotate(45deg)'; // Diamond shape
+
+        // Create boat shape using CSS
+        this.selfMarker.style.width = isTouchDevice() ? '10px' : '12px';
+        this.selfMarker.style.height = isTouchDevice() ? '14px' : '16px';
+        this.selfMarker.style.backgroundColor = '#DAA520'; // Gold for boat body
+        this.selfMarker.style.borderRadius = '50% 50% 0 0'; // Rounded front
+        this.selfMarker.style.transform = 'translate(-50%, -50%)';
         this.selfMarker.style.boxShadow = '0 0 3px #DAA520'; // Gold glow
         this.selfMarker.style.zIndex = '5';
         this.selfMarker.style.border = '1px solid #8B4513'; // Dark brown border
+
+        // Add a directional pointer (bow of the ship)
+        const shipPointer = document.createElement('div');
+        shipPointer.style.position = 'absolute';
+        shipPointer.style.top = '-2px'; // Position at the front of the boat
+        shipPointer.style.left = '50%';
+        shipPointer.style.width = '0';
+        shipPointer.style.height = '0';
+        shipPointer.style.borderLeft = isTouchDevice() ? '3px solid transparent' : '4px solid transparent';
+        shipPointer.style.borderRight = isTouchDevice() ? '3px solid transparent' : '4px solid transparent';
+        shipPointer.style.borderBottom = isTouchDevice() ? '4px solid #B8860B' : '6px solid #B8860B'; // Brass color
+        shipPointer.style.transform = 'translateX(-50%)';
+        this.selfMarker.appendChild(shipPointer);
+
+        // Direction label for the bow
+        const directionLabel = document.createElement('div');
+        directionLabel.className = 'direction-indicator';
+        directionLabel.style.position = 'absolute';
+        directionLabel.style.top = isTouchDevice() ? '-18px' : '-20px';
+        directionLabel.style.left = '50%';
+        directionLabel.style.transform = 'translateX(-50%)';
+        directionLabel.style.color = '#DAA520'; // Gold
+        directionLabel.style.fontSize = isTouchDevice() ? '8px' : '10px';
+        directionLabel.style.fontWeight = 'bold';
+        directionLabel.style.textShadow = '0px 0px 2px #000';
+        directionLabel.textContent = 'N';
+        this.selfMarker.appendChild(directionLabel);
+
         radarScreen.appendChild(this.selfMarker);
 
         // Chat container (styled as a ship's logbook)
@@ -680,7 +698,7 @@ export class ChatSystem {
             // Update messages area
             if (this.messagesArea) {
                 this.messagesArea.style.height = isMobile ? '70px' : '140px';
-                this.messagesArea.style.fontSize = isMobile ? '7px' : '12px';
+                this.messagesArea.style.fontSize = isTouchDevice() ? '7px' : '12px';
             }
 
             // ... update other dynamic elements
@@ -915,8 +933,12 @@ export class MiniMap {
 
                 // Hide if outside mini-map
                 const distance = Math.sqrt(rotatedX * rotatedX + rotatedZ * rotatedZ);
-                const radius = this.radarScreen.clientWidth / 2 - 5; // Use radarScreen
-                marker.element.style.display = (shouldShow && distance <= radius) ? 'block' : 'none';
+                const radius = this.radarScreen.clientWidth / 2;
+                if (distance > radius - 5) {
+                    marker.element.style.display = 'none';
+                } else {
+                    marker.element.style.display = 'block';
+                }
             }
         });
     }
@@ -924,14 +946,54 @@ export class MiniMap {
     updateMiniMap(playerPosition, playerRotation, mapScale) {
         if (!this.radarScreen) return;
 
-        // Center the player on the mini-map
-        const centerX = this.radarScreen.clientWidth / 2;
-        const centerY = this.radarScreen.clientHeight / 2;
+        // Get radar dimensions
+        const radarRadius = this.radarScreen.offsetWidth / 2;
 
-        // Update self marker (already positioned at center)
+        // Boat direction compass labels - adjust for THREE.js coordinate system
+        // In THREE.js, rotation.y of 0 means facing negative Z (South on our map)
+        // So we need to adjust by adding PI to get correct compass direction
+        const getCompassDirection = (angle) => {
+            // Convert rotation to degrees and normalize to 0-360
+            // Adjust by 180 degrees (PI radians) to match THREE.js coordinate system
+            const invertedAngle = -angle;
+            const adjustedAngle = invertedAngle + Math.PI;
+            const degrees = (adjustedAngle * (180 / Math.PI)) % 360;
+            const normalizedDegrees = degrees < 0 ? degrees + 360 : degrees;
+
+            // Map degrees to compass directions
+            if (normalizedDegrees >= 337.5 || normalizedDegrees < 22.5) return 'N';
+            if (normalizedDegrees >= 22.5 && normalizedDegrees < 67.5) return 'NE';
+            if (normalizedDegrees >= 67.5 && normalizedDegrees < 112.5) return 'E';
+            if (normalizedDegrees >= 112.5 && normalizedDegrees < 157.5) return 'SE';
+            if (normalizedDegrees >= 157.5 && normalizedDegrees < 202.5) return 'S';
+            if (normalizedDegrees >= 202.5 && normalizedDegrees < 247.5) return 'SW';
+            if (normalizedDegrees >= 247.5 && normalizedDegrees < 292.5) return 'W';
+            if (normalizedDegrees >= 292.5 && normalizedDegrees < 337.5) return 'NW';
+            return 'N';
+        };
+
+        // Center the player on the mini-map
+        const centerX = this.radarScreen.offsetWidth / 2;
+        const centerY = this.radarScreen.offsetHeight / 2;
+
+        // Update self marker and its rotation
         if (this.chatSystem && this.chatSystem.selfMarker) {
             this.chatSystem.selfMarker.style.left = `${centerX}px`;
             this.chatSystem.selfMarker.style.top = `${centerY}px`;
+
+            // Apply rotation to show boat direction
+            // THREE.js uses a different coordinate system - rotation.y of 0 means facing negative Z
+            // We add 180 degrees to align the boat marker with the actual movement direction
+            const rotationDegrees = ((playerRotation * (180 / Math.PI)) + 180);
+            this.chatSystem.selfMarker.style.transform = `translate(-50%, -50%) rotate(${rotationDegrees}deg)`;
+
+            // Update compass direction label
+            const directionLabel = this.chatSystem.selfMarker.querySelector('.direction-indicator');
+            if (directionLabel) {
+                // Always keep text upright regardless of boat rotation
+                directionLabel.style.transform = `translateX(-50%) rotate(${-rotationDegrees}deg)`;
+                directionLabel.textContent = getCompassDirection(playerRotation);
+            }
         }
 
         // Update island markers
@@ -948,7 +1010,7 @@ export class MiniMap {
 
             // Hide if outside mini-map
             const distance = Math.sqrt(rotatedX * rotatedX + rotatedZ * rotatedZ);
-            const radius = this.radarScreen.clientWidth / 2;
+            const radius = this.radarScreen.offsetWidth / 2;
             if (distance > radius - 5) {
                 marker.element.style.display = 'none';
             } else {
@@ -970,7 +1032,7 @@ export class MiniMap {
 
             // Hide if outside mini-map
             const distance = Math.sqrt(rotatedX * rotatedX + rotatedZ * rotatedZ);
-            const radius = this.radarScreen.clientWidth / 2;
+            const radius = this.radarScreen.offsetWidth / 2;
             if (distance > radius - 5) {
                 marker.element.style.display = 'none';
             } else {
