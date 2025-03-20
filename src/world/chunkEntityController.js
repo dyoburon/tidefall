@@ -146,9 +146,9 @@ export function updateEntityVisibility(visibleChunks, entityType, getStateFn, cl
                     if (distanceSquared > MONSTER_KEEP_DISTANCE_SQ) {
                         entitiesToRemove.push(entity);
                         chunksBeingDespawned.add(chunkKey);
-                        console.log(`[MONSTER] Despawning distant monster: ${Math.sqrt(distanceSquared).toFixed(2)} units away`);
+
                     } else {
-                        console.log(`[MONSTER] Keeping nearby monster: ${Math.sqrt(distanceSquared).toFixed(2)} units away (outside visible chunks but within range)`);
+
                     }
                 } else {
                     // Entity is invalid, remove it
@@ -181,7 +181,7 @@ export function updateEntityVisibility(visibleChunks, entityType, getStateFn, cl
 
             if (monstersRemaining === 0) {
                 populatedChunks.delete(chunkKey);
-                console.log(`[CHUNK] Removed chunk ${chunkKey} from populated list for future repopulation`);
+
             }
         }
     });
@@ -225,12 +225,12 @@ export function updateAllEntityChunks() {
 
     // On first load or entering a new chunk, only populate the current chunk
     if (currentPlayerChunk !== playerChunkKey) {
-        console.log(`[CHUNK] Player moved to new chunk: ${playerChunkKey}`);
+
         currentPlayerChunk = playerChunkKey;
 
         // Only populate player's current chunk if needed
         if (!populatedChunks.has(playerChunkKey) && !inactiveEntityStates.monsters.has(playerChunkKey)) {
-            console.log(`[CHUNK] Populating player's current chunk: ${playerChunkKey}`);
+
             populateChunkWithEntities(playerChunkKey);
             populatedChunks.add(playerChunkKey);
         }
@@ -282,11 +282,11 @@ function populateChunkWithMonsters(chunkKey, chunkX, chunkZ) {
 
     // Skip if already has monsters
     if (chunkHasMonsters) {
-        console.log(`[CHUNK] Chunk ${chunkKey} already has monsters, skipping spawning`);
+
         return;
     }
 
-    console.log(`[CHUNK] Populating chunk ${chunkKey} at world coordinates range: (${chunkX * chunkSize} to ${(chunkX + 1) * chunkSize}, ${chunkZ * chunkSize} to ${(chunkZ + 1) * chunkSize})`);
+
 
     // Use the enhanced monster manager to spawn monsters in this chunk
     spawnMonstersInChunk(chunkKey, chunkX, chunkZ, {
@@ -312,16 +312,16 @@ function populateChunkWithMonsters(chunkKey, chunkX, chunkZ) {
  */
 export function removeEntity(entityType, entity) {
     if (!entityChunkMap[entityType]) {
-        console.log(`[DEBUG] Cannot remove entity: type ${entityType} not found in entityChunkMap`);
+
         return false;
     }
 
     const wasRemoved = entityChunkMap[entityType].delete(entity);
 
     if (wasRemoved) {
-        console.log(`[DEBUG] Removed ${entityType} from entityChunkMap, remaining: ${entityChunkMap[entityType].size}`);
+
     } else {
-        console.log(`[DEBUG] Failed to remove ${entityType} - not found in entityChunkMap`);
+
     }
 
     return wasRemoved;
@@ -333,7 +333,7 @@ export function removeEntity(entityType, entity) {
  */
 export function getAllMonsters() {
     if (!entityChunkMap || !entityChunkMap.monsters) {
-        console.warn("[DEBUG] entityChunkMap or entityChunkMap.monsters is undefined");
+
         return []; // Return empty array as fallback
     }
     return Array.from(entityChunkMap.monsters.keys());

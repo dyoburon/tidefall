@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { registerProjectile, unregisterProjectile, applyDamage } from './damageSystem.js';
 import { getAllMonsters } from '../entities/monsterManager.js';
 import { getTime, boat, boatVelocity } from '../core/gameState.js';
+import { initHarpoonLineSystem, updateLineBreakSystem } from '../abilities/harpoonLineSystem.js';
 
 // Constant values for harpoon damage configuration
-const HARPOON_CONFIG = {
+export const HARPOON_CONFIG = {
     IMPACT_DAMAGE: 0,      // Initial damage on hit
     TICK_DAMAGE: 0,         // Damage per tick while attached
     TICK_INTERVAL: 1000,     // Time between damage ticks (milliseconds)
@@ -55,7 +56,7 @@ export function registerHarpoonProjectile(id, harpoonObject) {
         isReeling: false
     });
 
-    console.log(`Registered harpoon projectile: ${id}`);
+
     return id;
 }
 
@@ -70,7 +71,7 @@ export function unregisterHarpoonProjectile(id) {
     // Remove from our harpoon tracking
     activeHarpoons.delete(id);
 
-    console.log(`Unregistered harpoon: ${id}`);
+
 }
 
 /**
@@ -108,12 +109,12 @@ export function checkHarpoonCollisions(harpoonId) {
             closestDistance = distance;
 
             // Log hit detection for troubleshooting
-            console.log(`Potential harpoon hit: ${monster.typeId} at distance ${distance.toFixed(2)}`);
+
         }
     }
 
     if (closestMonster) {
-        console.log(`Harpoon ${harpoonId} will attach to ${closestMonster.typeId} at distance ${closestDistance.toFixed(2)}`);
+
     }
 
     return closestMonster;
@@ -128,7 +129,7 @@ export function checkHarpoonCollisions(harpoonId) {
 export function attachHarpoonToMonster(harpoonId, monster) {
     const harpoonData = activeHarpoons.get(harpoonId);
     if (!harpoonData || !monster || !monster.mesh) {
-        console.error("Cannot attach: Invalid harpoon data or monster");
+
         return false;
     }
 
@@ -160,7 +161,7 @@ export function attachHarpoonToMonster(harpoonId, monster) {
     // In the attachHarpoonToMonster function, add this line after attaching:
     monster.isBeingDragged = true;
 
-    console.log(`Harpoon ${harpoonId} attached to ${monster.typeId}`);
+
     return true;
 }
 
@@ -188,7 +189,7 @@ export function detachHarpoon(harpoonId) {
         monster.isBeingDragged = false;
     }
 
-    console.log(`Harpoon ${harpoonId} detached from monster`);
+
 }
 
 /**
@@ -200,7 +201,7 @@ export function detachHarpoon(harpoonId) {
 export function attachHarpoonToIsland(harpoonId, islandData) {
     const harpoonData = activeHarpoons.get(harpoonId);
     if (!harpoonData || !islandData || !islandData.point) {
-        console.error("Cannot attach: Invalid harpoon data or island data");
+
         return false;
     }
 
@@ -219,7 +220,7 @@ export function attachHarpoonToIsland(harpoonId, islandData) {
         harpoonData.harpoonControls.onAttachToIsland(islandData);
     }
 
-    console.log(`Harpoon ${harpoonId} attached to island at ${islandData.point.x.toFixed(2)}, ${islandData.point.y.toFixed(2)}, ${islandData.point.z.toFixed(2)}`);
+
     return true;
 }
 
@@ -241,7 +242,7 @@ export function detachHarpoonFromIsland(harpoonId) {
         harpoonData.harpoonControls.onDetachFromIsland();
     }
 
-    console.log(`Harpoon ${harpoonId} detached from island`);
+
 }
 
 /**
@@ -261,10 +262,138 @@ export function updateHarpoons() {
             if (harpoonData.isReeling) {
                 updateIslandGrappling(harpoonData, harpoonId);
             }
-        }
-        else if (harpoonData.attachedMonster) {
-            // Existing monster handling code
-            // ... existing monster code ...
+        } else if (harpoonData.attachedMonster) {
+            activeHarpoons.forEach((harpoonData, harpoonId) => {
+                // Skip if not attached
+                if (!harpoonData.isAttached || !harpoonData.attachedMonster) return;
+
+                const monster = harpoonData.attachedMonster;
+
+
+                // Check if monster still exists and is alive
+                const monsters = getAllMonsters();
+                const monsterStillExists = monsters.some(m => m === monster);
+
+
+                if (!monsterStillExists || monster.health <= 0 || monster.state === 'dying') {
+
+                    detachHarpoon(harpoonId);
+                    return;
+                }
+
+                // Update harpoon position to follow monster
+
+                if (monster.mesh) {
+                    const monsterPosition = monster.mesh.position.clone();
+
+
+
+
+                    // TETHER FUNCTIONALITY - Check if monster is beyond max tether length
+                    const boatPosition = boat.position.clone();
+                    const toMonster = monsterPosition.clone().sub(boatPosition);
+                    const distanceToMonster = toMonster.length();
+
+                    // NEW: Log the distance for debugging
+                    if (Math.random() < 0.01) { // Only log occasionally to avoid spam
+
+                    }
+
+
+                    // If monster is beyond max tether length
+                    if (distanceToMonster > HARPOON_CONFIG.MAX_TETHER_LENGTH) {
+                        // Define exceedDistance outside the if/else blocks so it's available for both constraint types
+                        const exceedDistance = distanceToMonster - HARPOON_CONFIG.MAX_TETHER_LENGTH;
+
+
+
+                        if (HARPOON_CONFIG.USE_HARD_CONSTRAINT) {
+                            // HARD CONSTRAINT: Directly place monster at maximum distance
+                            // This enforces a rigid tether that cannot be stretched
+                            const constrainedPosition = boatPosition.clone().add(
+                                toMonster.normalize().multiplyScalar(HARPOON_CONFIG.MAX_TETHER_LENGTH)
+                            );
+
+                            // Apply the constrained position directly
+                            monster.mesh.position.copy(constrainedPosition);
+
+                            // Debug message to confirm constraint is being applied
+
+                        } else {
+                            // SOFT CONSTRAINT: Original pulling code 
+                            // (we're now using the exceedDistance from outside this block)
+                            const pullStrength = exceedDistance * HARPOON_CONFIG.DRAG_STRENGTH * HARPOON_CONFIG.POSITION_STABILITY;
+                            const pullDirection = toMonster.normalize().negate();
+                            const pullVector = pullDirection.multiplyScalar(pullStrength);
+                            monsterPosition.add(pullVector);
+                            monster.mesh.position.copy(monsterPosition);
+                        }
+
+                        // Override the monster AI if configured
+                        if (HARPOON_CONFIG.OVERRIDE_MONSTER_AI) {
+                            // Force the monster to stop its own movement
+                            if (monster.velocity) {
+                                // Reset velocity to zero or redirect it
+                                monster.velocity.set(0, 0, 0);
+                            }
+
+                            // Temporarily change monster state to prevent AI from fighting us
+                            // Store the original state if we haven't already
+                            if (!monster.originalState && monster.state !== 'tethered') {
+                                monster.originalState = monster.state;
+                                monster.state = 'tethered'; // Custom state the AI won't recognize
+
+                            }
+                        }
+
+                        // Visual tension effect - this now works because exceedDistance is defined
+                        if (harpoonData.harpoonLine && harpoonData.harpoonLine.material) {
+                            // Calculate tension factor (0-1)
+                            const tension = Math.min(1, exceedDistance / 15);
+
+                            // Interpolate from normal color to bright red based on tension
+                            const r = 1.0; // Full red
+                            const g = 0.27 - tension * 0.27; // Reduce green with tension
+                            const b = 0.27 - tension * 0.27; // Reduce blue with tension
+
+                            harpoonData.harpoonLine.material.color.setRGB(r, g, b);
+                        }
+                    } else {
+                        // NEW: If we're back within range, restore original state if needed
+                        if (monster.originalState && monster.state === 'tethered') {
+                            monster.state = monster.originalState;
+                            delete monster.originalState;
+
+                        }
+
+                        // Reset rope color when not under tension
+                        if (harpoonData.harpoonLine && harpoonData.harpoonLine.material) {
+                            harpoonData.harpoonLine.material.color.setRGB(1.0, 0.27, 0.27); // Normal red color
+                        }
+                    }
+
+                    // Calculate attachment point with offset
+                    const newAttachPoint = monsterPosition.clone().add(harpoonData.attachOffset);
+
+                    // Update harpoon position
+                    harpoonData.attachPoint.copy(newAttachPoint);
+                    harpoonData.harpoonMesh.position.copy(newAttachPoint);
+
+
+
+
+                    // Apply recurring damage tick
+                    if (currentTime - harpoonData.lastDamageTime >= HARPOON_CONFIG.TICK_INTERVAL) {
+                        applyDamage(monster, HARPOON_CONFIG.TICK_DAMAGE, { isHarpoon: true });
+                        harpoonData.lastDamageTime = currentTime;
+
+                        // Notify harpoon controls about damage tick if available
+                        if (harpoonData.harpoonControls && harpoonData.harpoonControls.onDamageTick) {
+                            harpoonData.harpoonControls.onDamageTick(monster);
+                        }
+                    }
+                }
+            });
         }
     });
 }
@@ -286,7 +415,7 @@ function updateIslandGrappling(harpoonData, harpoonId) {
 
     // If boat reached the island (close enough), detach
     if (distance < 10) {
-        console.log("Boat reached island, detaching harpoon");
+
         detachHarpoonFromIsland(harpoonId);
 
         // Notify harpoon controls (for cleanup)
@@ -313,4 +442,3 @@ function updateIslandGrappling(harpoonData, harpoonId) {
         harpoonData.harpoonControls.updateLineThickness(baseTension);
     }
 }
-

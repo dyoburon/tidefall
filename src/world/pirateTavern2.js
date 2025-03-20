@@ -15,7 +15,7 @@ export function createPirateTavern2(params) {
         scale = 1.0
     } = params;
 
-    console.log("Creating Floating Market Stalls at:", position);
+
 
     // Create container for the floating market
     const market = new THREE.Group();
@@ -235,7 +235,7 @@ export function createPirateTavern2(params) {
         scale: 1.12
     });
 
-    console.log("Created Floating Market Stalls with outline effect");
+
 
     return market;
 }
@@ -633,7 +633,7 @@ function addMarketGoods(parent, mainWidth, mainLength, platformHeight, satellite
 
     // Add goods on satellite platforms - FIXED WITH SAFETY CHECKS
     if (!Array.isArray(satellitePlatforms)) {
-        console.warn('satellitePlatforms is not an array');
+
         return;
     }
 
@@ -641,17 +641,17 @@ function addMarketGoods(parent, mainWidth, mainLength, platformHeight, satellite
         try {
             // Verify platform has required properties
             if (!platform) {
-                console.warn(`Platform ${index} is undefined`);
+
                 return;
             }
 
             if (typeof platform.size === 'undefined') {
-                console.warn(`Platform ${index} missing size property, using default`);
+
                 platform.size = 12 * scale; // Set a default size
             }
 
             if (!platform.position) {
-                console.warn(`Platform ${index} missing position property, using default`);
+
                 platform.position = new THREE.Vector3(0, 0, 0);
             }
 
@@ -670,7 +670,7 @@ function addMarketGoods(parent, mainWidth, mainLength, platformHeight, satellite
                 addRandomGoodsItem(parent, goodsPos, materialOptions, cratesMaterial, scale, random);
             }
         } catch (error) {
-            console.error(`Error processing platform ${index}:`, error);
+
         }
     });
 }
@@ -681,7 +681,7 @@ function addMarketGoods(parent, mainWidth, mainLength, platformHeight, satellite
 function addRandomGoodsItem(parent, position, materialOptions, cratesMaterial, scale, random) {
     // Safety check for parameters
     if (!parent || !position || !materialOptions || !cratesMaterial || !random) {
-        console.warn('Missing required parameters in addRandomGoodsItem');
+
         return null;
     }
 
@@ -799,18 +799,18 @@ function addRandomGoodsItem(parent, position, materialOptions, cratesMaterial, s
         if (goods && goods.rotation) {
             goods.rotation.y = random() * Math.PI * 2;
         } else {
-            console.warn('Cannot set rotation: goods or goods.rotation is undefined');
+
         }
 
         if (parent && goods) {
             parent.add(goods);
             return goods;
         } else {
-            console.warn('Cannot add goods to parent: parent or goods is undefined');
+
             return null;
         }
     } catch (error) {
-        console.error("Error in addRandomGoodsItem:", error);
+
         return null;
     }
 }

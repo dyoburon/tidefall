@@ -612,7 +612,7 @@ export function updateDyingMonster(monster, deltaTime) {
 
     // If the monster is completely transparent, remove it immediately
     if (!stillVisible) {
-        console.log("[DEBUG] Monster fully transparent - removing from scene");
+
 
         // Remove from scene
         scene.remove(monster.mesh);
@@ -795,7 +795,7 @@ function createYellowBeastMonster(options = {}) {
         monster.add(tentacle);
         tentacles.push(tentacle);
 
-        console.log(`[DEBUG] Tentacle #${index} material ID: ${tentacle.material.uuid}`);
+
     });
 
     // Add prominent dorsal fin that sticks out of water
@@ -830,10 +830,10 @@ function createYellowBeastMonster(options = {}) {
     //setupMonsterPosition(monster, tentacles, dorsalFin, leftFin, rightFin, MONSTER_TYPES.YELLOW_BEAST);
 
     // After creating the monster meshes, add this logging:
-    console.log(`[DEBUG] Created new monster, checking material instances:`);
-    console.log(`[DEBUG] Body material ID: ${body.material.uuid}`);
-    console.log(`[DEBUG] Left eye material ID: ${leftEye.material.uuid}`);
-    console.log(`[DEBUG] Tentacle material ID: ${tentacleMaterial.uuid}`);
+
+
+
+
 
     // Return the fully configured monster
     return {
@@ -1677,8 +1677,8 @@ function checkBoatMonsterCollisions() {
 
             // Check if monster is defeated
             if (monster.health <= 0) {
-                // console.log(`[DEBUG] Monster defeated - changing to dying state`);
-                // console.log(`[DEBUG] Active monsters before death: ${getMonsters().length}`);
+                // 
+                // 
 
                 // Check if any other monsters are using the same materials
                 const dyingMaterials = new Set();
@@ -1695,10 +1695,10 @@ function checkBoatMonsterCollisions() {
                         otherMonster.mesh.traverse(child => {
                             if (child.isMesh && child.material && dyingMaterials.has(child.material.uuid)) {
                                 sharedMaterials = true;
-                                console.log(`[DEBUG] MATERIAL SHARING DETECTED between dying monster and monster #${index}`);
+
                             }
                         });
-                        console.log(`[DEBUG] Monster #${index} - state: ${otherMonster.state}, visible: ${otherMonster.mesh.visible}, shared materials: ${sharedMaterials}`);
+
                     }
                 });
 

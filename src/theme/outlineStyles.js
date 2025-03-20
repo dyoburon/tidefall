@@ -164,7 +164,7 @@ export class StyleSystem {
                     }
                 }
             } catch (error) {
-                console.warn("Error in removeOutline:", error);
+
             }
         });
     }
@@ -201,7 +201,7 @@ export class StyleSystem {
                         }
                     }
                 } catch (error) {
-                    console.warn("Error removing outline from mesh:", error);
+
                 }
             }
 

@@ -584,10 +584,10 @@ class InventoryUI {
                 this.playChestOpenSound();
 
                 // ADDED: Fetch fresh inventory data when opening
-                console.log("Fetching latest inventory data from server");
+
                 getPlayerInventory((inventoryData) => {
                     if (inventoryData) {
-                        console.log("Received inventory data:", inventoryData);
+
 
                         // Update fish inventory display
                         if (inventoryData.fish) {
@@ -604,7 +604,7 @@ class InventoryUI {
                         //     this.updateCargoInventory(inventoryData.cargo);
                         // }
                     } else {
-                        console.warn("Failed to load inventory data");
+
                     }
                 });
 
@@ -911,7 +911,7 @@ class InventoryUI {
             try {
                 window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             } catch (e) {
-                console.warn('Web Audio API not supported in this browser');
+
                 return;
             }
         }
@@ -947,7 +947,7 @@ class InventoryUI {
             try {
                 window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             } catch (e) {
-                console.warn('Web Audio API not supported in this browser');
+
                 return;
             }
         }

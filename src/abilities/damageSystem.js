@@ -15,7 +15,7 @@ let collisionSystemInitialized = false;
  */
 export function initDamageSystem() {
     collisionSystemInitialized = true;
-    console.log("Damage and collision system initialized");
+
 }
 
 /**
@@ -27,7 +27,7 @@ export function initDamageSystem() {
  */
 export function registerProjectile(id, projectile) {
     if (!collisionSystemInitialized) {
-        console.warn("Damage system not initialized before registering projectile");
+
         initDamageSystem(); // Auto-initialize if needed
     }
 
@@ -41,7 +41,7 @@ export function registerProjectile(id, projectile) {
     projectile.boundingSphere = boundingSphere;
 
     activeProjectiles.set(id, projectile);
-    console.log(`Registered projectile: ${id}, Total active: ${activeProjectiles.size}`);
+
     return id;
 }
 
@@ -52,7 +52,7 @@ export function registerProjectile(id, projectile) {
 export function unregisterProjectile(id) {
     if (activeProjectiles.has(id)) {
         activeProjectiles.delete(id);
-        console.log(`Unregistered projectile: ${id}, Total active: ${activeProjectiles.size}`);
+
         return true;
     }
     return false;
@@ -74,20 +74,20 @@ export function applyDamage(monster, amount, options = {}) {
 
     if (isHarpoon) {
         // For harpoons, don't apply damage at all - just visual feedback
-        console.log(`Harpoon attached to ${monster.typeId}! Health remains: ${monster.health}`);
+
         createDamageEffect(monster, amount);
         return false; // Not killed
     }
 
     if (forceLethal) {
         // Original behavior for cannonballs and other lethal weapons
-        console.log(`Monster ${monster.typeId} hit! Original health: ${monster.health}`);
+
         monster.health = 0; // Force to zero for guaranteed kill
-        console.log(`Health now set to 0 - Monster should be killed!`);
+
     } else {
         // Normal damage application for non-lethal weapons
         monster.health -= amount;
-        console.log(`Monster ${monster.typeId} hit! Health reduced by ${amount} to ${monster.health}`);
+
     }
 
     // Check if monster is now dead
@@ -106,7 +106,7 @@ export function applyDamage(monster, amount, options = {}) {
  * @param {Object} monster - The monster that died
  */
 function handleMonsterDeath(monster) {
-    console.log(`Monster ${monster.typeId} has been killed!`);
+
 
     // Log the monster's state
     console.log(`Monster state before death: ${JSON.stringify({
@@ -145,7 +145,7 @@ function handleMonsterDeath(monster) {
             if (monster.mesh.position.y < startY - 20) {
                 clearInterval(sinkInterval);
                 removeMonster(monster);
-                console.log('Monster completely removed!');
+
             }
         }, 100);
     } else {
@@ -160,7 +160,7 @@ function handleMonsterDeath(monster) {
  */
 export function updateProjectileCollisions() {
     if (!collisionSystemInitialized) {
-        console.warn("Damage system not initialized before checking collisions");
+
         return;
     }
 
@@ -204,7 +204,7 @@ export function updateProjectileCollisions() {
 
             // Debug - log if movement is abnormally large
             if (movementLength > 5) {
-                console.warn(`Large movement detected for projectile ${id}: ${movementLength} units`);
+
             }
 
             // Create a ray for collision detection along the movement path
@@ -245,7 +245,7 @@ export function updateProjectileCollisions() {
 
                     // If we detected a collision
                     if (collision) {
-                        console.log(`COLLISION DETECTED! Projectile ${id} hit monster ${monster.typeId}`);
+
 
                         // Damage the monster
                         const damage = projectile.data.damage || 3;
@@ -339,8 +339,8 @@ export function applyAreaDamage(position, radius, damage, options = {}) {
     const monsters = getAllMonsters();
     const affectedMonsters = [];
 
-    console.log(`Area damage at ${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}`);
-    console.log(`Radius: ${radius}, Damage: ${damage}, Monsters in area: ${monsters.length}`);
+
+
 
     // Create a sphere to represent the area of effect
     const aoeSphere = new THREE.Sphere(position, radius);
@@ -375,13 +375,13 @@ export function applyAreaDamage(position, radius, damage, options = {}) {
 
             const damageAmount = damage * damageMultiplier;
 
-            console.log(`Hitting ${monster.typeId} with ${damageAmount.toFixed(2)} damage (distance: ${distance.toFixed(2)})`);
+
 
             const killed = applyDamage(monster, damageAmount);
             affectedMonsters.push(monster);
 
             if (killed) {
-                console.log(`Monster ${monster.typeId} was killed by splash damage!`);
+
             }
         }
     });
@@ -397,7 +397,7 @@ export function applyAreaDamage(position, radius, damage, options = {}) {
  * @returns {Array} Affected monsters
  */
 export function applyCannonballSplash(position, splashRadius = 20, splashDamage = 1000) {
-    console.log(`Cannonball splash at ${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}`);
+
 
     // Force higher damage to ensure kills
     splashDamage = 1000; // Extremely high damage to guarantee kills
@@ -406,7 +406,7 @@ export function applyCannonballSplash(position, splashRadius = 20, splashDamage 
     const splashPosition = position.clone();
     splashPosition.y = 0;
 
-    console.log(`Applying MASSIVE splash damage (${splashDamage}) with radius ${splashRadius}`);
+
 
     // Apply area damage
     return applyAreaDamage(
@@ -469,7 +469,7 @@ function createDamageEffect(monster, amount) {
  */
 function createHitEffect(position) {
     // This function should be implemented in the game's visual effects system
-    console.log(`Hit effect at ${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}`);
+
 }
 
 // Add more specialized damage functions as needed

@@ -129,7 +129,7 @@ export function getPlayerInfo() {
 // Update existing updateAllPlayers function to store the players data
 export function updateAllPlayers(players) {
     allPlayers = players;
-    //console.log("🌍 GAME STATE: All players updated:", allPlayers);
+    //
     return allPlayers;
 }
 
@@ -140,23 +140,23 @@ export function getAllPlayers() {
 
 // Add these scene management functions
 export function addToScene(object) {
-    console.log(`Adding object to scene: ${object.name || 'unnamed object'}`);
+
     scene.add(object);
     return object;
 }
 
 export function removeFromScene(object) {
     if (!object) {
-        console.warn("Attempted to remove null or undefined object from scene");
+
         return false;
     }
 
     if (object.parent !== scene) {
-        console.warn(`Object ${object.name || 'unnamed'} is not a direct child of scene`);
+
         return false;
     }
 
-    console.log(`Removing object from scene: ${object.name || 'unnamed object'}`);
+
     scene.remove(object);
 
     // Clean up resources

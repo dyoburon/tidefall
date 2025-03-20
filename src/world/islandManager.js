@@ -120,7 +120,7 @@ export function generateMixedChunk(chunkX, chunkZ, scene, options = {}) {
 export function updateVisibleIslands(boat, scene, waterShader, lastChunkUpdatePosition, options = {}) {
     // Return early if boat is undefined or null
     if (!boat || !boat.position) {
-        console.warn("Cannot update islands: boat or boat.position is undefined");
+
         return;
     }
 
@@ -230,7 +230,7 @@ export function findNearestIsland(boat) {
  * @param {THREE.Vector3} position - Position to place the cliff (optional)
  */
 export function spawnCoastalCliffScene(scene, position = new THREE.Vector3(0, 0, 0)) {
-    console.log("Creating coastal cliff scene at:", position);
+
     const cliffScene = createCoastalCliffScene(scene, position);
     return cliffScene;
 } 

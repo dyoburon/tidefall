@@ -4,7 +4,7 @@ import { boat, getTime, getWindData } from '../core/gameState.js';
 // Set up a timer to analyze any mesh after 5 seconds
 setTimeout(() => {
     if (boat) {
-        console.log("=== BOAT MODEL ANALYSIS - ONE TIME DUMP (after 5 second delay) ===");
+
 
         // Find ALL meshes to analyze, not just sail-named ones
         const allMeshes = [];
@@ -14,12 +14,12 @@ setTimeout(() => {
             }
         });
 
-        console.log(`Found ${allMeshes.length} total meshes to analyze`);
+
 
         // Analyze each mesh individually (limit to first 3 to avoid excessive output)
         const meshesToAnalyze = allMeshes.slice(0, 3); // Take up to first 3 meshes
         meshesToAnalyze.forEach((mesh, index) => {
-            console.log(`\n----- ANALYZING MESH ${index + 1}: ${mesh.name || 'unnamed'} -----`);
+
             dumpObject(mesh);
         });
     }
@@ -113,7 +113,7 @@ export function animateSails() {
 }
 
 function dumpObject(obj, indent = 0) {
-    console.log("Model structure with additional details:");
+
 
     const padding = ' '.repeat(indent * 2);
 
@@ -240,7 +240,7 @@ function dumpObject(obj, indent = 0) {
         info += `\n${padding}  - UserData: ${JSON.stringify(obj.userData)}`;
     }
 
-    console.log(info);
+
 
     // Don't process children to run only once for the main object
     // To see children, uncomment these lines:

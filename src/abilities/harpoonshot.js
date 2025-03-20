@@ -345,18 +345,18 @@ class HarpoonShot {
             this.harpoonLine.material.color.set(0xff8800); // Orange for tension
         }
 
-        console.log(`Harpoon attached to ${monster.typeId}`);
+
     }
 
     // Callback for when the harpoon detaches
     handleHarpoonDetached() {
         // Visual indication of detachment already handled in startReeling
-        console.log("Harpoon detached from monster");
+
     }
 
     // Callback for damage ticks (if implemented)
     handleDamageTick(monster) {
-        console.log(`Applied damage tick to ${monster.typeId}`);
+
     }
 
     startReeling() {
@@ -376,7 +376,7 @@ class HarpoonShot {
             detachHarpoon(this.harpoonId);
 
             // But we're still keeping track of the monster to pull it
-            console.log(`Starting to reel in monster: ${this.attachedEnemy.typeId}`);
+
         }
 
         // Change line color to indicate reeling
@@ -398,7 +398,7 @@ class HarpoonShot {
 
             // If the boat is close enough to the island, stop grappling
             if (distance < 10) {
-                console.log("Reached island, ending grapple");
+
                 this.removeHarpoon();
                 return;
             }
@@ -458,7 +458,7 @@ class HarpoonShot {
 
             // If monster no longer valid but we were tracking it, clean up the reference
             if (!monsterValid && this.attachedEnemy) {
-                console.log("Monster died during reeling, continuing to reel harpoon only");
+
 
                 // Clean up any drag effects
                 cleanupDragEffects(this.attachedEnemy);
@@ -590,12 +590,12 @@ class HarpoonShot {
     }
 
     handleIslandAttachment(islandData) {
-        console.log("Harpoon attached to island!");
+
         // Any specific UI or feedback can go here
     }
 
     handleIslandDetachment() {
-        console.log("Harpoon detached from island");
+
         // Any cleanup specific to the harpoon shot class
     }
 }

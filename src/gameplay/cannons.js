@@ -123,7 +123,7 @@ function checkForMonstersInRange() {
 
 // Fire cannons
 export function fireCannons() {
-    console.log("Firing dual cannons from sides!");
+
 
     // Fire cannons from both sides of the boat simultaneously
     createSideCannons('left');
@@ -177,7 +177,7 @@ function createSideCannons(side) {
 
 // Create a cannonball with improved trajectory
 function createCannonballWithTrajectory(position, direction) {
-    console.log("Creating cannonball at position:", position);
+
 
     // Create a more visible cannonball (but not as extreme as the debug version)
     const cannonballGeometry = new THREE.SphereGeometry(2.0, 16, 16); // Good visible size
@@ -191,7 +191,7 @@ function createCannonballWithTrajectory(position, direction) {
     // Add to scene
     scene.add(cannonball);
 
-    console.log("Cannonball added to scene:", cannonball.uuid);
+
 
     // Higher speed for longer trajectory
     const cannonballSpeed = CANNON_BALL_SPEED * 5; // Much faster
@@ -219,7 +219,7 @@ function createCannonballWithTrajectory(position, direction) {
         // Check if cannonball has traveled too far
         const distanceTraveled = cannonball.position.distanceTo(initialPosition);
         if (distanceTraveled > maxDistance) {
-            console.log("Cannonball removed due to distance");
+
             scene.remove(cannonball);
             return;
         }
@@ -238,7 +238,7 @@ function createCannonballWithTrajectory(position, direction) {
 
         // Check for water collision
         if (cannonball.position.y <= 0) {
-            console.log("Cannonball hit water");
+
             createEnhancedSplashEffect(cannonball.position.clone(), 3.0); // Big splash
             scene.remove(cannonball);
             return;
@@ -306,7 +306,7 @@ function createCannonFireEffects() {
 
 // Create effect for a single cannon
 function createCannonEffect(cannon) {
-    console.log("Creating EXTRA VISIBLE cannon effect!");
+
 
     // Create an absolutely enormous, bright cannonball with emission properties
     const cannonballGeometry = new THREE.SphereGeometry(5.0, 32, 32); // Massive 5-unit radius
@@ -320,7 +320,7 @@ function createCannonEffect(cannon) {
     cannonballPosition.copy(boat.position);
     cannonballPosition.y += 10; // Place high above the boat
 
-    console.log("Creating cannonball at absolute position:", cannonballPosition);
+
 
     const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
     cannonball.position.copy(cannonballPosition);
@@ -340,8 +340,8 @@ function createCannonEffect(cannon) {
     // Add to the scene via boat.parent to ensure it's in the same scene
     scene.add(cannonball);
 
-    console.log("Cannonball added to scene:", cannonball.uuid);
-    console.log("Scene children count:", scene.children.length);
+
+
 
     // Static test - don't even bother with physics for now
     const duration = 5; // seconds
@@ -352,7 +352,7 @@ function createCannonEffect(cannon) {
         const elapsedTime = (getTime() - startTime) / 1000;
 
         if (elapsedTime > duration) {
-            console.log("Removing test cannonball");
+
             scene.remove(cannonball);
             return;
         }
@@ -380,7 +380,7 @@ function playFallbackCannonSound() {
         try {
             window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         } catch (e) {
-            console.warn('Web Audio API not supported in this browser');
+
             return;
         }
     }
@@ -1042,7 +1042,7 @@ function createLargeSplashEffect(position) {
 // Add a simple sound function (you can enhance this with actual audio)
 function playMonsterDeathSound() {
     // If you have an audio system, play a death sound here
-    //console.log("Monster death sound played");
+    //
 }
 
 // Update cannonballs with more dramatic physics
@@ -1063,7 +1063,7 @@ function updateCannonballs(deltaTime) {
         // Update lifetime check
         const lifetime = (getTime() - cannonball.startTime) / 1000;
         if (lifetime > 10) { // Extended lifetime
-            console.log("Cannonball removed due to lifetime");
+
             scene.remove(cannonball.mesh);
             cannonballs.splice(i, 1);
             continue;
@@ -1071,7 +1071,7 @@ function updateCannonballs(deltaTime) {
 
         // Simplified water collision
         if (cannonball.mesh.position.y <= 0) {
-            console.log("Cannonball hit water at:", cannonball.mesh.position.clone());
+
             createEnhancedSplashEffect(cannonball.mesh.position.clone(), 2.0); // Bigger splash
             scene.remove(cannonball.mesh);
             cannonballs.splice(i, 1);

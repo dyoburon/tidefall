@@ -51,7 +51,7 @@ export function initDragEffects(monster) {
         lastActiveTime: getTime() / 1000
     });
 
-    console.log(`Water effects initialized for monster at ${monster.mesh.position.x.toFixed(1)}, ${monster.mesh.position.y.toFixed(1)}, ${monster.mesh.position.z.toFixed(1)}`);
+
 
     // Create an immediate splash to show effects working
     createImmediateSplash(monster);
@@ -121,7 +121,7 @@ function createImmediateSplash(monster) {
         }
     }
 
-    console.log(`Created dramatic initial splash effect with ${SPLASH_CONFIG.INITIAL_SPLASH_COUNT} particles`);
+
 }
 
 /**
@@ -237,26 +237,26 @@ export function isMonsterBeingDragged(monster) {
 
     // First check the direct flag which might be set by harpoonshot.js
     if (monster.isBeingDragged) {
-        if (DEBUG_DRAG) console.log(`Monster flagged as being dragged via isBeingDragged property`);
-        return true;
+        if (DEBUG_DRAG)
+            return true;
     }
 
     // Check if monster is in 'tethered' state (set by harpoon damage system)
     if (monster.state === 'tethered' || monster.originalState) {
-        if (DEBUG_DRAG) console.log(`Monster in tethered state: ${monster.state}`);
-        return true;
+        if (DEBUG_DRAG)
+            return true;
     }
 
     // Check harpoon damage system directly to see if monster is attached to any harpoons
     if (hasActiveHarpoons(monster)) {
-        if (DEBUG_DRAG) console.log(`Monster has active harpoons attached`);
-        return true;
+        if (DEBUG_DRAG)
+            return true;
     }
 
     // Check if the monster has attachedHarpoons array
     if (monster.attachedHarpoons && monster.attachedHarpoons.length > 0) {
-        if (DEBUG_DRAG) console.log(`Monster has ${monster.attachedHarpoons.length} harpoons in attachedHarpoons array`);
-        return true;
+        if (DEBUG_DRAG)
+            return true;
     }
 
     // Check for fast movement
@@ -268,8 +268,8 @@ export function isMonsterBeingDragged(monster) {
         // Calculate distance moved since last frame
         const distance = currentPos.distanceTo(lastPos);
         if (distance > 0.8) { // Monster moved significantly in a single frame
-            if (DEBUG_DRAG) console.log(`Monster moving fast: ${distance.toFixed(2)} units in one frame`);
-            return true;
+            if (DEBUG_DRAG)
+                return true;
         }
     }
 
@@ -582,5 +582,5 @@ export function createDebugSplash(position) {
     // Add to tracking as a special case
     dragEffects.set('debug', mockEffects);
 
-    console.log(`Created massive debug splash at ${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)}`);
+
 } 

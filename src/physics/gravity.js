@@ -29,7 +29,7 @@ class GravitySystem {
      */
     addObject(id, object, params = {}) {
         if (!object || !object.position) {
-            console.warn('Cannot add invalid object to gravity system');
+
             return;
         }
 
@@ -160,7 +160,7 @@ class GravitySystem {
      */
     applySimpleGravity(object, deltaTime, options = {}) {
         if (!object || !object.position) {
-            console.warn('Cannot apply gravity to invalid object');
+
             return null;
         }
 

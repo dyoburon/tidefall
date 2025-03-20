@@ -61,7 +61,7 @@ let playerBoat = null;
 
 // Initialize the treasure system
 export function initTreasureSystem(boatRef) {
-    console.log("Treasure system initialized with boat reference");
+
     playerBoat = boatRef;
     treasureDrops = [];
 
@@ -150,7 +150,7 @@ export function createTreasureDrop(position, monsterType) {
     treasureDrops.push(treasureGroup);
 
     // Log creation for debugging
-    console.log(`Created treasure drop at position (${position.x}, ${position.y}, ${position.z}) for monster type: ${monsterType}`);
+
 
     return treasureGroup;
 }
@@ -284,7 +284,7 @@ export function updateTreasures(deltaTime) {
 
     // Debug info - log treasure counts periodically
     if (Math.floor(currentTime) % 5 === 0 && treasureDrops.length > 0 && Math.random() < 0.1) {
-        console.log(`Active treasures: ${treasureDrops.length}`);
+
     }
 
     // Update each treasure
@@ -358,11 +358,11 @@ export function updateTreasures(deltaTime) {
 
             // Log when we're getting close to treasures (for debugging)
             if (distance < COLLECT_DISTANCE * 1.5 && Math.random() < 0.05) {
-                console.log(`Treasure nearby! Distance: ${distance.toFixed(2)}, Collect threshold: ${COLLECT_DISTANCE}`);
+
             }
 
             if (distance < COLLECT_DISTANCE) {
-                console.log(`Collecting treasure at distance ${distance.toFixed(2)}!`);
+
 
                 // Collect treasure
                 collectTreasure(treasure);
@@ -380,7 +380,7 @@ export function updateTreasures(deltaTime) {
         } else {
             // Log missing boat reference (only occasionally to avoid spam)
             if (Math.random() < 0.01) {
-                console.warn("Boat reference missing in treasure system!");
+
             }
         }
     }
@@ -401,7 +401,7 @@ function collectTreasure(treasure) {
         treasureInventory[treasureName].count++;
     }
 
-    console.log(`Collected ${treasureName}! Total: ${treasureInventory[treasureName].count}`);
+
 
     // Update the inventory UI if it exists
     updateTreasureInventoryDisplay();

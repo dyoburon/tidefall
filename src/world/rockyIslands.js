@@ -156,7 +156,7 @@ function createIrregularCylinderGeometry(innerRadius, outerRadius, height, segme
 
         // Safety check - make sure geometry was created properly
         if (!geometry || !geometry.attributes || !geometry.attributes.position) {
-            console.warn("Failed to create cylinder geometry, returning standard geometry");
+
             return new THREE.CylinderGeometry(innerRadius, outerRadius, height, segments);
         }
 
@@ -211,7 +211,7 @@ function createIrregularCylinderGeometry(innerRadius, outerRadius, height, segme
 
         return geometry;
     } catch (e) {
-        console.error("Error creating irregular cylinder geometry:", e);
+
         // Return a standard cylinder geometry if there was an error
         return new THREE.CylinderGeometry(innerRadius, outerRadius, height, segments);
     }
@@ -382,7 +382,7 @@ function addElevatedArea(island, islandRadius, random) {
 
         // Check if geometry was created successfully
         if (!hillGeometry || !hillGeometry.attributes || !hillGeometry.attributes.position) {
-            console.warn("Failed to create elevated area geometry, skipping");
+
             return;
         }
 
@@ -437,7 +437,7 @@ function addElevatedArea(island, islandRadius, random) {
         // Apply outline to hill
         applyOutline(hill, { scale: 1.1 });
     } catch (e) {
-        console.error("Error creating elevated area:", e);
+
         // Continue without adding this feature
     }
 }
@@ -459,7 +459,7 @@ function addRidge(island, islandRadius, random) {
 
         // Check if geometry was created successfully
         if (!ridgeGeometry || !ridgeGeometry.attributes || !ridgeGeometry.attributes.position) {
-            console.warn("Failed to create ridge geometry, skipping");
+
             return;
         }
 
@@ -529,7 +529,7 @@ function addRidge(island, islandRadius, random) {
         // Apply outline to ridge
         applyOutline(ridge, { scale: 1.12 });
     } catch (e) {
-        console.error("Error creating ridge:", e);
+
         // Continue without adding this feature
     }
 }
@@ -562,7 +562,7 @@ function addDepression(island, islandRadius, random) {
 
         // Check if geometry was created successfully
         if (!geometry || !geometry.attributes || !geometry.attributes.position) {
-            console.warn("Failed to create depression geometry, skipping");
+
             return;
         }
 
@@ -618,7 +618,7 @@ function addDepression(island, islandRadius, random) {
         // Apply subtle outline to depression
         applyOutline(depression, { scale: 1.08 });
     } catch (e) {
-        console.error("Error creating depression:", e);
+
         // Continue without adding this feature
     }
 }
@@ -683,7 +683,7 @@ function createRock(size, height, random) {
 
     // Check that geometry was created successfully
     if (!baseGeometry || !baseGeometry.attributes || !baseGeometry.attributes.position) {
-        console.warn("Failed to create rock geometry, using fallback");
+
         baseGeometry = new THREE.BoxGeometry(size, height, size);
     }
 
@@ -802,7 +802,7 @@ function createRock(size, height, random) {
         try {
             addRockDetail(rock, size, height, random);
         } catch (e) {
-            console.warn("Failed to add rock detail:", e);
+
         }
     }
 
@@ -820,7 +820,7 @@ function addRockDetail(rock, size, height, random) {
     try {
         // Check if the rock is valid
         if (!rock || !rock.isObject3D) {
-            console.warn("Invalid rock object passed to addRockDetail");
+
             return;
         }
 
@@ -833,7 +833,7 @@ function addRockDetail(rock, size, height, random) {
 
         // Validate geometry
         if (!crackGeometry || !crackGeometry.attributes) {
-            console.warn("Failed to create crack geometry");
+
             return;
         }
 
@@ -858,7 +858,7 @@ function addRockDetail(rock, size, height, random) {
 
         // We don't need to outline the crack as it's meant to be a dark indentation
     } catch (e) {
-        console.error("Error adding rock detail:", e);
+
         // Continue without adding this detail
     }
 }
@@ -907,7 +907,7 @@ function createRockFormation(island, islandRadius, random) {
                     createStandardFormation(formationGroup, islandRadius, random);
             }
         } catch (e) {
-            console.error(`Error creating formation type ${formationType}:`, e);
+
             // Try to create a simpler formation as fallback
             try {
                 // Add a single simple rock as fallback
@@ -916,13 +916,13 @@ function createRockFormation(island, islandRadius, random) {
                 const rock = createRock(rockSize, rockHeight, random);
                 formationGroup.add(rock);
             } catch (fallbackError) {
-                console.error("Failed to create fallback rock:", fallbackError);
+
             }
         }
 
         island.add(formationGroup);
     } catch (e) {
-        console.error("Error creating rock formation:", e);
+
     }
 }
 
@@ -958,12 +958,12 @@ function createStandardFormation(parent, islandRadius, random) {
 
                 parent.add(rock);
             } catch (e) {
-                console.error(`Error creating rock ${i} in standard formation:`, e);
+
                 // Continue with next rock
             }
         }
     } catch (e) {
-        console.error("Error creating standard formation:", e);
+
     }
 }
 
@@ -997,7 +997,7 @@ function createArchFormation(parent, islandRadius, random) {
 
                 parent.add(leg);
             } catch (e) {
-                console.error(`Error creating arch leg ${side}:`, e);
+
             }
         }
 
@@ -1028,13 +1028,13 @@ function createArchFormation(parent, islandRadius, random) {
 
                     archTop.add(rock);
                 } catch (e) {
-                    console.error(`Error creating arch segment ${i}:`, e);
+
                 }
             }
 
             parent.add(archTop);
         } catch (e) {
-            console.error("Error creating arch top:", e);
+
         }
 
         // Add some fallen/debris rocks around the base
@@ -1056,11 +1056,11 @@ function createArchFormation(parent, islandRadius, random) {
 
                 parent.add(debris);
             } catch (e) {
-                console.error(`Error creating arch debris ${i}:`, e);
+
             }
         }
     } catch (e) {
-        console.error("Error creating arch formation:", e);
+
     }
 }
 
@@ -1104,7 +1104,7 @@ function createStackFormation(parent, islandRadius, random) {
                 // Update height for next rock
                 currentHeight += rockHeight;
             } catch (e) {
-                console.error(`Error creating stack layer ${i}:`, e);
+
             }
         }
 
@@ -1128,11 +1128,11 @@ function createStackFormation(parent, islandRadius, random) {
 
                 parent.add(baseRock);
             } catch (e) {
-                console.error(`Error creating base rock ${i} for stack:`, e);
+
             }
         }
     } catch (e) {
-        console.error("Error creating stack formation:", e);
+
     }
 }
 
@@ -1176,7 +1176,7 @@ function createCircleFormation(parent, islandRadius, random) {
 
                 parent.add(rock);
             } catch (e) {
-                console.error(`Error creating circle rock ${i}:`, e);
+
             }
         }
 
@@ -1191,11 +1191,11 @@ function createCircleFormation(parent, islandRadius, random) {
 
                 parent.add(centerRock);
             } catch (e) {
-                console.error("Error creating center rock for circle formation:", e);
+
             }
         }
     } catch (e) {
-        console.error("Error creating circle formation:", e);
+
     }
 }
 

@@ -8,10 +8,10 @@ export function initAudioSystem() {
     try {
         // Create audio context if browser supports it
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        console.log("Audio system initialized");
+
         return true;
     } catch (e) {
-        console.warn('Web Audio API not supported in this browser');
+
         return false;
     }
 }

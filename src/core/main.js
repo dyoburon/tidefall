@@ -57,6 +57,8 @@ import { initMonsterManager, updateAllMonsters } from '../entities/monsterManage
 import { updateProjectileCollisions, initDamageSystem } from '../abilities/damageSystem.js';
 import { initTouchControls, isTouchDevice } from '../controls/touchControls.js';
 import { updateDragEffects, updateWaterDragEffects } from '../animations/monsterDragEffects.js';
+import { initHarpoonLineSystem, updateLineBreakSystem } from '../abilities/harpoonLineSystem.js';
+
 
 
 
@@ -88,6 +90,8 @@ const water = setupWater('cartoony');
 initializeChunkSystem();
 initMonsterManager();
 initDamageSystem();
+initHarpoonLineSystem();
+
 
 
 const abilityManager = new AbilityManager(scene, camera, boat);
@@ -187,7 +191,7 @@ setupSky();
 
 if (isTouchDevice()) {
     initTouchControls();
-    console.log('Touch controls enabled for mobile devices');
+
 }
 
 
@@ -1140,13 +1144,6 @@ function animate() {
             const currentY = boat.position.y;
             boat.position.x = newPosition.x;
             boat.position.z = newPosition.z;
-
-            // Check if something modified Y incorrectly
-            if (window.collisionDebugActive && Math.abs(boat.position.y - currentY) > 0.001) {
-                console.warn("%c⚠️ Y-position was modified by something! Expected:",
-                    currentY.toFixed(2), "Actual:", boat.position.y.toFixed(2),
-                    "background:red; color:white;");
-            }
         } else {
             // Normal update for all components
             const currentY = boat.position.y;
@@ -1244,6 +1241,9 @@ function animate() {
     updateDragEffects(deltaTime);
 
     updateWaterDragEffects(deltaTime);
+
+    updateLineBreakSystem();
+
 
 
 

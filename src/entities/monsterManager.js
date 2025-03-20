@@ -116,9 +116,9 @@ function applyOutlineToMonster(monster) {
             }
         });
 
-        console.log(`Applied outline to ${monster.typeId}`);
+
     } catch (error) {
-        console.warn("Error applying outline to monster:", error);
+
     }
 }
 
@@ -160,13 +160,13 @@ export function spawnMonstersInChunk(chunkKey, chunkX, chunkZ, options = {}) {
 
     // Check random chance before spawning anything
     if (Math.random() > settings.spawnChance) {
-        console.log(`[SPAWN] No monsters spawned in chunk ${chunkKey} (rolled above ${settings.spawnChance * 100}% chance)`);
+
         return; // Skip spawning based on random chance
     }
 
     // Determine how many monsters to spawn
     let numToSpawn = Math.floor(Math.random() * (settings.maxCount - settings.minCount + 1)) + settings.minCount;
-    console.log(`[SPAWN] Will spawn ${numToSpawn} monsters in chunk ${chunkKey}`);
+
 
     // Calculate the world-space bounds of this chunk
     const chunkMinX = chunkX * settings.chunkSize;
@@ -174,7 +174,7 @@ export function spawnMonstersInChunk(chunkKey, chunkX, chunkZ, options = {}) {
     const chunkMinZ = chunkZ * settings.chunkSize;
     const chunkMaxZ = (chunkZ + 1) * settings.chunkSize;
 
-    console.log(`[SPAWN] Chunk bounds: X(${chunkMinX} to ${chunkMaxX}), Z(${chunkMinZ} to ${chunkMaxZ})`);
+
 
     // Create an array to hold the spawned monsters
     const spawnedMonsters = [];
@@ -193,9 +193,9 @@ export function spawnMonstersInChunk(chunkKey, chunkX, chunkZ, options = {}) {
 
         if (monster) {
             spawnedMonsters.push(monster);
-            console.log(`[SPAWN] Monster ${i + 1}/${numToSpawn} successfully created`);
+
         } else {
-            console.log(`[SPAWN] Failed to create monster ${i + 1}/${numToSpawn}`);
+
         }
     }
 
@@ -218,7 +218,7 @@ export function spawnMonstersInChunk(chunkKey, chunkX, chunkZ, options = {}) {
         // Force monster to be visible
         ensureMonsterVisibility(monster);
 
-        console.log(`[SPAWN] Set monster ${index + 1}/${spawnedMonsters.length} position to (${posX.toFixed(1)}, ${depth.toFixed(1)}, ${posZ.toFixed(1)})`);
+
     });
 }
 
@@ -309,9 +309,9 @@ function dropTreasureFromMonster(monster) {
         // Create treasure drop at monster position
         const treasure = createTreasureDrop(position, monster.typeId);
 
-        console.log(`Dropped treasure for ${monster.typeId} at position:`, position);
+
     } catch (error) {
-        console.warn("Error dropping treasure from monster:", error);
+
     }
 }
 
@@ -352,7 +352,7 @@ export function setMonsters(newMonsters) {
         }
     });
 
-    console.log(`[DEBUG] Set monsters collection with ${newMonsters.length} monsters`);
+
 }
 
 /**
@@ -365,7 +365,7 @@ export function updateAllMonsters(deltaTime) {
 
     // More frequent debugging - every 2 seconds
     if (Math.floor(getTime()) % 2 === 0) {
-        //console.log(`[DEBUG] Active monsters count: ${monsters.length}`);
+        //
     }
 
     // First update monster visibility based on chunks
@@ -410,11 +410,11 @@ function updateMonsterVisibility() {
             // Group states by monster type
             const statesByType = {};
 
-            console.log(`[MONSTER-DEBUG] Attempting to respawn monsters in chunk ${chunkKey}, received ${monsterStates.length} states`);
+
 
             monsterStates.forEach(state => {
                 if (!state || !state.typeId) {
-                    console.log(`[MONSTER-DEBUG] Invalid monster state found:`, state);
+
                     return;
                 }
 
@@ -426,10 +426,10 @@ function updateMonsterVisibility() {
 
             // Log info about respawn attempts
             Object.entries(statesByType).forEach(([typeId, states]) => {
-                console.log(`[MONSTER-DEBUG] Attempting to respawn ${states.length} monsters of type ${typeId} in chunk ${chunkKey}`);
+
                 const typeInfo = monsterTypes.get(typeId);
                 if (!typeInfo || !typeInfo.respawnFn) {
-                    console.log(`[MONSTER-DEBUG] ERROR: Missing typeInfo or respawnFn for ${typeId}`);
+
                     return;
                 }
 
