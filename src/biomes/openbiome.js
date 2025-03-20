@@ -14,6 +14,8 @@ import { boat as playerObject } from '../core/gameState.js';
 import { toggleFog, setFogProperties, transitionFogType } from '../environment/fog.js';
 import { initRain, startRain, updateRain } from '../weather/rain.js';
 import { createRockyIsland } from '../world/rockyIslands.js';
+import { createHugeIsland, getHugeIslandColliders } from '../world/hugeIsland.js';
+
 
 export const OPEN_FOG_CONFIG = {
     color: 0xD3D3D3,           // Red fog
@@ -118,6 +120,32 @@ class OpenBiome extends BiomeInterface {
         const worldZ = chunkZ * chunkSize;
 
         const spawnedInThisChunk = [];
+
+        const spawnHugeIsland = Math.random() < 1.0; // 100% probability
+
+        if (spawnHugeIsland) {
+            // Position at center of the chunk
+            const posX = worldX + chunkSize * 0.5;
+            const posZ = worldZ + chunkSize * 0.5;
+
+            // Make sure we don't spawn too close to other islands
+            const position = new THREE.Vector3(posX, 0, posZ);
+
+            // Use larger collision radius for the huge island
+            if (!checkAllIslandCollisions(position, 800)) {
+                const hugeIslandSeed = Math.floor(Math.random() * 1000000);
+                const hugeIsland = createHugeIsland(posX, posZ, hugeIslandSeed, chunkGroup);
+
+                if (hugeIsland) {
+                    this.spawnedEntities.islands.push(hugeIsland);
+                    spawnedInThisChunk.push({
+                        type: 'hugeIsland',
+                        entity: hugeIsland,
+                        position: position
+                    });
+                }
+            }
+        }
 
         // Grid-based approach to island placement
         const gridCells = 4; // Divide chunk into a 4x4 grid

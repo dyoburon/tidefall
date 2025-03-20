@@ -197,7 +197,8 @@ class HarpoonShot {
                 onAttachToIsland: (islandData) => this.handleIslandAttachment(islandData),
                 onDetachFromIsland: () => this.handleIslandDetachment(),
                 onReachGrapplePoint: () => this.removeHarpoon(),
-                updateLineThickness: (thickness) => this.updateLineThickness(thickness)
+                updateLineThickness: (thickness) => this.updateLineThickness(thickness),
+                onLineBreak: () => this.handleLineBreak()
             }
         });
 
@@ -344,19 +345,15 @@ class HarpoonShot {
         if (this.harpoonLine.material) {
             this.harpoonLine.material.color.set(0xff8800); // Orange for tension
         }
-
-
     }
 
     // Callback for when the harpoon detaches
     handleHarpoonDetached() {
         // Visual indication of detachment already handled in startReeling
-
     }
 
     // Callback for damage ticks (if implemented)
     handleDamageTick(monster) {
-
     }
 
     startReeling() {
@@ -376,7 +373,6 @@ class HarpoonShot {
             detachHarpoon(this.harpoonId);
 
             // But we're still keeping track of the monster to pull it
-
         }
 
         // Change line color to indicate reeling
@@ -398,7 +394,6 @@ class HarpoonShot {
 
             // If the boat is close enough to the island, stop grappling
             if (distance < 10) {
-
                 this.removeHarpoon();
                 return;
             }
@@ -458,8 +453,6 @@ class HarpoonShot {
 
             // If monster no longer valid but we were tracking it, clean up the reference
             if (!monsterValid && this.attachedEnemy) {
-
-
                 // Clean up any drag effects
                 cleanupDragEffects(this.attachedEnemy);
 
@@ -590,14 +583,18 @@ class HarpoonShot {
     }
 
     handleIslandAttachment(islandData) {
-
         // Any specific UI or feedback can go here
     }
 
     handleIslandDetachment() {
-
         // Any cleanup specific to the harpoon shot class
+    }
+
+    handleLineBreak() {
+        console.log(`handleLineBreak called for harpoon: ${this.harpoonId}`);
+        // When line breaks, start reeling in to retract the harpoon
+        this.startReeling();
     }
 }
 
-export default HarpoonShot; 
+export default HarpoonShot;

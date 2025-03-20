@@ -57,7 +57,6 @@ import { initMonsterManager, updateAllMonsters } from '../entities/monsterManage
 import { updateProjectileCollisions, initDamageSystem } from '../abilities/damageSystem.js';
 import { initTouchControls, isTouchDevice } from '../controls/touchControls.js';
 import { updateDragEffects, updateWaterDragEffects } from '../animations/monsterDragEffects.js';
-import { initHarpoonLineSystem, updateLineBreakSystem } from '../abilities/harpoonLineSystem.js';
 
 
 
@@ -90,7 +89,6 @@ const water = setupWater('cartoony');
 initializeChunkSystem();
 initMonsterManager();
 initDamageSystem();
-initHarpoonLineSystem();
 
 
 
@@ -1241,9 +1239,6 @@ function animate() {
     updateDragEffects(deltaTime);
 
     updateWaterDragEffects(deltaTime);
-
-    updateLineBreakSystem();
-
 
 
 
