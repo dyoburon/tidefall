@@ -210,7 +210,7 @@ export function setupWater(style = 'realistic') {
     }
 
     // Add to scene
-    //scene.add(waterMesh);
+    scene.add(waterMesh);
 
     return waterMesh;
 }
