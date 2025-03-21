@@ -12,6 +12,7 @@
         "firebase": "^11.4.0",
         "http-server": "^14.1.1",
         "nipplejs": "^0.10.2",
+        "postprocessing": "^6.37.1",
         "socket.io-client": "^4.5.4",
         "three": "^0.174.0"
     },

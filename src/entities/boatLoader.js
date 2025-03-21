@@ -1,10 +1,6 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { animateSails } from '../animations/sailAnimations';
-
-// Variables needed for loadGLBModel
-let boatModelLoaded = false;
-let boatModelLoading = false;
+import { loadGLBModel, resetModelLoadingState } from '../utils/glbLoader';
 
 // Single comprehensive ship definition
 export const SHIP_MODELS = {
@@ -137,152 +133,38 @@ for (const [type, ship] of Object.entries(SHIP_MODELS)) {
  * @param {THREE.Group} targetGroup - The group to add the loaded model to
  */
 export function loadShipModel(targetGroup) {
-    // Reset any previous model loading state
-    boatModelLoaded = false;
-    boatModelLoading = false;
-
-    // Call the original loading function
-    loadGLBModel(targetGroup);
-}
-
-/**
- * Loads a ship model based on the selected type in localStorage
- * @param {THREE.Group} targetGroup - The group to add the loaded model to
- */
-export function loadGLBModel(boat) {
-    // Don't load if already loaded or currently loading
-    if (boatModelLoaded || boatModelLoading) return;
-
-    // Set loading flag to prevent concurrent load attempts
-    boatModelLoading = true;
-
-    // Create a GLTF loader
-    const loader = new GLTFLoader();
+    // Reset loading state for boat model
+    resetModelLoadingState('playerBoat');
 
     // Get the current ship type and its configuration
     const shipType = getShipType();
     const shipConfig = SHIP_MODELS[shipType];
-    const modelUrl = shipConfig.path;
-    const scaleValue = shipConfig.scale;
 
-    // Get position from ship config
-    const [posX, posY, posZ] = shipConfig.position;
-
-    // Get rotation - support both single value and array formats
-    let rotX = 0, rotY = shipConfig.rotation[1], rotZ = 0;
-    if (Array.isArray(shipConfig.rotation)) {
-        [rotX, rotY, rotZ] = shipConfig.rotation;
-    }
-
-    loader.load(
-        modelUrl,
-        // Success callback
-        function (gltf) {
-            const model = gltf.scene;
-
-            // Add LOD system
-            const lod = new THREE.LOD();
-
-            // Add highest detail model with CONFIG SCALE, POSITION AND ROTATION
-            model.scale.set(scaleValue, scaleValue, scaleValue);
-            model.position.set(posX, posY, posZ);
-            model.rotation.set(rotX, rotY, rotZ);
-            lod.addLevel(model, 0);  // Highest detail at close range
-
-            // Create simplified version for distance (with same transforms)
-            const simplifiedModel = model.clone();
-            simplifiedModel.traverse(child => {
-                if (child.isMesh && child.geometry) {
-                    // Remove unnecessary details for distant view
-                    if (child.name.includes('detail') || child.name.includes('accessory')) {
-                        child.visible = false;
-                    }
-                }
-            });
-            lod.addLevel(simplifiedModel, 100);  // Medium detail
-
-            // Add very simplified version for far distance
-            const boxGeometry = new THREE.BoxGeometry(6, 2, 12);
-            const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x8b4513 });
-            const boxModel = new THREE.Mesh(boxGeometry, boxMaterial);
-            boxModel.position.set(posX, posY, posZ);
-            boxModel.rotation.set(rotX, rotY, rotZ);
-            lod.addLevel(boxModel, 500);  // Low detail at far range
-
-            // Add LOD to boat
-            boat.add(lod);
-
-            // Add sail animations
+    // Create configuration for the generic loader
+    const config = {
+        modelId: 'playerBoat',
+        modelUrl: shipConfig.path,
+        scaleValue: shipConfig.scale,
+        position: shipConfig.position,
+        rotation: shipConfig.rotation,
+        animationSetup: (model) => {
+            // Only set up sail animations if appropriate
             if (model.name.includes('sail')) {
                 const sailControls = animateSails(model);
-                boat.userData.sailControls = sailControls;
+                return sailControls;
             }
-
-            // Add to a global update list if not exists
-            if (!window.sailAnimations) window.sailAnimations = [];
-            window.sailAnimations.push(sailControls);
-
-            // Handle animations if present
-            if (gltf.animations && gltf.animations.length) {
-                const mixer = new THREE.AnimationMixer(model);
-                const animation = mixer.clipAction(gltf.animations[0]);
-                animation.play();
-
-                model.userData.mixer = mixer;
-
-                if (!window.modelMixers) window.modelMixers = [];
-                window.modelMixers.push(mixer);
-            }
-
-            // Set flags to indicate model is loaded and no longer loading
-            boatModelLoaded = true;
-            boatModelLoading = false;
+            return null;
         },
-        // Progress callback
-        function (xhr) {
-            if (xhr.lengthComputable) {
-                const percentComplete = xhr.loaded / xhr.total * 100;
-
-            }
-        },
-        // Error callback
-        function (error) {
-
-
-
-            // Reset loading flag but don't mark as loaded
-            boatModelLoading = false;
-
-            // Try loading the default model instead
-            if (shipType !== DEFAULT_SHIP_TYPE) {
-                const defaultShip = SHIP_MODELS[DEFAULT_SHIP_TYPE];
-                const [defX, defY, defZ] = defaultShip.position;
-
-                // Get default rotation
-                let defRotX = 0, defRotY = defaultShip.rotation[1], defRotZ = 0;
-                if (Array.isArray(defaultShip.rotation)) {
-                    [defRotX, defRotY, defRotZ] = defaultShip.rotation;
-                }
-
-                loader.load(
-                    defaultShip.path,
-                    function (gltf) {
-
-                        const model = gltf.scene;
-                        model.scale.set(defaultShip.scale, defaultShip.scale, defaultShip.scale);
-                        model.position.set(defX, defY, defZ);
-                        model.rotation.set(defRotX, defRotY, defRotZ);
-                        boat.add(model);
-                        boatModelLoaded = true;
-                    },
-                    null,
-                    function (error) {
-
-                    }
-                );
-            }
+        fallbackConfig: {
+            modelUrl: SHIP_MODELS[DEFAULT_SHIP_TYPE].path,
+            scaleValue: SHIP_MODELS[DEFAULT_SHIP_TYPE].scale,
+            position: SHIP_MODELS[DEFAULT_SHIP_TYPE].position,
+            rotation: SHIP_MODELS[DEFAULT_SHIP_TYPE].rotation
         }
-    );
+    };
+
+    // Use the generic GLB loader
+    loadGLBModel(targetGroup, config);
 }
 
 /**

@@ -34,7 +34,7 @@ import volcanicBiome from '../biomes/volcanicbiome.js';
 export const visibleDistance = 5000; // Distance to see islands from
 export const chunkSize = 2000; // Size of each "chunk" of ocean
 export const islandsPerChunk = 2; // Reduced from 3 to 1 island per chunk
-export const maxViewDistance = 1; // Reduced from 5 to 3 chunks view distance
+export const maxViewDistance = 1 // Reduced from 5 to 3 chunks view distance
 
 
 export const WORLD_SEED = 12345;

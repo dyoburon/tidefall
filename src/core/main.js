@@ -57,6 +57,7 @@ import { initMonsterManager, updateAllMonsters } from '../entities/monsterManage
 import { updateProjectileCollisions, initDamageSystem } from '../abilities/damageSystem.js';
 import { initTouchControls, isTouchDevice } from '../controls/touchControls.js';
 import { updateDragEffects, updateWaterDragEffects } from '../animations/monsterDragEffects.js';
+import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updateEffectsSize } from '../utils/glbOutlineEffects.js';
 
 
 
@@ -89,7 +90,6 @@ const water = setupWater('cartoony');
 initializeChunkSystem();
 initMonsterManager();
 initDamageSystem();
-
 
 
 const abilityManager = new AbilityManager(scene, camera, boat);
@@ -162,25 +162,11 @@ let playerState = {
     characterHeight: 2
 };
 
-const composer = new EffectComposer(renderer);
-
-const renderPass = new RenderPass(scene, camera);
-composer.addPass(renderPass);
-
-// Add a color correction pass for lighter colors
-const colorCorrectionPass = new ShaderPass(ColorCorrectionShader);
-colorCorrectionPass.uniforms['powRGB'].value.set(1.1, 1.1, 1.1); // Slightly increase brightness
-colorCorrectionPass.uniforms['mulRGB'].value.set(1.1, 1.1, 1.1); // Slightly increase saturation
-composer.addPass(colorCorrectionPass);
-
-// Add a bloom pass for subtle glows
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.5, 0.4, 0.85);
-bloomPass.threshold = 0.5;
-bloomPass.strength = 0.5;
-bloomPass.radius = 0.5;
-composer.addPass(bloomPass);
-
-// Stormy Lighting
+// After setting up renderer and camera:
+const effectsComposer = initGLBOutlineEffects(scene, camera, renderer, {
+    edgeStrength: 3.0,
+    edgeColor: 0xff0000,
+});
 
 // Add sky setup here
 setupSky();
@@ -1241,15 +1227,16 @@ function animate() {
     updateWaterDragEffects(deltaTime);
 
 
-
     applyWindInfluence();
 
     //water2.update(deltaTime);
 
-    // Rendering
-    //renderer.render(scene, camera);  // Comment out the standard renderer
+
+    // Request next frame first
     requestAnimationFrame(animate);
-    composer.render();  // Use the post-processing composer instead
+
+    // Then render with our unified effects system
+    renderWithEffects();
 
     // Update FPS counter
     const currentFps = 1 / deltaTime;
@@ -1387,6 +1374,9 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // Update the effects composer size
+    updateEffectsSize();
 });
 
 // Clean up when the page is closed
