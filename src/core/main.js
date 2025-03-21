@@ -58,7 +58,7 @@ import { updateProjectileCollisions, initDamageSystem } from '../abilities/damag
 import { initTouchControls, isTouchDevice } from '../controls/touchControls.js';
 import { updateDragEffects, updateWaterDragEffects } from '../animations/monsterDragEffects.js';
 import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updateEffectsSize } from '../utils/glbOutlineEffects.js';
-
+import { checkBoatIslandCollision } from './gameState.js';
 
 
 
@@ -1173,6 +1173,13 @@ function animate() {
         h10 * xFraction * (1 - zFraction) +
         h01 * (1 - xFraction) * zFraction +
         h11 * xFraction * zFraction;
+
+
+    if (checkBoatIslandCollision()) {
+        console.log('Boat is colliding with an island!');
+        // Add response: stop movement, adjust position, etc.
+        boatVelocity.set(0, 0, 0); // Example: stop boat
+    }
 
     // Note: Boat height adjustment and water interaction is now handled by updateBoatRocking
     // in character.js, which samples the wave height directly from the shader functions

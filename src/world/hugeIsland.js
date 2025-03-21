@@ -75,6 +75,18 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
 
     console.log(`Loading island1.glb with scale ${scaleValue} at position [0, ${yOffset}, 0]`);
 
+    // Island entry will be updated inside onLoad
+    const islandEntry = {
+        mesh: island,
+        collider: collider,
+        visible: true,
+        addedToScene: true, // Flag to indicate it was added directly to scene
+        glbMesh: null       // Will store the actual GLB mesh for collision
+    };
+
+    // Store the island with its ID and collider reference
+    activeHugeIslands.set(islandId, islandEntry);
+
     try {
         // Load the GLB model with modified settings
         loadGLBModel(island, {
@@ -86,6 +98,12 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
             animationSetup: null,
             onLoad: function (model, gltf) {
                 console.log(`Successfully loaded island model for ${islandId}`);
+
+                // Store the model in the islandEntry for collision purposes
+                islandEntry.glbMesh = model;
+
+                // You might also want to store the raw gltf scene for more detailed collision
+                islandEntry.gltfScene = gltf.scene;
 
                 // Apply extremely visible outline
                 applyGLBOutline(model);
@@ -168,16 +186,6 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
         console.error(`Exception during GLB loading: ${error}`);
     }
 
-    // Store the island with its ID and collider reference
-    const islandEntry = {
-        mesh: island,
-        collider: collider,
-        visible: true,
-        addedToScene: true // Flag to indicate it was added directly to scene
-    };
-
-    activeHugeIslands.set(islandId, islandEntry);
-
     // Add shore effect if the scene is provided
     if (scene) {
         const shore = createShoreEffect(island, collider, scene);
@@ -220,4 +228,11 @@ export function clearHugeIslands() {
 
     activeHugeIslands.clear();
     console.log("All huge islands cleared");
+}
+
+// Add a getter for all island meshes
+export function getHugeIslandMeshes() {
+    return Array.from(activeHugeIslands.values())
+        .filter(entry => entry.mesh)
+        .map(entry => entry.mesh);
 }

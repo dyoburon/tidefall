@@ -252,7 +252,7 @@ export function updateHarpoons() {
     const currentTime = getTime();
 
     // EXPLICIT CALL FOR DEBUGGING: Make sure line break system is always updated
-    console.log('DEBUG: Calling updateLineBreakSystem from updateHarpoons');
+    //console.log('DEBUG: Calling updateLineBreakSystem from updateHarpoons');
 
     activeHarpoons.forEach((harpoonData, harpoonId) => {
         // Skip if not attached

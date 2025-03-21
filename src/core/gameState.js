@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { createBoat } from '../entities/character.js';
 import { checkAllIslandCollisions } from '../world/islands.js';
+import { getHugeIslandMeshes } from '../world/hugeIsland.js';
 
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -175,4 +176,54 @@ export function removeFromScene(object) {
 // Helper to safely check if an object is in the scene
 export function isInScene(object) {
     return object && object.parent === scene;
+}
+
+const raycaster = new THREE.Raycaster(); // Add raycaster to game state
+
+// Collision check function
+export function checkBoatIslandCollision() {
+    //console.log('Checking boat island collision');
+    if (!boat) return false;
+    //console.log('Boat is in scene:', boat.position.y);
+
+    // Persistent state for frame-skipping
+    if (!checkBoatIslandCollision.state) {
+        checkBoatIslandCollision.state = {
+            frameCounter: 0,
+            lastResult: false
+        };
+    }
+    const state = checkBoatIslandCollision.state;
+
+    // Increment frame counter and check every 10 frames
+    state.frameCounter = (state.frameCounter + 1) % 30; // 0, 1, ..., 9, 0...
+    if (state.frameCounter !== 0) {
+        return state.lastResult; // Return cached result on non-checking frames
+    }
+
+    // Full collision check (runs every 10th frame)
+    const boatPos = boat.position.clone();
+    raycaster.set(boatPos, new THREE.Vector3(-1, 0, 0)); // Ray leftward
+
+    const islandMeshes = getHugeIslandMeshes();
+    //console.log('Island meshes:', islandMeshes.length);
+    //console.log('Island meshes:', islandMeshes);
+    if (islandMeshes.length === 0) return false;
+
+    let intersects = [];
+    if (islandMeshes) {
+        //console.log('Island meshes:', islandMeshes);
+        intersects = raycaster.intersectObjects(islandMeshes, true); // True for recursive check
+    }
+
+    const collisionThreshold = 20; // Distance threshold of 2 units
+    if (intersects.length > 0) {
+        const distance = intersects[0].distance;
+        //console.log(`Left ray hit at distance: ${distance}`); // Uncomment to debug distance
+        state.lastResult = distance <= collisionThreshold; // Update cached result (true if ≤ 2)
+        return state.lastResult; // Colliding if ray hits within 2 units
+    }
+
+    state.lastResult = false; // No collision
+    return false;
 }

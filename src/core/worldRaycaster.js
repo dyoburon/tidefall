@@ -90,6 +90,7 @@ class WorldRaycaster {
         // Update the raycaster
         this.raycaster.setFromCamera(ndc, camera);
 
+        console.log('raycaster', this.raycaster);
         // Get intersection with water plane
         const hit = this.raycaster.ray.intersectPlane(this.waterPlane, this.reusableVector);
 
