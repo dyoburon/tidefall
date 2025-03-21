@@ -58,7 +58,7 @@ import { updateProjectileCollisions, initDamageSystem } from '../abilities/damag
 import { initTouchControls, isTouchDevice } from '../controls/touchControls.js';
 import { updateDragEffects, updateWaterDragEffects } from '../animations/monsterDragEffects.js';
 import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updateEffectsSize } from '../utils/glbOutlineEffects.js';
-import { checkBoatIslandCollision } from './gameState.js';
+import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js';
 
 
 
@@ -1235,6 +1235,9 @@ function animate() {
 
 
     applyWindInfluence();
+
+    updateDirectKnockback(deltaTime);
+
 
     //water2.update(deltaTime);
 

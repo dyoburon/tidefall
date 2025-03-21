@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { createBoat } from '../entities/character.js';
 import { checkAllIslandCollisions } from '../world/islands.js';
 import { getHugeIslandMeshes } from '../world/hugeIsland.js';
+import { applyShipKnockback } from './shipController.js';
+import { knockbackActive } from './shipController.js';
 
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -180,11 +182,8 @@ export function isInScene(object) {
 
 const raycaster = new THREE.Raycaster(); // Add raycaster to game state
 
-// Collision check function
 export function checkBoatIslandCollision() {
-    //console.log('Checking boat island collision');
     if (!boat) return false;
-    //console.log('Boat is in scene:', boat.position.y);
 
     // Persistent state for frame-skipping
     if (!checkBoatIslandCollision.state) {
@@ -195,35 +194,171 @@ export function checkBoatIslandCollision() {
     }
     const state = checkBoatIslandCollision.state;
 
-    // Increment frame counter and check every 10 frames
-    state.frameCounter = (state.frameCounter + 1) % 30; // 0, 1, ..., 9, 0...
+    // Check every 30 frames
+    state.frameCounter = (state.frameCounter + 1) % 30;
     if (state.frameCounter !== 0) {
-        return state.lastResult; // Return cached result on non-checking frames
+        return state.lastResult;
     }
 
-    // Full collision check (runs every 10th frame)
+    // Skip if knockback is active (prevents re-triggering)
+    if (knockbackActive) {
+        console.log('knockbackActive', knockbackActive);
+        return state.lastResult;
+    }
+
+    // Full collision check
     const boatPos = boat.position.clone();
-    raycaster.set(boatPos, new THREE.Vector3(-1, 0, 0)); // Ray leftward
+    const rayDirection = new THREE.Vector3(-1, 0, 0); // Leftward ray
+    raycaster.set(boatPos, rayDirection);
 
     const islandMeshes = getHugeIslandMeshes();
-    //console.log('Island meshes:', islandMeshes.length);
-    //console.log('Island meshes:', islandMeshes);
     if (islandMeshes.length === 0) return false;
 
     let intersects = [];
     if (islandMeshes) {
-        //console.log('Island meshes:', islandMeshes);
-        intersects = raycaster.intersectObjects(islandMeshes, true); // True for recursive check
+        intersects = raycaster.intersectObjects(islandMeshes, true);
     }
 
-    const collisionThreshold = 20; // Distance threshold of 2 units
+    const collisionThreshold = 20;
     if (intersects.length > 0) {
         const distance = intersects[0].distance;
-        //console.log(`Left ray hit at distance: ${distance}`); // Uncomment to debug distance
-        state.lastResult = distance <= collisionThreshold; // Update cached result (true if ≤ 2)
-        return state.lastResult; // Colliding if ray hits within 2 units
+        if (distance <= collisionThreshold) {
+            // Collision detected: apply knockback opposite to ray direction (rightward)
+            const knockbackDirection = rayDirection.clone().negate(); // (1, 0, 0)
+            applyDirectBoatKnockback(knockbackDirection, 200.0, {
+                duration: 5
+            });
+            state.lastResult = true;
+            console.log(`Collision! Knockback applied, distance: ${distance}`);
+        } else {
+            state.lastResult = false;
+        }
+        return state.lastResult;
     }
 
-    state.lastResult = false; // No collision
+    state.lastResult = false;
     return false;
+}
+
+// A temporary solution for boat knockback that directly manipulates position
+// instead of using velocity, to avoid getting stuck in collisions
+export function applyDirectBoatKnockback(direction, distance, options = {}) {
+    // Default options
+    const defaults = {
+        duration: 0.5,          // Duration of the knockback animation in seconds
+        easing: 'quadOut',     // Easing function: quadOut gives a natural slow-down at the end
+        heightBoost: 5,       // Optional vertical bounce in units
+        additionalRotation: 0  // Optional rotation during knockback in radians
+    };
+
+    // Merge options
+    const settings = { ...defaults, ...options };
+
+    // Make sure boat exists
+    if (!boat) return false;
+
+    // Normalize direction
+    const knockbackDir = direction.clone().normalize();
+
+    // Calculate target position
+    const startPosition = boat.position.clone();
+    const targetPosition = startPosition.clone().add(
+        knockbackDir.multiplyScalar(distance)
+    );
+
+    // Store animation state
+    const knockbackState = {
+        active: true,
+        startTime: getTime(),
+        duration: settings.duration,
+        startPosition: startPosition,
+        targetPosition: targetPosition,
+        startRotation: boat.rotation.y,
+        additionalRotation: settings.additionalRotation,
+        heightBoost: settings.heightBoost,
+        easing: settings.easing
+    };
+
+    // Store the state in a global for the update function to use
+    if (!window.boatKnockbackState) {
+        window.boatKnockbackState = knockbackState;
+    } else {
+        Object.assign(window.boatKnockbackState, knockbackState);
+    }
+
+    // Stop the boat's velocity immediately
+    boatVelocity.set(0, 0, 0);
+
+    // Enable the knockback state
+    knockbackActive = true;
+
+    return true;
+}
+
+// Add this function to update the position-based knockback animation
+export function updateDirectKnockback(deltaTime) {
+    const state = window.boatKnockbackState;
+
+    // Skip if no active knockback
+    if (!state || !state.active) return false;
+
+    // Calculate progress
+    const currentTime = getTime();
+    const elapsed = currentTime - state.startTime;
+    let progress = Math.min(1.0, elapsed / state.duration);
+
+    // Apply easing
+    if (state.easing === 'quadOut') {
+        // Quadratic ease-out: slows down as it approaches end
+        progress = 1 - (1 - progress) * (1 - progress);
+    } else if (state.easing === 'bounceOut') {
+        // Bounce effect
+        const bounce = (x) => {
+            const n1 = 7.5625;
+            const d1 = 2.75;
+            if (x < 1 / d1) {
+                return n1 * x * x;
+            } else if (x < 2 / d1) {
+                return n1 * (x -= 1.5 / d1) * x + 0.75;
+            } else if (x < 2.5 / d1) {
+                return n1 * (x -= 2.25 / d1) * x + 0.9375;
+            } else {
+                return n1 * (x -= 2.625 / d1) * x + 0.984375;
+            }
+        };
+        progress = bounce(progress);
+    }
+
+    // Interpolate position
+    const newPosition = new THREE.Vector3().lerpVectors(
+        state.startPosition,
+        state.targetPosition,
+        progress
+    );
+
+    // Add height boost using a parabolic curve (up and down)
+    if (state.heightBoost > 0) {
+        // Height follows a parabola: 4 * h * p * (1 - p) where p is progress
+        // This gives max height at progress = 0.5 and returns to 0 at progress = 1
+        const heightProgress = 4 * state.heightBoost * progress * (1 - progress);
+        newPosition.y += heightProgress;
+    }
+
+    // Apply rotation if specified
+    if (state.additionalRotation !== 0) {
+        const rotationProgress = progress * state.additionalRotation;
+        boat.rotation.y = state.startRotation + rotationProgress;
+    }
+
+    // Apply the new position
+    boat.position.copy(newPosition);
+
+    // Check if knockback is complete
+    if (progress >= 1.0) {
+        state.active = false;
+        knockbackActive = false;
+        return false;
+    }
+
+    return true;
 }

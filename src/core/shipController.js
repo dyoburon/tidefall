@@ -216,6 +216,7 @@ export function updateShipMovement(deltaTime) {
 
 
 export function applyShipKnockback(direction, force = 1.0, options = {}) {
+    console.log('applyShipKnockback', direction, force, options);
     // Default options
     const defaults = {
         resetVelocity: true,       // Whether to zero out current velocity first
@@ -236,11 +237,13 @@ export function applyShipKnockback(direction, force = 1.0, options = {}) {
 
     // If we should reset velocity first (for hard collisions)
     if (settings.resetVelocity) {
+        console.log('resetting velocity');
         // First, calculate the component of current velocity in the knockback direction
         const currentVelocityInKnockbackDir = boatVelocity.dot(knockbackDir);
 
         // Only reset if we're moving toward the collision point
         if (currentVelocityInKnockbackDir < 0) {
+            console.log('resetting velocity');
             // Zero out velocity before applying knockback
             boatVelocity.set(0, 0, 0);
         }
