@@ -59,6 +59,7 @@ import { initTouchControls, isTouchDevice } from '../controls/touchControls.js';
 import { updateDragEffects, updateWaterDragEffects } from '../animations/monsterDragEffects.js';
 import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updateEffectsSize } from '../utils/glbOutlineEffects.js';
 import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js';
+import { updateHarpoonTension } from '../abilities/harpoonTensionSystem.js';
 
 
 
@@ -1232,6 +1233,8 @@ function animate() {
     updateDragEffects(deltaTime);
 
     updateWaterDragEffects(deltaTime);
+
+    updateHarpoonTension(); // New call to update tension system
 
 
     applyWindInfluence();

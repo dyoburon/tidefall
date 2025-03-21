@@ -337,11 +337,11 @@ export function updateHarpoons() {
                         const tension = Math.min(1, exceedDistance / 15);
 
                         // Interpolate from normal color to bright red based on tension
-                        const r = 1.0; // Full red
-                        const g = 0.27 - tension * 0.27; // Reduce green with tension
-                        const b = 0.27 - tension * 0.27; // Reduce blue with tension
+                        //const r = 1.0; // Full red
+                        //const g = 0.27 - tension * 0.27; // Reduce green with tension
+                        //const b = 0.27 - tension * 0.27; // Reduce blue with tension
 
-                        harpoonData.harpoonLine.material.color.setRGB(r, g, b);
+                        //harpoonData.harpoonLine.material.color.setRGB(r, g, b);
                     }
                 } else {
                     // NEW: If we're back within range, restore original state if needed
@@ -352,7 +352,7 @@ export function updateHarpoons() {
 
                     // Reset rope color when not under tension
                     if (harpoonData.harpoonLine && harpoonData.harpoonLine.material) {
-                        harpoonData.harpoonLine.material.color.setRGB(1.0, 0.27, 0.27); // Normal red color
+                        //harpoonData.harpoonLine.material.color.setRGB(1.0, 0.27, 0.27); // Normal red color
                     }
                 }
 

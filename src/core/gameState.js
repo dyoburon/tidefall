@@ -4,7 +4,7 @@ import { createBoat } from '../entities/character.js';
 import { checkAllIslandCollisions } from '../world/islands.js';
 import { getHugeIslandMeshes } from '../world/hugeIsland.js';
 import { applyShipKnockback } from './shipController.js';
-import { knockbackActive } from './shipController.js';
+import { setKnockbackActive, isKnockbackActive } from './shipController.js';
 
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -201,8 +201,8 @@ export function checkBoatIslandCollision() {
     }
 
     // Skip if knockback is active (prevents re-triggering)
-    if (knockbackActive) {
-        console.log('knockbackActive', knockbackActive);
+    if (isKnockbackActive()) {
+        console.log('knockbackActive', isKnockbackActive());
         return state.lastResult;
     }
 
@@ -290,7 +290,7 @@ export function applyDirectBoatKnockback(direction, distance, options = {}) {
     boatVelocity.set(0, 0, 0);
 
     // Enable the knockback state
-    knockbackActive = true;
+    setKnockbackActive(true);
 
     return true;
 }
@@ -356,7 +356,7 @@ export function updateDirectKnockback(deltaTime) {
     // Check if knockback is complete
     if (progress >= 1.0) {
         state.active = false;
-        knockbackActive = false;
+        setKnockbackActive(false);
         return false;
     }
 

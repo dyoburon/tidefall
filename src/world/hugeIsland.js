@@ -71,7 +71,7 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
 
     // Make the scale even larger for better visibility
     const scaleValue = 3000.0 + random() * 100.0; // Huge scale for better visibility
-    const yOffset = 750;
+    const yOffset = 970;
 
     console.log(`Loading island1.glb with scale ${scaleValue} at position [0, ${yOffset}, 0]`);
 

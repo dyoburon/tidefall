@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "A multiplayer 3D boat game with procedurally generated islands",
     "scripts": {
-        "dev": "parcel index.html --open",
+        "dev": "parcel serve index.html --open --hmr-port 1234 --watch-dir src",
         "build": "parcel build index.html --public-url ./ && cp -r public/* dist/",
         "start": "http-server dist -p $PORT"
     },
@@ -17,10 +17,9 @@
         "three": "^0.174.0"
     },
     "devDependencies": {
+        "@parcel/transformer-glsl": "^2.13.3",
         "buffer": "^6.0.3",
-        "parcel": "^2.13.3",
-        "parcel-plugin-glsl": "^0.1.0",
-        "parcel-plugin-static-files-copy": "^2.6.0"
+        "parcel": "^2.13.3"
     },
     "keywords": [
         "three.js",
@@ -30,9 +29,11 @@
         "3d",
         "boat"
     ],
-    "staticFiles": {
-        "staticPath": "assets",
-        "watcherGlob": "**/*"
+    "parcel": {
+        "staticFiles": {
+            "staticPath": "assets",
+            "staticOutPath": "assets"
+        }
     },
     "author": "",
     "license": "MIT"

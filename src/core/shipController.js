@@ -3,13 +3,9 @@ import { boat, boatVelocity, keys, getWindData, getTime } from './gameState.js';
 import { checkAllIslandCollisions } from '../world/islands.js';
 import { boatFlyState } from '../commands/boatFlyCommands.js';
 
-
-
 // Add this near your other exports
 export let knockbackActive = false;
 export let knockbackTimer = 0;
-
-
 
 // Add these variables near the top with other exports
 export const shipSpeedConfig = {
@@ -18,6 +14,14 @@ export const shipSpeedConfig = {
     speedMultiplier: 1.0       // Multiplier that can be adjusted by /speed command
 };
 
+// Add these functions to control knockback state
+export function setKnockbackActive(state) {
+    knockbackActive = state;
+}
+
+export function isKnockbackActive() {
+    return knockbackActive;
+}
 
 const SHIP_CONFIG = {
     // PHYSICAL PROPERTIES

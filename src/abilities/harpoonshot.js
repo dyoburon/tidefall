@@ -14,6 +14,9 @@ import {
 import { initDragEffects, cleanupDragEffects } from '../animations/monsterDragEffects.js';
 import AimingSystem from './aimingSystem.js';
 import { checkAllIslandCollisions, islandColliders, activeIslands } from '../world/islands.js';
+import { updateHarpoonTension } from './harpoonTensionSystem.js'; // Add this import
+
+import { applyOutline, removeOutline } from '../theme/outlineStyles.js';
 
 /**
  * Harpoon Shot ability - Fires a harpoon that can attach to monsters and reel them in.
@@ -118,7 +121,7 @@ class HarpoonShot {
 
     update(deltaTime) {
         // IMPORTANT: Always update the harpoon line if it exists, regardless of state
-        if (this.harpoonLine) {
+        if (this.harpoonLine && !this.isReset) {
             // Get current boat position where the harpoon is attached
             const startPos = this.getHarpoonFiringPosition();
 
@@ -277,23 +280,24 @@ class HarpoonShot {
     }
 
     createHarpoonLine(startPos, endPos) {
-        // First remove any existing line
+        // Store the current color if line exists (for recreating with the same color)
+        let currentColor = 0x000000; // Default color (black)
+
+        // Remove previous line if it exists
         if (this.harpoonLine) {
-            scene.remove(this.harpoonLine);
-            if (this.harpoonLine.geometry) this.harpoonLine.geometry.dispose();
+            // Store current color before removing
+            if (this.harpoonLine.material && this.harpoonLine.material.color) {
+                currentColor = this.harpoonLine.material.color.getHex();
+            }
+
+            // Dispose of resources
             if (this.harpoonLine.material) this.harpoonLine.material.dispose();
-            this.harpoonLine = null;
+            if (this.harpoonLine.geometry) this.harpoonLine.geometry.dispose();
+            scene.remove(this.harpoonLine);
         }
 
-        // Calculate direction and length
-        const direction = new THREE.Vector3().subVectors(endPos, startPos);
-        const length = direction.length();
-
-        // Use the stored thickness or default
-        const tubeRadius = this.lineThickness || 0.1;
-
-        // Create a tube geometry instead of a line
-        // This will be visible from all angles
+        // Create new geometry for the rope/line
+        const tubeRadius = this.lineThickness / 2; // Half of desired thickness
         const tubeRadialSegments = 8; // Level of detail around the tube
         const path = new THREE.LineCurve3(startPos, endPos);
         const tubeGeometry = new THREE.TubeGeometry(
@@ -304,12 +308,12 @@ class HarpoonShot {
             false      // Closed - false for an open tube
         );
 
-        // Create a bright material that will be visible from all angles
+        // Create a material with the preserved color
         const tubeMaterial = new THREE.MeshBasicMaterial({
-            color: 0xFF4444,
+            color: currentColor,
             side: THREE.DoubleSide, // Important: render both sides
             transparent: true,
-            opacity: 0.8
+            opacity: 1.0
         });
 
         // Create the tube/rope mesh
@@ -499,18 +503,14 @@ class HarpoonShot {
     }
 
     removeHarpoon() {
-        // Add these lines at the beginning
         this.isGrappling = false;
         this.grapplePoint = null;
         this.grappleObject = null;
 
-        // Clean up drag flag if attached
         if (this.attachedEnemy) {
             this.attachedEnemy.isBeingDragged = false;
-            // Don't call cleanupDragEffects - the system will handle that
         }
 
-        // Clean up harpoon and line
         if (this.harpoon) {
             scene.remove(this.harpoon);
             this.harpoon.geometry.dispose();
@@ -530,12 +530,9 @@ class HarpoonShot {
         this.isPersisting = false;
         this.attachedEnemy = null;
         this.harpoonId = null;
-
-        // Mark as no longer executing
         this.isExecuting = false;
         this.isReset = true;
 
-        // Let the AbilityManager know we're fully reset
         if (window.abilityManager) {
             window.abilityManager.notifyAbilityReset(this.id);
         }
@@ -576,7 +573,7 @@ class HarpoonShot {
                 }
 
                 if (this.harpoonLine && this.harpoonLine.material) {
-                    this.harpoonLine.material.color.set(0x00ccff);
+                    this.harpoonLine.material.color.set(0x7A7A7A);
                 }
             }
         }
@@ -591,9 +588,36 @@ class HarpoonShot {
     }
 
     handleLineBreak() {
-        console.log(`handleLineBreak called for harpoon: ${this.harpoonId}`);
-        // When line breaks, start reeling in to retract the harpoon
-        this.startReeling();
+        console.log(`[HarpoonShot] Line break triggered for harpoon: ${this.harpoonId}`);
+
+        // Step 1: Handle tension-specific monster logic
+        if (this.attachedEnemy) {
+            // Restore monster's original state if tethered
+            if (this.attachedEnemy.originalState && this.attachedEnemy.state === 'tethered') {
+                console.log(`[HarpoonShot] Restoring monster state from 'tethered' to '${this.attachedEnemy.originalState}'`);
+                this.attachedEnemy.state = this.attachedEnemy.originalState;
+                delete this.attachedEnemy.originalState;
+            }
+
+            // Reset monster velocity to stop it from flying away
+            if (this.attachedEnemy.velocity) {
+                this.attachedEnemy.velocity.set(0, 0, 0);
+            }
+
+            // Detach from damage system if still attached
+            if (this.isAttached && this.harpoonId) {
+                detachHarpoon(this.harpoonId);
+            }
+
+            // Note: We don’t clear isBeingDragged or call cleanupDragEffects here;
+            // removeHarpoon will handle isBeingDragged, and the effect system handles cleanup
+        }
+
+        // Step 2: Call removeHarpoon to handle the rest of the cleanup
+        this.removeHarpoon();
+        detachHarpoon(this.harpoonId);
+
+        console.log(`[HarpoonShot] Harpoon fully reset after line break`);
     }
 }
 
