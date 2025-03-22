@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ColorCorrectionShader } from 'three/examples/jsm/shaders/ColorCorrectionShader.js';
 import * as Network from './network.js';
 import { gameUI } from '../ui/ui.js';
-import { scene, camera, renderer, updateTime, getTime, boat, getWindData, boatVelocity, boatSpeed, rotationSpeed, keys, updateShipMovement, updateAllPlayers, getAllPlayers } from './gameState.js';
+import { scene, camera, renderer, updateTime, getTime, boat, getWindData, boatVelocity, boatSpeed, rotationSpeed, keys, updateAllPlayers, getAllPlayers } from './gameState.js';
 import { setupSkybox, updateSkybox, setupSky, updateTimeOfDay, updateSunPosition, toggleSkySystem, updateRealisticSky } from '../environment/skybox.js';
 import { setupClouds, updateClouds } from '../environment/clouds.js';
 import { setupBirds, updateBirds } from '../entities/birds.js';
@@ -60,6 +60,8 @@ import { updateDragEffects, updateWaterDragEffects } from '../animations/monster
 import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updateEffectsSize } from '../utils/glbOutlineEffects.js';
 import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js';
 import { updateHarpoonTension } from '../abilities/harpoonTensionSystem.js';
+import { integrateWaterSystem } from '../water/waterMain.js';
+
 
 
 
@@ -91,6 +93,8 @@ const water = setupWater('cartoony');
 initializeChunkSystem();
 initMonsterManager();
 initDamageSystem();
+
+
 
 
 const abilityManager = new AbilityManager(scene, camera, boat);
@@ -338,6 +342,7 @@ async function initializeFirebaseAuth() {
 // Add this call early in your initialization sequence 
 // (can be placed right before or after other initialization code)
 initializeFirebaseAuth();
+
 
 // Create a new helper function to handle the sequence
 function completeAuthAndShowMOTD(user = null) {
@@ -1039,6 +1044,12 @@ const LEADERBOARD_UPDATE_INTERVAL = 10000; // 10 seconds
 
 // Add this function to update time of day
 
+const waterSystem = integrateWaterSystem(scene, camera, {
+    resolution: 1024,
+    includeGround: false, // Set to false if you don't want the ground
+    // You can provide your own environment map or textures if needed
+});
+
 // Update boat movement in the animate function to check collisions
 function animate() {
     const now = performance.now();
@@ -1210,6 +1221,8 @@ function animate() {
 
     // Update sea monsters with delta time
     updateSeaMonsters(deltaTime);
+
+    waterSystem.update(getTime()); // or use your elapsed time
 
     updateAllEntityChunks();
 
@@ -1405,7 +1418,6 @@ window.addEventListener('beforeunload', () => {
 // Add these functions to your init and animate functions
 // In your initialization:
 setupSkybox();
-
 // Initialize clouds
 const clouds = setupClouds();
 
