@@ -1,0 +1,27 @@
+planning_template.json
+
+    Follow instructions from @planning_template.json. We are implementing "Integrate 3 files" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
+
+    Here are the defined variables
+    filename1: @
+    filename2: @
+    withcontext_file: @
+
+iterate_template.json
+
+    Follow instructions from @iterate_template.json. We are implementing "Iterate plan with changes" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
+
+    Here are the defined variables
+    iterate_instructions: <iterate instructions>
+    current_in_progress_plan: @
+    context_files: <list of files>
+
+
+execute_template.json
+
+     Follow instructions from @execute.template.json. We are implementing "plan_execution" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
+
+    current_full_plan: @
+    step_to_implement: <num>
+    context_files: <list of files>
+

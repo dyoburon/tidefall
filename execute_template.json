@@ -1,0 +1,8 @@
+{
+    "plan_execution": {
+        "instructions": "Please implement the next step of this plan, we are currently on <step to implement>. Please note <what has already been implemented> before implementing. Also use the context of <current full plan> to understand what the end goal is. Only implement the next step listed. Do exactly as the step says and do not do anything extra. Keep the implementation concise.",
+        "current_full_plan": "<current full plan>",
+        "step_to_implement": "<step to implement>",
+        "context_files": "<context files>"
+    }
+}

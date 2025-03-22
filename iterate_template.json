@@ -1,0 +1,8 @@
+{
+    "Iterate plan with changes": {
+        "instructions": "<iterate instructions> Please use the plan <current plan> for context. We will use iterate instructions to modify the plan. Continue to explain what you are going to do for each function / any functions being created. We will continue to iterate if necessary. For each of the functions please first state which file you are putting it in. Please do not duplicate any existing logic and design in a way that is maintainable. Please place code changes in the places where it makes the most sense architecturally.         Please create a step-by-step based approach with this plan broken down into 2-4 steps. Each step can modify more than one file but should logically be together.",
+        "iterate instructions": "<iterate instructions>",
+        "current_in_progress_plan": "<current plan>",
+        "context_files": "<context files>"
+    }
+}

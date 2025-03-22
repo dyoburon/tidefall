@@ -1,0 +1,44 @@
+Step 1: Extend ChunkEntityController to Support Villagers
+File: chunkEntityController.js
+
+Add Villager Tracking:
+Add villagers to the entityChunkMap and inactiveEntityStates maps
+Update imports to include villagers functionality from villagers.js
+Create Villager Population Function:
+Add a new function populateChunkWithVillagers() similar to populateChunkWithMonsters()
+Call this function from populateChunkWithEntities()
+Update Entity Visibility:
+Ensure the updateEntityVisibility() function handles villagers appropriately
+Step 2: Enhance Villagers.js to Work with Chunk-Based System
+File: villagers.js
+
+Add State Management for Chunk System:
+Create functions to extract and restore villager state
+Add registration with chunk system
+Import needed functions from chunkEntityController
+Modify Villager Creation:
+Update the villager creation process to work with chunk-based spawning
+Add functions to handle respawning of inactive villagers
+Update cleanup and state saving
+Revise Villager Update Logic:
+Modify the update function to only process active villagers
+Ensure proper registration with the chunk system when positions update
+Step 3: Enhance EntitySpawner to Support Chunk-Based Villager Spawning
+File: entityspawner.js
+
+Add Terrain Analysis:
+Create a function to analyze islands in a chunk for suitable villager spawning locations
+Add specific villager spawning configuration options
+Integrate with Chunk System:
+Add support for specifying chunk boundaries when spawning entities
+Create a method specifically for chunk-based entity spawning
+Optimize for Different Entity Types:
+Ensure the spawning logic works efficiently for both monsters and villagers
+Add specific constraints for villager placement on islands
+Step 4: Connect All Components
+Update Import/Export Relationships:
+Ensure all necessary functions are properly exported and imported between files
+Make sure there are no circular dependencies
+Synchronize Chunk Updates:
+Ensure villagers are spawned and despawned in coordination with chunk loading
+Make sure all entity types follow consistent patterns for chunk management
