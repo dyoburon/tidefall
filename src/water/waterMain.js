@@ -273,7 +273,7 @@ const waterMaterial = new THREE.ShaderMaterial({
     uFresnelScale: { value: 1.0 },
     uFresnelPower: { value: 3.0 },
     uTexture: { value: waterTexture }, // Set the 2D texture here
-    uPlaneSize: { value: 100.0 } // Set initial plane size (update later if resized)
+    uPlaneSize: { value: 200.0 } // Set initial plane size (update later if resized)
   },
   side: THREE.DoubleSide, // Optional: render both sides of the plane
   transparent: true // Needed for uOpacity to work
