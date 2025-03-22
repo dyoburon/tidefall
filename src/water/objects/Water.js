@@ -151,7 +151,7 @@ void main() {
       fragmentShader: waterFragmentShader,
       uniforms: {
         uTime: { value: 0 },
-        uOpacity: { value: 1.0 },
+        uOpacity: { value: 0.8 },
         uEnvironmentMap: { value: options.environmentMap },
         uWavesAmplitude: { value: 2.25 },
         uWavesFrequency: { value: 0.01 },
@@ -159,22 +159,22 @@ void main() {
         uWavesLacunarity: { value: 2.18 },
         uWavesIterations: { value: 8 },
         uWavesSpeed: { value: 0.02 },
-        uTroughColor: { value: new THREE.Color('#000000') },
-        uSurfaceColor: { value: new THREE.Color('#00B4FF') },
-        uPeakColor: { value: new THREE.Color('#0088CC') },
+        uTroughColor: { value: new THREE.Color('#eee7d7') },
+        uSurfaceColor: { value: new THREE.Color('#eee7d7') },
+        uPeakColor: { value: new THREE.Color('#000000') },
         uPeakThreshold: { value: 4.0 },
         uPeakTransition: { value: 0.05 },
         uTroughThreshold: { value: -0.5 },
-        uTroughTransition: { value: 7.5 },
+        uTroughTransition: { value: 0.5 },
         uFresnelScale: { value: 0.15 },
-        uFresnelPower: { value: 1.0 }
+        uFresnelPower: { value: 7.0 }
       },
       transparent: false,
       depthTest: true,
       side: THREE.DoubleSide
     });
 
-    this.geometry = new THREE.PlaneGeometry(100, 100, options.resolution || 1024, options.resolution || 1024);
+    this.geometry = new THREE.PlaneGeometry(5000, 5000, options.resolution || 1024, options.resolution || 1024);
     this.rotation.x = Math.PI * 0.5;
     this.position.y = 0;
   }

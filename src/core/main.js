@@ -1222,7 +1222,7 @@ function animate() {
     // Update sea monsters with delta time
     updateSeaMonsters(deltaTime);
 
-    waterSystem.update(getTime()); // or use your elapsed time
+    //waterSystem.update(getTime()); // or use your elapsed time
 
     updateAllEntityChunks();
 
