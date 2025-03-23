@@ -4,6 +4,7 @@ import { showLoginScreen } from './main';
 import { setPlayerStateFromDb, getPlayerStateFromDb } from './gameState';
 import { setupAllPlayersTracking } from './main';
 import { loadGLBModel, unloadGLBModel } from '../utils/glbLoader.js';
+//import CannonShot from '../abilities/cannonshot.js'; // Import the CannonShot class
 
 // Network configuration
 const SERVER_URL = 'http://localhost:5001';
@@ -28,6 +29,9 @@ let chatMessageCallback = null;
 let recentMessagesCallback = null;
 let messageHistory = [];
 const DEFAULT_MESSAGE_LIMIT = 50;
+
+// Cannon network communication variables
+let cannonHitCallback = null;
 
 // Reference to scene and game objects (to be set from script.js)
 let sceneRef;
@@ -533,6 +537,26 @@ function setupSocketEvents() {
         if (recentMessagesCallback) {
             recentMessagesCallback(messageHistory);
         }
+    });
+
+    // Cannon event handlers
+    socket.on('cannon_fired', (data) => {
+        console.log("cannon socket event fired.")
+        // When another player fires a cannon, this event is received
+        // Data contains: {id, position, direction, cannonShotData}
+        handleCannonFired(data);
+    });
+
+    socket.on('cannon_hit', (data) => {
+        // When this player is hit by a cannon, this event is received
+        // Data contains: {id, damage, hitPosition}
+
+        // Apply damage or effects to the player
+        if (cannonHitCallback) {
+            cannonHitCallback(data);
+        }
+
+        // You could also trigger visual/sound effects here
     });
 }
 
@@ -1186,6 +1210,30 @@ export function playerHasItem(inventoryData, itemType, itemName) {
     return itemCollection.some(item => item.name === itemName);
 }
 
+// Fire a cannon from the player's position
+export function fireCannon(position, direction) {
+    if (!isConnected || !socket || !playerId) return;
+
+    socket.emit('cannon_fire', {
+        position: {
+            x: position.x,
+            y: position.y,
+            z: position.z
+        },
+        direction: {
+            x: direction.x,
+            y: direction.y,
+            z: direction.z
+        },
+        player_id: firebaseDocId
+    });
+}
+
+// Register a callback function to be called when the player is hit by a cannon
+export function onCannonHit(callback) {
+    cannonHitCallback = callback;
+}
+
 // Add this helper function to update a player's data in the allPlayers array
 function updatePlayerInAllPlayers(playerData) {
     // Import the functions we need from gameState
@@ -1215,5 +1263,49 @@ function updatePlayerInAllPlayers(playerData) {
 
     // Update the allPlayers array in gameState
     updateAllPlayers(updatedPlayers);
+
+}
+
+// Add this new function to handle cannon fired events from other players
+function handleCannonFired(data) {
+    import('../abilities/cannonshot.js').then(module => {
+        const CannonShot = module.default;
+        console.log("CannonShot module loaded dynamically");
+
+        // Extract data from the event
+        const { player_id, cannon_id, position, direction, cannon_position_name } = data;
+
+        // Only process cannon fire from other players to avoid duplicate visualizations
+        if (player_id !== firebaseDocId) {
+            console.log("Processing cannon fire from player:", player_id);
+
+            // Retrieve the firing player's boat mesh from otherPlayers Map
+            let playerBoat = null;
+            if (otherPlayers.has(player_id)) {
+                playerBoat = otherPlayers.get(player_id).mesh;
+            } else {
+                console.warn("Could not find boat mesh for player:", player_id);
+                // If we can't find the boat, we'll still create the cannonball but without boat reference
+            }
+
+            // If CannonShot has a static method for creating remote cannonballs, call it
+            // The actual implementation of this method will be in Step 3
+            if (typeof CannonShot.createRemoteCannonball === 'function') {
+                CannonShot.createRemoteCannonball(
+                    new THREE.Vector3(position.x, position.y, position.z),
+                    new THREE.Vector3(direction.x, direction.y, direction.z),
+                    cannon_id,
+                    playerBoat,
+                    cannon_position_name
+                );
+            } else {
+                // Fallback to existing event system if static method not yet implemented
+                console.warn("CannonShot.createRemoteCannonball not implemented yet");
+            }
+        }
+    }).catch(error => {
+        console.error("Error loading CannonShot module:", error);
+    });
+
 
 }

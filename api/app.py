@@ -12,6 +12,7 @@ from firebase_admin import credentials, firestore, auth as firebase_auth
 import firestore_models  # Import our new Firestore models
 from collections import defaultdict
 import mimetypes
+import cannon_handler  # Import the cannon handler module
 
 # Load environment variables from .env file
 load_dotenv()
@@ -44,6 +45,9 @@ socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLO
 # Keep a session cache for quick access
 players = {}
 islands = {}
+
+# Initialize cannon handler with Socket.IO and players reference
+cannon_handler.init_socketio(socketio, players)
 
 # Add this near your other global variables
 last_db_update = defaultdict(float)  # Track last database update time for each player
@@ -80,8 +84,6 @@ def init_firebase():
 
 
 init_firebase()
-
-
 
 # Load data from Firestore on startup
 def load_data_from_firestore():
@@ -227,18 +229,11 @@ def handle_player_join(data):
 
 @socketio.on('update_position')
 def handle_position_update(data):
-    """
-    Handle frequent position updates from client.
-    Expects: { x, y, z, rotation, mode, player_id }
-    """
+    # Get the player ID from the request data
     player_id = data.get('player_id')
     if not player_id:
-        # Also check request if not explicitly provided
-        player_id = data.get('player_id', None)
-        if not player_id:
-            logger.warning("Missing player ID in position update. Ignoring.")
-            return
-    
+        logger.warning("Missing player ID in position update. Ignoring.")
+        return
 
     # Extract individual position components
     x = data.get('x')
@@ -256,6 +251,14 @@ def handle_position_update(data):
     if player_id not in players:
         logger.warning(f"Player ID {player_id} not found in cache. Ignoring position update.")
         return
+    
+    # Periodically clean up expired cannons (approximately every 5 position updates)
+    # This spreads the cleanup task across multiple players/requests
+    if hash(player_id) % 5 == 0:  # Simple way to select ~20% of updates to perform cleanup
+        try:
+            cannon_handler.cleanup_expired_cannons()
+        except Exception as e:
+            logger.error(f"Error cleaning up cannons: {str(e)}")
     
     current_time = time.time()
     

@@ -8,6 +8,7 @@ import {
 } from './damageSystem.js';
 import { getAllMonsters } from '../entities/monsterManager.js';
 import AimingSystem from './aimingSystem.js';
+import { fireCannon } from '../core/network.js'; // Import network function for cannon events
 
 /**
  * Cannon Shot ability - Fires a single cannonball towards the target location.
@@ -113,6 +114,9 @@ class CannonShot {
 
         // Create muzzle flash
         this.createMuzzleFlash(position, firingDirection);
+
+        // Send the cannon fire event to the server
+        fireCannon(position.clone(), firingDirection.clone());
 
         const startTime = getTime();
         const maxDistance = 700;
@@ -423,11 +427,12 @@ class CannonShot {
         scene.add(blastCloud);
 
         const blastStartTime = getTime();
+        const blastDuration = 0.4;
         let blastAnimationId;
 
         const animateBlast = () => {
             const elapsed = (getTime() - blastStartTime) / 1000;
-            if (elapsed > 0.4) { // Blast duration: 0.4 seconds (unchanged, already short)
+            if (elapsed > blastDuration) { // Blast duration: 0.4 seconds (unchanged, already short)
 
                 scene.remove(blastCloud);
                 blastCloud.geometry.dispose();
@@ -436,7 +441,7 @@ class CannonShot {
             }
             const scale = 1 + elapsed * 8;
             blastCloud.scale.set(scale, scale, scale);
-            blastCloud.material.opacity = 0.9 * (1 - elapsed / 0.4);
+            blastCloud.material.opacity = 0.9 * (1 - elapsed / blastDuration);
             blastAnimationId = requestAnimationFrame(animateBlast);
         };
 
@@ -523,6 +528,113 @@ class CannonShot {
     }
 
     /**
+     * Create a cannonball fired by another player
+     * @param {THREE.Vector3} position - Starting position of the cannonball
+     * @param {THREE.Vector3} direction - Direction vector for the cannonball
+     * @param {string} cannon_id - Unique ID for this cannon shot
+     * @param {THREE.Object3D} playerBoat - The boat mesh of the player who fired the cannon
+     * @param {string} cannon_position_name - Name of the cannon position on the boat (e.g. 'leftFront')
+     */
+    static createRemoteCannonball(position, direction, cannon_id, playerBoat, cannon_position_name = 'default') {
+        console.log("triggered remote cannonball ", position, " direction ", direction, " player id ", playerBoat)
+        // Create the cannonball mesh
+        const cannonballGeometry = new THREE.SphereGeometry(2.0 / 3, 16, 16);
+        const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
+        const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
+        cannonball.position.copy(position);
+        scene.add(cannonball);
+
+        // Create an instance to access instance methods
+        const cannonInstance = new CannonShot();
+
+        // Constants for cannonball physics (match values in the instance version)
+        const cannonballSpeed = 35;
+        const gravity = 100;
+
+        // Set up velocity vector
+        const firingDirection = direction.clone();
+        const velocity = firingDirection.clone().multiplyScalar(cannonballSpeed);
+
+        // Create muzzle flash
+        cannonInstance.createMuzzleFlash(position, firingDirection);
+
+        // Create smoke effects if we have the player's boat and a valid cannon position
+        if (playerBoat && cannon_position_name !== 'default') {
+            cannonInstance.createCannonSmoke(cannon_position_name);
+        }
+
+        const startTime = getTime();
+        const maxDistance = 700;
+        const initialPosition = position.clone();
+
+        // Register the projectile for hit detection
+        registerProjectile(cannon_id, {
+            mesh: cannonball,
+            data: {
+                damage: 1000, // Same damage as local cannonballs
+                hitRadius: 15.0 // Same hit radius as local cannonballs
+            },
+            prevPosition: position.clone(),
+            onHit: (hitData) => {
+                console.log(`Remote cannonball HIT: ${hitData.monster.typeId}!`);
+
+                // Create a visible effect at the hit point
+                cannonInstance.createHitEffect(hitData.point);
+
+                // Remove the cannonball from the scene
+                scene.remove(cannonball);
+            }
+        });
+
+        const animateCannonball = () => {
+            const elapsedTime = (getTime() - startTime) / 1000;
+
+            const distanceTraveled = cannonball.position.distanceTo(initialPosition);
+            if (distanceTraveled > maxDistance) {
+                unregisterProjectile(cannon_id);
+                scene.remove(cannonball);
+                return;
+            }
+
+            velocity.y -= gravity * elapsedTime;
+
+            // Update cannonball position - exactly the same as local cannonballs
+            cannonball.position.x += velocity.x * 0.16;
+            cannonball.position.y += velocity.y * 0.16;
+            cannonball.position.z += velocity.z * 0.16;
+
+            cannonball.rotation.x += 0.02;
+            cannonball.rotation.z += 0.02;
+
+            // Handle water impact
+            if (cannonball.position.y <= 0) {
+                // Apply splash damage
+                const hitPosition = cannonball.position.clone();
+                const damagedMonsters = applyCannonballSplash(hitPosition);
+
+                // Log damage results
+                if (damagedMonsters.length > 0) {
+                    console.log(`Remote cannonball splash damaged ${damagedMonsters.length} monsters!`);
+                }
+
+                cannonInstance.createEnhancedSplashEffect(cannonball.position.clone(), 2.0 / 3.0);
+                unregisterProjectile(cannon_id);
+                scene.remove(cannonball);
+                return;
+            }
+
+            requestAnimationFrame(animateCannonball);
+        };
+
+        animateCannonball();
+
+        // Play cannon sound for remote shots too
+        playCannonSound();
+
+        return cannonball;
+    }
+
+    /**
      * Find the closest point on a line segment to a point
      * @param {THREE.Vector3} segmentStart - Start of segment
      * @param {THREE.Vector3} segmentEnd - End of segment
@@ -599,4 +711,4 @@ class CannonShot {
     }
 }
 
-export default CannonShot; 
+export default CannonShot;

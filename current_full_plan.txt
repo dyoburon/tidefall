@@ -1,29 +1,34 @@
-Step 1: Add Cannon Network Communication in network.js
-I'll need to modify the following in network.js:
+Step 1: Enhance Server-Side Cannon Handler
+File: api/cannon_handler.py
 
-Add new functions to communicate cannon events:
-fireCannon(position, direction) - To send cannon firing events to the server
-onCannonHit(callback) - To register a callback for when a player is hit by a cannon
-Add new socket event listeners in the setupSocketEvents() function:
-Listen for 'cannon_fired' events from other players
-Listen for 'cannon_hit' events when a player is hit
-Step 2: Implement Server-side Cannon Handling in app.py
-I'll need to modify the following in app.py:
+Update the handle_cannon_fire function to include the following specific data in the 'cannon_fired' event:
+Position data with exact x, y, z coordinates of the cannon firing point
+Direction vector with precise x, y, z values for accurate trajectory calculation
+A unique cannon_id to track each projectile across clients
+Player identifier (player_id) to determine which boat fired the cannon
+Modify the 'cannon_fired' emit payload to include all these properties in a standardized format
+Step 2: Update Socket Event Handling in network.js
+File: src/core/network.js
 
-Add new data structure for cannon tracking:
-Create a cannons dictionary to store active cannon projectiles
-Track essential properties like position, direction, owner, timestamp
-Add new socket event handlers:
-handle_cannon_fire() - To receive and broadcast cannon fire events
-handle_cannon_hit() - To validate and process hit events
-Add cannon collision detection logic:
-Implement functions to check if cannons hit other players
-Broadcast hit events to affected players
-Handle damage calculations and player state updates
-Step 3: Connect Client and Server Components
-Ensure the client properly sends cannon firing events
-Process incoming cannon events from other players
-Handle hit notifications and apply appropriate effects
-Implement cooldown mechanism for cannon ability
+Modify the setupSocketEvents function to add a listener for the 'cannon_fired' socket event
+Create a new function handleCannonFired that accepts position, direction, player_id, cannon_id, and cannon_position_name
+Implement logic to check if the cannon was fired by the current player to avoid duplicate visualizations
+If fired by another player, retrieve that player's boat mesh from the otherPlayers Map
+Call the remote cannonball creation function with all necessary data
+Step 3: Add Function to Create Remote Cannon Shots in cannonshot.js
+File: src/abilities/cannonshot.js
 
-For all changes that would be in app.py make it a separate file and integrate it.
+Create a new static function in the CannonShot class called createRemoteCannonball
+This function will take position, direction, cannon_id, and playerBoat parameters
+Implement the function to create a cannonball at the exact position specified
+Apply the exact direction vector to ensure consistent trajectory across clients
+Create all visual effects (muzzle flash, smoke) at the correct position relative to the firing boat
+If cannon_position_name is provided, use it to determine the exact cannon location on the boat
+Make animation parameters (gravity, speed) identical to the local cannonball function
+Step 4: Connect the Server and Client Systems
+File: src/core/network.js
+
+Import the CannonShot class at the top of the file
+In the handleCannonFired function, retrieve the boat mesh of the firing player
+Call the remote cannon creation function with all specific data
+Implement error handling for malformed or unexpected cannon data
