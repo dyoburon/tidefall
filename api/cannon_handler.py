@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 CANNON_SPEED = 40  # Units per second
 CANNON_LIFETIME = 3  # Seconds before a cannon projectile expires
 CANNON_DAMAGE = 10  # Damage inflicted by a cannon hit
-CANNON_COOLDOWN = 2  # Seconds between cannon shots
+CANNON_COOLDOWN = 0.5  # Seconds between cannon shots
 CANNON_BLAST_RADIUS = 5  # Units radius for hit detection
 
 # Data structure to track active cannon projectiles
