@@ -3,11 +3,11 @@ import { getAuth } from 'firebase/auth';
 import { showLoginScreen } from './main';
 import { setPlayerStateFromDb, getPlayerStateFromDb } from './gameState';
 import { setupAllPlayersTracking } from './main';
-import { loadGLBModel } from '../utils/glbLoader.js';
+import { loadGLBModel, unloadGLBModel } from '../utils/glbLoader.js';
 
 // Network configuration
-//const SERVER_URL = 'http://localhost:5001';
-const SERVER_URL = 'https://boat-game-python.onrender.com';
+const SERVER_URL = 'http://localhost:5001';
+//const SERVER_URL = 'https://boat-game-python.onrender.com';
 
 // Network state
 export let socket;
@@ -311,6 +311,27 @@ function setupSocketEvents() {
 
         setupAllPlayersTracking();
 
+        // Load the power ship GLB model when the player successfully connects
+        if (sceneRef) {
+            // Configure the power ship model with player-specific ID
+            const powerShipConfig = {
+                modelId: `player_${playerId}`, // Use player-specific ID
+                modelUrl: '/mediumpirate.glb',
+                scaleValue: 20.0,
+                position: [0, 7, 0],
+                rotation: [0, Math.PI, 0],
+                // Optional fallback in case the power ship model fails to load
+                fallbackConfig: {
+                    modelUrl: '/mediumpirate.glb',
+                    scaleValue: 20.0,
+                    position: [0, 7, 0],
+                    rotation: [0, Math.PI, 0]
+                }
+            };
+
+            loadGLBModel(sceneRef, powerShipConfig);
+        }
+
 
         // Example usage in game code
 
@@ -583,13 +604,31 @@ function registerIslands() {
 // Add another player to the scene
 function addOtherPlayerToScene(playerData) {
     // Skip if this player is already in the scene
-    if (otherPlayers.has(playerData.id)) return;
+    if (otherPlayers.has(playerData.id)) {
+        // If the player exists but position is different, update it
+        const existingPlayer = otherPlayers.get(playerData.id);
+        if (existingPlayer && existingPlayer.mesh) {
+            // Update position if needed
+            updateOtherPlayerPosition(playerData);
+        }
+        return;
+    }
 
     // Create a group for the other player
     const playerGroup = new THREE.Group();
 
     // Create a unique model ID for this player
     const modelId = `player_${playerData.id}`;
+
+    // Keep track of the player with a temporary placeholder
+    // but don't add to scene yet, wait for model loading
+    otherPlayers.set(playerData.id, {
+        mesh: playerGroup,
+        data: playerData,
+        nameSprite: null,
+        loaded: false,
+        modelId: modelId
+    });
 
     // Configuration for the Medium Pirate model
     const modelConfig = {
@@ -600,78 +639,105 @@ function addOtherPlayerToScene(playerData) {
         rotation: [0, Math.PI, 0]       // Rotation from boatLoader.js
     };
 
-    // Load the model
-    loadGLBModel(playerGroup, modelConfig);
+    // Load the model and wait for completion before adding to scene
+    loadGLBModel(playerGroup, modelConfig, (success) => {
+        if (!success) {
+            console.error(`Failed to load model for player ${playerData.id}`);
+            // Still continue with adding a basic representation
+        }
 
-    // Add player name label
-    const nameCanvas = document.createElement('canvas');
-    const nameContext = nameCanvas.getContext('2d');
-    nameCanvas.width = 256;
-    nameCanvas.height = 64;
-    nameContext.font = '24px Arial';
-    nameContext.fillStyle = 'white';
-    nameContext.textAlign = 'center';
-    nameContext.fillText(playerData.name, 128, 32);
+        // Only proceed if this player hasn't been removed during loading
+        if (!otherPlayers.has(playerData.id)) {
+            return;
+        }
 
-    const nameTexture = new THREE.CanvasTexture(nameCanvas);
-    const nameMaterial = new THREE.SpriteMaterial({ map: nameTexture });
-    const nameSprite = new THREE.Sprite(nameMaterial);
-    nameSprite.position.y = 10;  // Adjusted higher to appear above the model
-    nameSprite.scale.set(5, 1.25, 1);
-    playerGroup.add(nameSprite);
+        // Add player name label
+        const nameCanvas = document.createElement('canvas');
+        const nameContext = nameCanvas.getContext('2d');
+        nameCanvas.width = 256;
+        nameCanvas.height = 64;
+        nameContext.font = '24px Arial';
+        nameContext.fillStyle = 'white';
+        nameContext.textAlign = 'center';
+        nameContext.fillText(playerData.name, 128, 32);
 
-    // Add a vertical, thin light that follows the player (adjusted for new model)
-    const lightHeight = 10000; // Adjust the height of the light
-    const lightGeometry = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, lightHeight, 0)
-    ]);
+        const nameTexture = new THREE.CanvasTexture(nameCanvas);
+        const nameMaterial = new THREE.SpriteMaterial({ map: nameTexture });
+        const nameSprite = new THREE.Sprite(nameMaterial);
+        nameSprite.position.y = 10;  // Adjusted higher to appear above the model
+        nameSprite.scale.set(5, 1.25, 1);
+        playerGroup.add(nameSprite);
 
-    const lightColor = playerData.color ?
-        new THREE.Color(playerData.color.r, playerData.color.g, playerData.color.b) :
-        new THREE.Color(0xffff00); // Default to bright yellow if no color is provided
-    const lightMaterial = new THREE.LineBasicMaterial({
-        color: lightColor,
-        linewidth: 1 // Adjust the width of the line
-    });
-    const lightLine = new THREE.Line(lightGeometry, lightMaterial);
-    lightLine.position.y = 7; // Adjusted for the pirate model height
-    playerGroup.add(lightLine);
+        // Add a vertical, thin light that follows the player (adjusted for new model)
+        const lightHeight = 10000; // Adjust the height of the light
+        const lightGeometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, lightHeight, 0)
+        ]);
 
-    // Add a point light for additional visibility
-    const pointLight = new THREE.PointLight(0xffffff, 0.5, 10); // Adjust intensity and distance as needed
-    pointLight.position.y = 7; // Adjusted for the pirate model height
-    playerGroup.add(pointLight);
+        const lightColor = playerData.color ?
+            new THREE.Color(playerData.color.r, playerData.color.g, playerData.color.b) :
+            new THREE.Color(0xffff00); // Default to bright yellow if no color is provided
+        const lightMaterial = new THREE.LineBasicMaterial({
+            color: lightColor,
+            linewidth: 1 // Adjust the width of the line
+        });
+        const lightLine = new THREE.Line(lightGeometry, lightMaterial);
+        lightLine.position.y = 7; // Adjusted for the pirate model height
+        playerGroup.add(lightLine);
 
-    // Position the player
-    playerGroup.position.set(
-        playerData.position.x,
-        playerData.position.y,
-        playerData.position.z
-    );
-    playerGroup.rotation.y = playerData.rotation;
+        // Add a point light for additional visibility
+        const pointLight = new THREE.PointLight(0xffffff, 0.5, 10); // Adjust intensity and distance as needed
+        pointLight.position.y = 7; // Adjusted for the pirate model height
+        playerGroup.add(pointLight);
 
-    // Add to scene
-    sceneRef.add(playerGroup);
+        // Position the player - IMPORTANT: Set position after model is loaded
+        playerGroup.position.set(
+            playerData.position.x,
+            playerData.position.y,
+            playerData.position.z
+        );
+        playerGroup.rotation.y = playerData.rotation;
 
-    // Store in otherPlayers map
-    otherPlayers.set(playerData.id, {
-        mesh: playerGroup,
-        data: playerData,
-        nameSprite: nameSprite
+        // Add to scene - do this only after model is loaded
+        sceneRef.add(playerGroup);
+
+        // Update the stored data with the completed mesh and mark as loaded
+        otherPlayers.set(playerData.id, {
+            mesh: playerGroup,
+            data: playerData,
+            nameSprite: nameSprite,
+            loaded: true,
+            modelId: modelId
+        });
     });
 }
 
-// Update another player's position
 function updateOtherPlayerPosition(playerData) {
     const player = otherPlayers.get(playerData.id);
-    if (!player) return;
+    if (!player) {
+        // Add the player if they don't exist yet
+        addOtherPlayerToScene(playerData);
+        return;
+    }
 
     // Check if mode has changed
     if (player.data.mode !== playerData.mode) {
         // Remove old mesh and create a new one with the correct mode
         removeOtherPlayerFromScene(playerData.id);
         addOtherPlayerToScene(playerData);
+        return;
+    }
+
+    // Make sure the mesh exists and is loaded before updating position
+    if (!player.loaded || !player.mesh) {
+        // Update the data even if we can't update the position yet
+        player.data = {
+            ...player.data,
+            position: playerData.position,
+            rotation: playerData.rotation,
+            mode: playerData.mode
+        };
         return;
     }
 
@@ -683,6 +749,19 @@ function updateOtherPlayerPosition(playerData) {
     );
     player.mesh.rotation.y = playerData.rotation;
 
+    // Force update the matrix world to ensure all children update
+    player.mesh.updateMatrixWorld(true);
+
+    // Check if the player has any LOD objects that need updating
+    player.mesh.traverse((child) => {
+        if (child instanceof THREE.LOD && window.camera) {
+            // Reset the LOD's position to avoid conflicts with parent group
+            child.position.set(0, 0, 0);
+            // Update the LOD with the current camera
+            child.update(window.camera);
+        }
+    });
+
     // Update stored data
     player.data = {
         ...player.data,
@@ -693,38 +772,6 @@ function updateOtherPlayerPosition(playerData) {
 
     // IMPORTANT ADDITION: Update player in the allPlayers array in gameState
     updatePlayerInAllPlayers(playerData);
-}
-
-// Add this helper function to update a player's data in the allPlayers array
-function updatePlayerInAllPlayers(playerData) {
-    // Import the functions we need from gameState
-    const { getAllPlayers, updateAllPlayers } = require('./gameState');
-
-    // Get the current allPlayers array
-    const allPlayers = getAllPlayers();
-
-    if (!allPlayers || !Array.isArray(allPlayers)) {
-
-        return;
-    }
-
-    // Find and update the player in the array
-    const updatedPlayers = allPlayers.map(player => {
-        if (player.id === playerData.id) {
-            // Update this player's data with the new position
-            return {
-                ...player,
-                position: playerData.position,
-                rotation: playerData.rotation,
-                mode: playerData.mode
-            };
-        }
-        return player;
-    });
-
-    // Update the allPlayers array in gameState
-    updateAllPlayers(updatedPlayers);
-
 }
 
 // Update another player's information (like name)
@@ -777,11 +824,33 @@ function removeOtherPlayerFromScene(playerId) {
     const player = otherPlayers.get(playerId);
     if (!player) return;
 
+    // First, properly unload the GLB model
+    if (player.modelId) {
+        // Unload the model resources
+        unloadGLBModel(player.modelId, player.mesh);
+    } else {
+        // If we don't have a modelId stored, generate one based on player ID
+        const modelId = `player_${playerId}`;
+        unloadGLBModel(modelId, player.mesh);
+    }
+
     // Remove from scene
     sceneRef.remove(player.mesh);
 
+    // Dispose of the nameSprite texture if it exists
+    if (player.nameSprite && player.nameSprite.material && player.nameSprite.material.map) {
+        player.nameSprite.material.map.dispose();
+        player.nameSprite.material.dispose();
+    }
+
     // Remove from map
     otherPlayers.delete(playerId);
+
+    // Also update the allPlayers array to ensure consistency
+    updatePlayerInAllPlayers({
+        id: playerId,
+        removed: true
+    });
 }
 
 // Disconnect from the server
@@ -1115,4 +1184,36 @@ export function playerHasItem(inventoryData, itemType, itemName) {
     if (!itemCollection || !Array.isArray(itemCollection)) return false;
 
     return itemCollection.some(item => item.name === itemName);
+}
+
+// Add this helper function to update a player's data in the allPlayers array
+function updatePlayerInAllPlayers(playerData) {
+    // Import the functions we need from gameState
+    const { getAllPlayers, updateAllPlayers } = require('./gameState');
+
+    // Get the current allPlayers array
+    const allPlayers = getAllPlayers();
+
+    if (!allPlayers || !Array.isArray(allPlayers)) {
+
+        return;
+    }
+
+    // Find and update the player in the array
+    const updatedPlayers = allPlayers.map(player => {
+        if (player.id === playerData.id) {
+            // Update this player's data with the new position
+            return {
+                ...player,
+                position: playerData.position,
+                rotation: playerData.rotation,
+                mode: playerData.mode
+            };
+        }
+        return player;
+    });
+
+    // Update the allPlayers array in gameState
+    updateAllPlayers(updatedPlayers);
+
 }

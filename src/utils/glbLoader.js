@@ -10,8 +10,9 @@ const modelLoadingStatus = {};
  * Loads a GLB model with LOD support
  * @param {THREE.Group} targetGroup - The group to add the loaded model to
  * @param {Object} config - Configuration for the model loading
+ * @param {Function} onComplete - Optional callback when model loading completes
  */
-export function loadGLBModel(targetGroup, config) {
+export function loadGLBModel(targetGroup, config, onComplete) {
     const {
         modelId,
         modelUrl,
@@ -23,7 +24,15 @@ export function loadGLBModel(targetGroup, config) {
     } = config;
 
     // Don't load if already loaded or currently loading
-    if (modelLoadedStatus[modelId] || modelLoadingStatus[modelId]) return;
+    if (modelLoadedStatus[modelId]) {
+        // If already loaded, just call the completion callback immediately
+        if (onComplete && typeof onComplete === 'function') {
+            onComplete(true); // true = success
+        }
+        return;
+    }
+
+    if (modelLoadingStatus[modelId]) return;
 
     // Set loading flag to prevent concurrent load attempts
     modelLoadingStatus[modelId] = true;
@@ -125,6 +134,11 @@ export function loadGLBModel(targetGroup, config) {
             // Set flags to indicate model is loaded and no longer loading
             modelLoadedStatus[modelId] = true;
             modelLoadingStatus[modelId] = false;
+
+            // Call completion callback if provided
+            if (onComplete && typeof onComplete === 'function') {
+                onComplete(true); // true = success
+            }
         },
         // Progress callback
         function (xhr) {
@@ -166,15 +180,119 @@ export function loadGLBModel(targetGroup, config) {
                         model.rotation.set(fbRotX, fbRotY, fbRotZ);
                         targetGroup.add(model);
                         modelLoadedStatus[modelId] = true;
+
+                        // Call completion callback if provided
+                        if (onComplete && typeof onComplete === 'function') {
+                            onComplete(true); // true = success with fallback
+                        }
                     },
                     null,
                     function (fallbackError) {
                         console.error(`Error loading fallback model for ${modelId}:`, fallbackError);
+
+                        // Call completion callback with error status
+                        if (onComplete && typeof onComplete === 'function') {
+                            onComplete(false); // false = complete failure
+                        }
                     }
                 );
+            } else {
+                // Call completion callback with error status if no fallback
+                if (onComplete && typeof onComplete === 'function') {
+                    onComplete(false); // false = failure
+                }
             }
         }
     );
+}
+
+/**
+ * Unloads a GLB model and cleans up associated resources
+ * @param {String} modelId - The ID of the model to unload
+ * @param {THREE.Object3D} modelObject - The object containing the model (typically a Group or Mesh)
+ */
+export function unloadGLBModel(modelId, modelObject) {
+    // If no model object provided, just clean up the loading status
+    if (!modelObject) {
+        delete modelLoadedStatus[modelId];
+        delete modelLoadingStatus[modelId];
+        return;
+    }
+
+    // Clean up any animations
+    if (modelObject.userData && modelObject.userData.animationControls) {
+        const animControl = modelObject.userData.animationControls;
+
+        // Stop animations
+        if (animControl.mixer) {
+            animControl.mixer.stopAllAction();
+        }
+
+        // Remove from global animation controls if exists
+        if (window.animationControls) {
+            const index = window.animationControls.indexOf(animControl);
+            if (index !== -1) {
+                window.animationControls.splice(index, 1);
+            }
+        }
+    }
+
+    // Recursively dispose of geometries and materials
+    modelObject.traverse((child) => {
+        if (child.geometry) {
+            child.geometry.dispose();
+        }
+
+        if (child.material) {
+            // Handle array of materials
+            if (Array.isArray(child.material)) {
+                child.material.forEach(material => {
+                    disposeMaterial(material);
+                });
+            } else {
+                // Handle single material
+                disposeMaterial(child.material);
+            }
+        }
+
+        // If it's an LOD object, make sure to clean up all levels
+        if (child instanceof THREE.LOD) {
+            for (let i = 0; i < child.levels.length; i++) {
+                const level = child.levels[i];
+                if (level && level.object) {
+                    level.object.traverse(subChild => {
+                        if (subChild.geometry) {
+                            subChild.geometry.dispose();
+                        }
+                        if (subChild.material) {
+                            disposeMaterial(subChild.material);
+                        }
+                    });
+                }
+            }
+        }
+    });
+
+    // Remove from loading statuses
+    delete modelLoadedStatus[modelId];
+    delete modelLoadingStatus[modelId];
+}
+
+/**
+ * Helper function to dispose of a material and its textures
+ * @param {THREE.Material} material - The material to dispose
+ */
+function disposeMaterial(material) {
+    // Dispose textures
+    for (const key in material) {
+        const value = material[key];
+        if (value && typeof value === 'object' && 'isTexture' in value) {
+            value.dispose();
+        }
+    }
+
+    // Dispose material
+    material.dispose();
 }
 
 /**
@@ -202,4 +320,4 @@ export function isModelLoading(modelId) {
 export function resetModelLoadingState(modelId) {
     modelLoadedStatus[modelId] = false;
     modelLoadingStatus[modelId] = false;
-} 
+}

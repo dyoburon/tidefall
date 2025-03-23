@@ -1,1 +1,1 @@
-We're going to make it so when players join, all the other players see their current model, and we load a GLB file for their player. We're rendering the Medium Pirate.glb
+We're going to implement PvP. We're just going to start with the basic cannon ability; there's going to be changes we need to make both in the API folder. We'll need to start storing where the cannons are. 
