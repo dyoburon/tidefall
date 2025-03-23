@@ -3,17 +3,23 @@ planning_template.json
     Integrate files
         Follow instructions from @planning_template.json. We are implementing "Integrate files" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
 
+        This is the planning step, do not implement any code.
+
         Here are the defined variables
         files: [@files]
     Make a custom change
         Follow instructions from @planning_template.json. We are implementing "Make a custom change to existing files" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
 
+        This is the planning step, do not implement any code.
+        
         Here are the defined variables
         change_to_make: @current_change_to_make.txt
         files: [@files]
 
     Make a new feature
         Follow instructions from @planning_template.json. We are implementing a new feature "Make a custom change to existing files" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
+
+        This is the planning step, do not implement any code.
 
         Here are the defined variables
         change_to_make: @current_change_to_make.txt

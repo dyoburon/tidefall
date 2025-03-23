@@ -1,25 +1,29 @@
-Plan for Simplifying Villager Spawning Logic
-Based on the files you've provided, I'll outline a plan to modify the villager spawning system so that villagers always spawn on every island with 100% chance, while still using the existing raycasting methods.
+Step 1: Add Cannon Network Communication in network.js
+I'll need to modify the following in network.js:
 
-Files to Modify
-src/entities/entityspawner.js
-src/world/chunkEntityController.js
-Planned Changes
-Step 1: Modify the EntitySpawner class to ensure 100% villager spawn rate
-In src/entities/entityspawner.js:
+Add new functions to communicate cannon events:
+fireCannon(position, direction) - To send cannon firing events to the server
+onCannonHit(callback) - To register a callback for when a player is hit by a cannon
+Add new socket event listeners in the setupSocketEvents() function:
+Listen for 'cannon_fired' events from other players
+Listen for 'cannon_hit' events when a player is hit
+Step 2: Implement Server-side Cannon Handling in app.py
+I'll need to modify the following in app.py:
 
-Simplify the analyzeIslandForEntityType method for villagers to always return suitable: true
-Increase the sample points for villager spawning to ensure we have better coverage
-Modify the spawnEntitiesInChunk method to ensure at least one villager spawns on each island for 'villagers' type, bypassing density checks
-Step 2: Update the ChunkEntityController to handle the simplified spawning logic
-In src/world/chunkEntityController.js:
+Add new data structure for cannon tracking:
+Create a cannons dictionary to store active cannon projectiles
+Track essential properties like position, direction, owner, timestamp
+Add new socket event handlers:
+handle_cannon_fire() - To receive and broadcast cannon fire events
+handle_cannon_hit() - To validate and process hit events
+Add cannon collision detection logic:
+Implement functions to check if cannons hit other players
+Broadcast hit events to affected players
+Handle damage calculations and player state updates
+Step 3: Connect Client and Server Components
+Ensure the client properly sends cannon firing events
+Process incoming cannon events from other players
+Handle hit notifications and apply appropriate effects
+Implement cooldown mechanism for cannon ability
 
-Update the populateChunkWithVillagers function to ensure it attempts to spawn villagers on all islands in the chunk
-Remove any conditional checks that might prevent villager spawning
-Functions to Modify
-In entityspawner.js:
-analyzeIslandForEntityType(island, entityType) - Simplify for villagers type to always return suitable
-spawnEntitiesInChunk(entityType, createEntityFn, chunkBounds, islands, customConfig) - Ensure at least one villager per island
-In chunkEntityController.js:
-populateChunkWithVillagers(chunkKey) - Ensure it passes all islands to the spawner
-The changes will maintain the existing raycasting and spawn point validation logic, but will simplify the decision-making process for whether to spawn villagers on islands.
+For all changes that would be in app.py make it a separate file and integrate it.
