@@ -33,7 +33,8 @@ def init_socketio(socketio_instance, players_reference):
     
     # Register Socket.IO event handlers
     socketio.on_event('cannon_fire', handle_cannon_fire)
-    socketio.on_event('cannon_hit', handle_cannon_hit)
+    # No longer listening for client-reported hits as server now handles detection
+    # socketio.on_event('cannon_hit', handle_cannon_hit)
 
     start_cannon_update_loop(socketio_instance)
 
@@ -102,72 +103,9 @@ def handle_cannon_fire(data):
         logger.error(f"Error in handle_cannon_fire: {str(e)}")
 
 def handle_cannon_hit(data):
-    """
-    Handle cannon hit report from a client
-    
-    Expected data format:
-    {
-        cannon_id: string,
-        hit_player_id: string,
-        hit_position: {x, y, z},
-        player_id: string  # Sender's player_id
-    }
-    """
-    print("in the damage section")
-    try:
-        reporting_player = data.get('player_id')
-        cannon_id = data.get('cannon_id')
-        hit_player_id = data.get('hit_player_id')
-        
-        # Validate cannon exists
-        if not cannon_id or cannon_id not in cannons:
-            logger.warning(f"Invalid cannon_id in cannon_hit: {cannon_id}")
-            return
-            
-        cannon = cannons[cannon_id]
-        
-        # Validate hit (only the owner of the cannon can report a hit)
-        if reporting_player != cannon['owner']:
-            logger.warning(f"Unauthorized cannon hit report from {reporting_player}")
-            return
-            
-        # Validate hit player exists
-        if not hit_player_id or hit_player_id not in players:
-            logger.warning(f"Invalid hit_player_id in cannon_hit: {hit_player_id}")
-            return
-            
-        # Validate cannon hasn't expired
-        current_time = time.time()
-        if current_time > cannon['expires_at']:
-            logger.warning(f"Expired cannon in hit report: {cannon_id}")
-            return
-            
-        # Apply damage to the hit player
-        if hit_player_id in players:
-            # Update player's health or state as needed
-            # This depends on how player health is stored in your game
-            if 'health' in players[hit_player_id]:
-                players[hit_player_id]['health'] -= CANNON_DAMAGE
-                
-                # Check if player is defeated
-                if players[hit_player_id]['health'] <= 0:
-                    handle_player_defeat(hit_player_id, cannon['owner'])
-                    
-            # Notify the hit player
-            socketio.emit('cannon_hit', {
-                'id': cannon['owner'],
-                'damage': CANNON_DAMAGE,
-                'hitPosition': data.get('hit_position')
-            }, room=get_player_socket_id(hit_player_id))
-            
-            logger.info(f"Player {hit_player_id} hit by cannon from {cannon['owner']}")
-            
-        # Remove the cannon projectile after it hits
-        if cannon_id in cannons:
-            del cannons[cannon_id]
-            
-    except Exception as e:
-        logger.error(f"Error in handle_cannon_hit: {str(e)}")
+    """This function is deprecated as server now handles hit detection"""
+    logger.info("Client-reported hit ignored: Server now handles hit detection")
+    return
 
 def handle_player_defeat(defeated_player_id, victor_player_id):
     """Handle logic when a player is defeated by a cannon"""
@@ -199,39 +137,45 @@ def update_cannon_positions():
         if cannon_id not in cannons:
             continue
             
+        # Calculate time elapsed since cannon creation
+        time_elapsed = current_time - cannon['created_at']
+        
         # Check if cannon has expired
-        if current_time > cannon['expires_at']:
+        if time_elapsed >= CANNON_LIFETIME:
             expired_cannons.append(cannon_id)
             continue
             
-        # Calculate time elapsed since creation
-        time_elapsed = current_time - cannon['created_at']
-        
-        # Use the simulation utility to update position
+        # Use simulation utility to update cannon position
         simulation_result = simulate_cannonball(
             cannon['position'],
             cannon['direction'],
             CANNON_SPEED,
-            0.0981,  # Gravity value from cannonshot.js
+             0.0981, 
             time_elapsed
         )
         
         # Update cannon position
         cannon['position'] = simulation_result['position']
+        cannon['velocity'] = simulation_result['velocity']
         
-        # Check for potential collisions
+        # Check for collisions with water (y <= 0)
+        '''
+        if cannon['position']['y'] <= 0:
+            # Handle water impact
+            logger.info(f"Cannon {cannon_id} hit water")
+            expired_cannons.append(cannon_id)
+            continue
+        ''' 
+        # Check for collisions with players
         check_cannon_collisions(cannon_id, cannon)
-    
+        
     # Remove expired cannons
     for cannon_id in expired_cannons:
         if cannon_id in cannons:
             del cannons[cannon_id]
-            
-    logger.debug(f"Updated {len(cannons)} active cannons, removed {len(expired_cannons)} expired")
 
 def check_cannon_collisions(cannon_id, cannon):
-    """Check if a cannon projectile has collided with any players"""
-    logger.error("Checking collisions for cannon:", cannon_id)
+    """Check if a cannon projectile has collided with any players using simulation utilities"""
     owner_id = cannon['owner']
     cannon_position = cannon['position']
     
@@ -244,15 +188,13 @@ def check_cannon_collisions(cannon_id, cannon):
         if not player.get('active', False):
             continue
             
-        # Get player position
         player_position = player.get('position', {'x': 0, 'y': 0, 'z': 0})
-        
+
         # Calculate distance between cannon and player
         distance = calculate_distance(cannon_position, player_position)
         
         # Use the simulation utility to check for collision
         if check_collision(cannon_position, player_position, CANNON_BLAST_RADIUS):
-            print("Collision detected!")
             # Handle collision
             handle_cannon_collision(cannon, player_id)
             
@@ -264,18 +206,14 @@ def check_cannon_collisions(cannon_id, cannon):
             break
 
 def handle_cannon_collision(cannon, hit_player_id):
-    """Handle a collision between a cannon projectile and a player"""
-    # Notify the owner that their cannon hit someone
-    socketio.emit('cannon_hit_success', {
-        'hit_player_id': hit_player_id
-    }, room=get_player_socket_id(cannon['owner']))
-    
-    # Notify the hit player
-    socketio.emit('cannon_hit', {
-        'id': cannon['owner'],
+    """Handle a collision between a cannon projectile and a player with enhanced notifications"""
+    # Notify all clients about the hit for visual effects
+    socketio.emit('server_cannon_hit', {
+        'shooter_id': cannon['owner'],
+        'hit_player_id': hit_player_id,
         'damage': CANNON_DAMAGE,
-        'hitPosition': cannon['position']
-    }, room=get_player_socket_id(hit_player_id))
+        'hit_position': cannon['position']
+    })
     
     # Apply damage to hit player
     if hit_player_id in players and 'health' in players[hit_player_id]:
@@ -285,7 +223,7 @@ def handle_cannon_collision(cannon, hit_player_id):
         if players[hit_player_id]['health'] <= 0:
             handle_player_defeat(hit_player_id, cannon['owner'])
             
-    logger.info(f"Cannon collision: {cannon['owner']} hit {hit_player_id}")
+    logger.info(f"Cannon collision: {cannon['owner']} hit {hit_player_id} for {CANNON_DAMAGE} damage")
 
 def calculate_distance(pos1, pos2):
     """Calculate the distance between two 3D positions"""
