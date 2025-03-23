@@ -16,6 +16,7 @@ def setup_app():
     db.init_app(app)
     return app
 
+
 def print_database_contents():
     """Print all contents of the database"""
     print("\n===== DATABASE CONTENTS REPORT =====")

@@ -3,6 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { showLoginScreen } from './main';
 import { setPlayerStateFromDb, getPlayerStateFromDb } from './gameState';
 import { setupAllPlayersTracking } from './main';
+import { loadGLBModel } from '../utils/glbLoader.js';
 
 // Network configuration
 //const SERVER_URL = 'http://localhost:5001';
@@ -456,8 +457,8 @@ function setupSocketEvents() {
                 // If it's from another player, try to get their name from our local cache
                 else if (data.player_id && otherPlayers.has(data.player_id)) {
                     const otherPlayer = otherPlayers.get(data.player_id);
-                    if (otherPlayer && otherPlayer.name) {
-                        data.sender_name = otherPlayer.name;
+                    if (otherPlayer && otherPlayer.data.name) {
+                        data.sender_name = otherPlayer.data.name;
 
                     } else {
                         data.sender_name = 'Unknown Sailor';
@@ -584,42 +585,23 @@ function addOtherPlayerToScene(playerData) {
     // Skip if this player is already in the scene
     if (otherPlayers.has(playerData.id)) return;
 
-    // Create a mesh for the other player
-    let playerMesh;
+    // Create a group for the other player
+    const playerGroup = new THREE.Group();
 
-    if (playerData.mode === 'boat') {
-        // Create a boat mesh (simplified version of the main boat)
-        playerMesh = new THREE.Group();
+    // Create a unique model ID for this player
+    const modelId = `player_${playerData.id}`;
 
-        const hullGeometry = new THREE.BoxGeometry(2, 1, 4);
+    // Configuration for the Medium Pirate model
+    const modelConfig = {
+        modelId: modelId,
+        modelUrl: '/mediumpirate.glb',  // Path to Medium Pirate GLB
+        scaleValue: 20.0,               // Scale from boatLoader.js
+        position: [0, 7, 0],            // Position from boatLoader.js
+        rotation: [0, Math.PI, 0]       // Rotation from boatLoader.js
+    };
 
-        // Use the player's color for the hull if available
-        const hullColor = playerData.color ?
-            new THREE.Color(playerData.color.r, playerData.color.g, playerData.color.b) :
-            new THREE.Color(0x885533);
-
-        const hullMaterial = new THREE.MeshPhongMaterial({ color: hullColor });
-        const hull = new THREE.Mesh(hullGeometry, hullMaterial);
-        hull.position.y = 0.5;
-        playerMesh.add(hull);
-
-        const mastGeometry = new THREE.CylinderGeometry(0.1, 0.1, 3);
-        const mastMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
-        const mast = new THREE.Mesh(mastGeometry, mastMaterial);
-        mast.position.y = 2;
-        playerMesh.add(mast);
-    } else {
-        // Create a character mesh
-        const characterGeometry = new THREE.BoxGeometry(1, 2, 1);
-
-        // Use the player's color for the character if available
-        const characterColor = playerData.color ?
-            new THREE.Color(playerData.color.r, playerData.color.g, playerData.color.b) :
-            new THREE.Color(0x2288cc);
-
-        const characterMaterial = new THREE.MeshPhongMaterial({ color: characterColor });
-        playerMesh = new THREE.Mesh(characterGeometry, characterMaterial);
-    }
+    // Load the model
+    loadGLBModel(playerGroup, modelConfig);
 
     // Add player name label
     const nameCanvas = document.createElement('canvas');
@@ -634,11 +616,11 @@ function addOtherPlayerToScene(playerData) {
     const nameTexture = new THREE.CanvasTexture(nameCanvas);
     const nameMaterial = new THREE.SpriteMaterial({ map: nameTexture });
     const nameSprite = new THREE.Sprite(nameMaterial);
-    nameSprite.position.y = 3;
+    nameSprite.position.y = 10;  // Adjusted higher to appear above the model
     nameSprite.scale.set(5, 1.25, 1);
-    playerMesh.add(nameSprite);
+    playerGroup.add(nameSprite);
 
-    // Add a vertical, thin, bright yellow light that follows the player
+    // Add a vertical, thin light that follows the player (adjusted for new model)
     const lightHeight = 10000; // Adjust the height of the light
     const lightGeometry = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(0, 0, 0),
@@ -649,33 +631,32 @@ function addOtherPlayerToScene(playerData) {
         new THREE.Color(playerData.color.r, playerData.color.g, playerData.color.b) :
         new THREE.Color(0xffff00); // Default to bright yellow if no color is provided
     const lightMaterial = new THREE.LineBasicMaterial({
-        color: lightColor, // Bright yellow
+        color: lightColor,
         linewidth: 1 // Adjust the width of the line
     });
     const lightLine = new THREE.Line(lightGeometry, lightMaterial);
-    lightLine.position.y = playerData.mode === 'boat' ? 1 : 1; // Adjust height based on player mode
-    playerMesh.add(lightLine);
-
+    lightLine.position.y = 7; // Adjusted for the pirate model height
+    playerGroup.add(lightLine);
 
     // Add a point light for additional visibility
     const pointLight = new THREE.PointLight(0xffffff, 0.5, 10); // Adjust intensity and distance as needed
-    pointLight.position.y = playerData.mode === 'boat' ? 1 : 1; // Adjust height based on player mode
-    playerMesh.add(pointLight);
+    pointLight.position.y = 7; // Adjusted for the pirate model height
+    playerGroup.add(pointLight);
 
     // Position the player
-    playerMesh.position.set(
+    playerGroup.position.set(
         playerData.position.x,
         playerData.position.y,
         playerData.position.z
     );
-    playerMesh.rotation.y = playerData.rotation;
+    playerGroup.rotation.y = playerData.rotation;
 
     // Add to scene
-    sceneRef.add(playerMesh);
+    sceneRef.add(playerGroup);
 
     // Store in otherPlayers map
     otherPlayers.set(playerData.id, {
-        mesh: playerMesh,
+        mesh: playerGroup,
         data: playerData,
         nameSprite: nameSprite
     });

@@ -1,1 +1,1 @@
-Currently villagers spawn very high in the air. Please modify entityspawner to have multiple failsafes to prevent this, and also examine the current logic of the code to get this right. Cap the z at max 15 to start.
+We're going to make it so when players join, all the other players see their current model, and we load a GLB file for their player. We're rendering the Medium Pirate.glb
