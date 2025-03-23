@@ -16,12 +16,11 @@ import { initRain, startRain, updateRain } from '../weather/rain.js';
 import { createRockyIsland } from '../world/rockyIslands.js';
 import { createHugeIsland, getHugeIslandColliders } from '../world/hugeIsland.js';
 
-
 export const OPEN_FOG_CONFIG = {
-    color: 0xD3D3D3,           // Red fog
-    density: 0.0,            // Appropriate density for exponential fog
+    color: 0xADD8E6,
+    density: 0.0005,            // Appropriate density for exponential fog
     enableWindEffect: true,    // Whether wind affects fog color
-    windEffectColor: 0xD3D3D3, // Custom color for wind effect
+    windEffectColor: 0xADD8E6, // Custom color for wind effect
     windEffectStrength: 0.4    // Strength of wind color effect (0-1)
 };
 
@@ -121,28 +120,34 @@ class OpenBiome extends BiomeInterface {
 
         const spawnedInThisChunk = [];
 
-        const spawnHugeIsland = Math.random() < 1.0; // 100% probability
+        const spawnHugeIsland = Math.random() < 0.5; // 100% probability
 
         if (spawnHugeIsland) {
             // Position at center of the chunk
             const posX = worldX + chunkSize * 0.5;
             const posZ = worldZ + chunkSize * 0.5;
 
-            // Make sure we don't spawn too close to other islands
-            const position = new THREE.Vector3(posX, 0, posZ);
+            // Check if too close to player spawn at (0,0)
+            const distanceToSpawn = Math.sqrt(posX * posX + posZ * posZ);
+            const minDistanceFromSpawn = 2000; // Keep huge islands at least 1000 units away from spawn
 
-            // Use larger collision radius for the huge island
-            if (!checkAllIslandCollisions(position, 800)) {
-                const hugeIslandSeed = Math.floor(Math.random() * 1000000);
-                const hugeIsland = createHugeIsland(posX, posZ, hugeIslandSeed, chunkGroup);
+            if (distanceToSpawn >= minDistanceFromSpawn) {
+                // Make sure we don't spawn too close to other islands
+                const position = new THREE.Vector3(posX, 0, posZ);
 
-                if (hugeIsland) {
-                    this.spawnedEntities.islands.push(hugeIsland);
-                    spawnedInThisChunk.push({
-                        type: 'hugeIsland',
-                        entity: hugeIsland,
-                        position: position
-                    });
+                // Use larger collision radius for the huge island
+                if (!checkAllIslandCollisions(position, 800)) {
+                    const hugeIslandSeed = Math.floor(Math.random() * 1000000);
+                    const hugeIsland = createHugeIsland(posX, posZ, hugeIslandSeed, chunkGroup);
+
+                    if (hugeIsland) {
+                        this.spawnedEntities.islands.push(hugeIsland);
+                        spawnedInThisChunk.push({
+                            type: 'hugeIsland',
+                            entity: hugeIsland,
+                            position: position
+                        });
+                    }
                 }
             }
         }

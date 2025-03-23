@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { createShoreEffect } from './shores.js';
 import { applyOutline } from '../theme/outlineStyles.js';
 import { scene } from '../core/gameState.js';
 import { loadGLBModel } from '../utils/glbLoader.js';
@@ -52,15 +51,6 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
     // This bypasses chunk-based visibility for huge islands
     scene.add(island);
 
-    // Create a visible marker to show island center for debugging
-    const debugMarker = new THREE.Mesh(
-        new THREE.SphereGeometry(50, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xff0000 })
-    );
-    debugMarker.position.y = 500;
-    debugMarker.frustumCulled = false;
-    island.add(debugMarker);
-
     // Create island collider with larger radius
     const collider = {
         center: new THREE.Vector3(x, 0, z),
@@ -73,7 +63,7 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
     const scaleValue = 3000.0 + random() * 100.0; // Huge scale for better visibility
     const yOffset = 970;
 
-    console.log(`Loading island1.glb with scale ${scaleValue} at position [0, ${yOffset}, 0]`);
+    console.log(`Loading island model with scale ${scaleValue} at position [0, ${yOffset}, 0]`);
 
     // Island entry will be updated inside onLoad
     const islandEntry = {
@@ -88,10 +78,14 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
     activeHugeIslands.set(islandId, islandEntry);
 
     try {
+        // Randomly select between island1.glb and island2.glb with 50% probability
+        const islandModel = random() < 0.5 ? '/island1.glb' : '/island2.glb';
+        console.log(`Selected model: ${islandModel} for island ${islandId}`);
+
         // Load the GLB model with modified settings
         loadGLBModel(island, {
             modelId: islandId,
-            modelUrl: '/island1.glb',
+            modelUrl: islandModel,
             scaleValue: scaleValue,
             position: [0, yOffset, 0],
             rotation: [0, random() * Math.PI * 2, 0],
@@ -186,11 +180,8 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
         console.error(`Exception during GLB loading: ${error}`);
     }
 
-    // Add shore effect if the scene is provided
-    if (scene) {
-        const shore = createShoreEffect(island, collider, scene);
-        islandEntry.shore = shore;
-    }
+    // Removed shore effect for huge islands
+    // Shore effects disabled for performance and visual clarity on huge islands
 
     console.log(`Island ${islandId} creation complete`);
     return islandEntry;
