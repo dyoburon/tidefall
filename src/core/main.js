@@ -61,8 +61,6 @@ import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updat
 import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js';
 import { updateHarpoonTension } from '../abilities/harpoonTensionSystem.js';
 
-
-
 // Define these variables at the file level scope (outside any functions)
 // so they're accessible throughout the file
 const fogColors = {
@@ -72,6 +70,11 @@ const fogColors = {
     afternoon: new THREE.Color(0xa3b5c7), // Slightly warmer blue-gray
     dusk: new THREE.Color(0x9a8fa5)    // Warm purple-gray
 };
+
+// Add frame timing variables for FPS cap
+let lastFrameTime = 0;
+const targetFPS = 60000;
+const frameInterval = 1000 / targetFPS; // Time between frames in ms
 
 // Define the keyframes at file level scope
 const fogColorKeyframes = [
@@ -92,48 +95,7 @@ initializeChunkSystem();
 initMonsterManager();
 initDamageSystem();
 
-
 const abilityManager = new AbilityManager(scene, camera, boat);
-
-//const spatialAudio = new SpatialAudioSystem(camera, scene);
-
-/*
-// Create a test beacon sound
-const beaconPosition = new THREE.Vector3(0, 0, 0); // Place it somewhere in your world
-const beaconId = spatialAudio.createTestBeacon(beaconPosition, {
-    frequency: 440, // A4 note
-    interval: 2000, // Beep every 2 seconds
-    refDistance: 200, // Start hearing clearly at this distance
-    maxDistance: 1000, // Can't hear beyond this distance
-    volume: 0.8,
-    debug: true // Shows a visual sphere at the sound location
-});
-*/
-/*
-const cubeTextureLoader = new THREE.CubeTextureLoader();
-cubeTextureLoader.setPath('/threejs-water-shader/');
-const environmentMap = cubeTextureLoader.load([
-    './px.png', // positive x
-    './nx.png', // negative x 
-    './py.png', // positive y
-    './ny.png', // negative y
-    './pz.png', // positive z
-    './nz.png'  // negative z
-]);
-
-
-const waterResolution = { size: 124 };
-const water2 = new Water({
-    environmentMap,
-    resolution: waterResolution.size
-});
-//scene.add(water2);
-
-
-
-scene.background = environmentMap;
-scene.environment = environmentMap;*/
-
 
 // Add these variables to your global scope
 let lastTime = null;
@@ -151,9 +113,8 @@ camera.lookAt(0, 0, 0);
 camera.far = 50000;
 camera.updateProjectionMatrix();
 
-
+// Initialize camera controls
 initCameraControls();
-
 
 let playerState = {
     mode: 'boat', // Default to boat mode
@@ -173,12 +134,10 @@ const effectsComposer = initGLBOutlineEffects(scene, camera, renderer, {
 setupSky();
 // Enable realistic sky with clouds and stars
 
-
+// Check if touch device
 if (isTouchDevice()) {
     initTouchControls();
-
 }
-
 
 // Force removal of any existing sky before toggling
 if (window.realisticSkyMesh) {
@@ -190,12 +149,10 @@ toggleSkySystem();
 // Toggle to enable realistic sky
 const skyEnabled = toggleSkySystem();
 
-
 // Force update the sky once to ensure it's properly displayed
 if (window.realisticSkyMesh) {
     const deltaTime = 1 / 60;
     updateRealisticSky(window.realisticSkyMesh, deltaTime);
-
 }
 
 requestLeaderboard();
@@ -205,7 +162,6 @@ MusicSystem.setVolume(0.1); // 30% volume
 // Test Rocky Islands - set to true to create test islands
 const TEST_ROCKY_ISLANDS = true;
 if (TEST_ROCKY_ISLANDS) {
-
     // Create a single test rocky island further from the starting position
     //createTestRockyIslandCluster(scene, 4, 800, new THREE.Vector3(boat.position.x, 0, boat.position.z));
 }
@@ -269,40 +225,32 @@ spawnMassiveIsland(scene);
 // Add this line to spawn your block cave instead
 //const blockCave = spawnBlockCave(scene, new THREE.Vector3(0, 0, 0));
 
-
+// Spawn massive island
 spawnMassiveIsland(scene);
+
 // Add this at the beginning of your script.js file
 let playerName = '';
 let playerColor = '#3498db'; // Default blue
 
 // Add this function after your other initialization code
 async function initializeFirebaseAuth() {
-
-
     // Try to initialize Firebase
     firebaseInitialized = await Firebase.initializeFirebase();
 
     if (!firebaseInitialized) {
-
         return;
     }
 
     // Show Firebase auth popup
     Firebase.showAuthPopup((user) => {
-
-
-
         // Check if user has already completed login process
         if (localStorage.getItem('hasCompletedLogin') === 'true') {
-
             onAuthAndLoginComplete(user);
             return;
         }
 
         // Check both Firebase displayName AND localStorage
         if ((user && !user.name) || !localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
-
-
             // If there's a name in localStorage, use it as default in the login screen
             const savedName = localStorage.getItem('playerName');
             if (savedName) {
@@ -312,13 +260,10 @@ async function initializeFirebaseAuth() {
             // Your showLoginScreen function
             if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
                 showLoginScreen(() => {
-
                     onAuthAndLoginComplete(user);
                 });
             }
-
         } else {
-
             // If there's a saved name, make sure to use it
             if (localStorage.getItem('playerName')) {
                 playerName = localStorage.getItem('playerName');
@@ -329,7 +274,6 @@ async function initializeFirebaseAuth() {
 
     if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
         showLoginScreen(() => {
-
             onAuthAndLoginComplete(user);
         });
     }
@@ -341,22 +285,17 @@ initializeFirebaseAuth();
 
 // Create a new helper function to handle the sequence
 function completeAuthAndShowMOTD(user = null) {
-
-
     // Add a short delay to ensure any UI elements are properly closed
     setTimeout(() => {
         if (shouldShowMessageOfDay()) {
-
             showMessageOfDay(() => {
                 // Complete network initialization after MOTD is closed
                 if (user) {
-
                     initializeNetworkWithPlayerInfo(user);
                 }
             });
         } else if (user) {
             // Skip MOTD and initialize directly
-
             initializeNetworkWithPlayerInfo(user);
         }
     }, 500); // Short delay to ensure UI elements are updated
@@ -852,7 +791,6 @@ export function showLoginScreen(onComplete) {
 
         // Call the completion callback directly
         if (onComplete && typeof onComplete === 'function') {
-
             onComplete();
         }
 
@@ -868,8 +806,6 @@ export function showLoginScreen(onComplete) {
 
 // Initialize network with player info
 function initializeNetworkWithPlayerInfo(firebaseUser = null) {
-
-
     // Convert hex color to RGB (0-1 range for Three.js)
     const hexToRgb = (hex) => {
         const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -885,9 +821,7 @@ function initializeNetworkWithPlayerInfo(firebaseUser = null) {
     let firebaseUserId = null;
     if (firebaseUser) {
         firebaseUserId = firebaseUser.uid;
-
     } else {
-
     }
 
     // Complete the initialization directly - MOTD should have been shown by now
@@ -1021,27 +955,25 @@ document.eventListeners.keyup = keyupHandler;
 
 document.addEventListener('keydown', keydownHandler);
 document.addEventListener('keyup', keyupHandler);
-
-// Animatio
-
-
 let lastLeaderboardUpdate = 0;
 const LEADERBOARD_UPDATE_INTERVAL = 10000; // 10 seconds
 
-// Add this function to set up the sky
-
-// Add this function to get sky color based on time of day
-
-// Add this function to get ambient light color and intensity
-
-// Add this function to get directional light color and intensity
-
-
-// Add this function to update time of day
-
-// Update boat movement in the animate function to check collisions
+// Animation loop
 function animate() {
     const now = performance.now();
+
+    // Calculate time since last frame
+    const deltaFrameTime = now - lastFrameTime;
+
+    // Skip frame if not enough time has elapsed (FPS cap)
+    /*if (deltaFrameTime < frameInterval) {
+        //requestAnimationFrame(animate);
+        return;
+    }*/
+
+    // Update last frame time
+    lastFrameTime = now - (deltaFrameTime % frameInterval);
+
     const deltaTime = (now - (lastTime || now)) / 1000; // Convert to seconds
     lastTime = now;
     updateTime(0.09);
@@ -1108,21 +1040,13 @@ function animate() {
 
     // Right before updating position, add this logging
     if (window.collisionDebugActive && window.boatInParabolicFlight) {
-
-
-
-
-
     }
 
     if (!collided) {
         // Only update X and Z position - Y is controlled by collision system when in flight
         if (window.boatInParabolicFlight) {
-
             // Debug logging before position change
             if (window.collisionDebugActive) {
-
-
             }
 
             // Only apply X and Z changes, Y is controlled by the collision system
@@ -1135,15 +1059,6 @@ function animate() {
             boat.position.copy(newPosition);
             boat.position.y = currentY; // Restore Y position
         }
-
-        /*
-        if (boat.position.distanceTo(lastChunkUpdatePosition) > chunkUpdateThreshold) {
-            updateAllIslandVisibility(boat, scene, waterShader, lastChunkUpdatePosition);
-            // Add this line to update villagers whenever chunks update
-            if (activeIslands && activeIslands.size > 0) {
-                //updateVillagers(activeIslands);
-            }
-        }*/
     }
 
     // Sample water height under the boat
@@ -1174,7 +1089,6 @@ function animate() {
         h10 * xFraction * (1 - zFraction) +
         h01 * (1 - xFraction) * zFraction +
         h11 * xFraction * zFraction;
-
 
     if (checkBoatIslandCollision()) {
         console.log('Boat is colliding with an island!');
@@ -1226,9 +1140,7 @@ function animate() {
     // Update sail animation
     animateSail(deltaTime);
 
-
     abilityManager.update(deltaTime);
-
 
     updateDragEffects(deltaTime);
 
@@ -1236,14 +1148,11 @@ function animate() {
 
     updateHarpoonTension(); // New call to update tension system
 
-
     applyWindInfluence();
 
     updateDirectKnockback(deltaTime);
 
-
     //water2.update(deltaTime);
-
 
     // Request next frame first
     requestAnimationFrame(animate);
@@ -1361,13 +1270,10 @@ function updateGameUI() {
 
 // Force an initial update to ensure islands are generated
 setTimeout(() => {
-
     //updateVisibleChunks(boat, scene, waterShader, lastChunkUpdatePosition);
 
     // Add this line to initialize villagers after the first chunk update
     if (activeIslands && activeIslands.size > 0) {
-
-        //updateVillagers(activeIslands);
     }
 }, 1000);
 
@@ -1375,7 +1281,6 @@ setTimeout(() => {
 window.addEventListener('keydown', (event) => {
     // Press 'T' to toggle sky system
     if (event.key === 't' || event.key === 'T') {
-
         toggleSkySystem();
     }
 });
@@ -1396,7 +1301,6 @@ window.addEventListener('resize', () => {
 window.addEventListener('beforeunload', () => {
     Network.disconnect();
 });
-
 
 // Add gentle rocking motion based on boat speed and waves
 
@@ -1454,21 +1358,15 @@ initDiagnostics();
 const startPosition = new THREE.Vector3(boat.position.x + 1000, 0, boat.position.z + 1000);
 const cliffScene = spawnCoastalCliffScene(scene, startPosition);
 
-
 // Create a global command to show MOTD for testing
 window.showMOTD = function () {
-
     forceShowMessageOfDay();
 };
-
-
 
 /**
  * Initialize the game with proper UI sequence
  */
 function initializeGame() {
-
-
     // Check if we need to show Firebase auth and login screens
     const needsAuth = !getCurrentUser();
     const needsLogin = !localStorage.getItem('playerName');
@@ -1478,7 +1376,6 @@ function initializeGame() {
         // which will show MOTD only AFTER login completes
 
         startScreenSequence(() => {
-
             const user = getCurrentUser(); // If you have this function
             onAuthAndLoginComplete(user);
         });
@@ -1499,8 +1396,6 @@ function initializeGame() {
 
 // Common finish function to avoid code duplication
 function finishInitialization() {
-
-
     // Get current user state after all screens
     const firebaseUser = getCurrentUser();
     const playerInfo = getPlayerInfo();
@@ -1516,8 +1411,6 @@ function finishInitialization() {
         hexToRgb(playerInfo.color),
         firebaseUser ? firebaseUser.uid : null
     );
-
-
 }
 
 /**
@@ -1543,17 +1436,12 @@ document.addEventListener('DOMContentLoaded', () => {
  * This is the ONLY place we should show the MOTD!
  */
 function onAuthAndLoginComplete(user) {
-
-
     // Check if MOTD should be shown based on localStorage
     if (shouldShowMessageOfDay()) {
-
         showMessageOfDay(() => {
-
             initializeGameAfterLogin(user);
         });
     } else {
-
         // Proceed directly to game initialization
         initializeGameAfterLogin(user);
     }
@@ -1563,19 +1451,15 @@ function onAuthAndLoginComplete(user) {
  * Initialize the game after all login/MOTD screens
  */
 function initializeGameAfterLogin(user) {
-
-
     // Your network initialization code here
     // For example:
     if (typeof initializeNetworkWithPlayerInfo === 'function') {
         initializeNetworkWithPlayerInfo(user);
     } else {
-
     }
 }
 
 // Initialize fog system with appropriate color
-
 const fog = setupFog();
 
 // Function to desaturate colors to prevent luminosity
@@ -1598,25 +1482,19 @@ toggleFog(scene);
 // Initialize collision response system near other initialization code
 const collisionResponseSystem = initCollisionResponse();
 
-
 export function setupAllPlayersTracking() {
-
-
     // Register for all_players updates
     Network.onAllPlayers((players) => {
         // Update our gameState variable
         updateAllPlayers(players);
 
-
         // Debug output the first few players
         if (players.length > 0) {
-
         }
     });
 
     // Request initial player list
     const requestSent = Network.getAllPlayers();
-
 
     // Set up a periodic refresh every 10 seconds
     setInterval(() => {
@@ -1624,10 +1502,8 @@ export function setupAllPlayersTracking() {
 
         // Print the current players from gameState
         const currentPlayers = getAllPlayers();
-
     }, 10000);
 }
-
 
 // Add this to an appropriate key handler
 document.addEventListener('keydown', (e) => {
