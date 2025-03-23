@@ -541,7 +541,7 @@ function setupSocketEvents() {
 
     // Cannon event handlers
     socket.on('cannon_fired', (data) => {
-        console.log("cannon socket event fired.")
+
         // When another player fires a cannon, this event is received
         // Data contains: {id, position, direction, cannonShotData}
         handleCannonFired(data);
@@ -666,7 +666,7 @@ function addOtherPlayerToScene(playerData) {
     // Load the model and wait for completion before adding to scene
     loadGLBModel(playerGroup, modelConfig, (success) => {
         if (!success) {
-            console.error(`Failed to load model for player ${playerData.id}`);
+
             // Still continue with adding a basic representation
         }
 
@@ -1270,21 +1270,20 @@ function updatePlayerInAllPlayers(playerData) {
 function handleCannonFired(data) {
     import('../abilities/cannonshot.js').then(module => {
         const CannonShot = module.default;
-        console.log("CannonShot module loaded dynamically");
+
 
         // Extract data from the event
-        const { player_id, cannon_id, position, direction, cannon_position_name } = data;
+        const { id, cannon_id, position, direction, cannon_position_name } = data;
 
         // Only process cannon fire from other players to avoid duplicate visualizations
-        if (player_id !== firebaseDocId) {
-            console.log("Processing cannon fire from player:", player_id);
+        if (id !== firebaseDocId) {
 
             // Retrieve the firing player's boat mesh from otherPlayers Map
             let playerBoat = null;
-            if (otherPlayers.has(player_id)) {
-                playerBoat = otherPlayers.get(player_id).mesh;
+            if (otherPlayers.has(id)) {
+                playerBoat = otherPlayers.get(id).mesh;
             } else {
-                console.warn("Could not find boat mesh for player:", player_id);
+
                 // If we can't find the boat, we'll still create the cannonball but without boat reference
             }
 
@@ -1300,11 +1299,11 @@ function handleCannonFired(data) {
                 );
             } else {
                 // Fallback to existing event system if static method not yet implemented
-                console.warn("CannonShot.createRemoteCannonball not implemented yet");
+
             }
         }
     }).catch(error => {
-        console.error("Error loading CannonShot module:", error);
+
     });
 
 
