@@ -195,7 +195,7 @@ export function checkBoatIslandCollision() {
     const state = checkBoatIslandCollision.state;
 
     // Check every 30 frames
-    state.frameCounter = (state.frameCounter + 1) % 30;
+    state.frameCounter = (state.frameCounter + 1) % 10;
     if (state.frameCounter !== 0) {
         return state.lastResult;
     }

@@ -8,17 +8,23 @@ import {
 import { boat, scene } from '../core/gameState.js';
 // Import monster manager for spawning
 import { createMonster, spawnMonstersInChunk } from '../entities/monsterManager.js';
+import entitySpawner from '../entities/entityspawner.js'; // Import the EntitySpawner
+// Import villager functionality
+import { createVillager, respawnVillagers, activeVillagers } from '../entities/villagers.js';
+import { activeIslands } from './islands.js';
 
 // Entity tracking by type and chunk
 export const entityChunkMap = {
     birds: new Map(),     // Maps entity → chunk key
     monsters: new Map(),  // Can add more entity types as needed
+    villagers: new Map(), // Added villagers tracking
 };
 
 // Storage for inactive entity states
 const inactiveEntityStates = {
     birds: new Map(),     // Maps chunk key → array of entity states
     monsters: new Map(),
+    villagers: new Map(), // Added villagers storage
 };
 
 // Track which chunks have already been populated with entities
@@ -183,14 +189,30 @@ export function updateEntityVisibility(visibleChunks, entityType, getStateFn, cl
                 populatedChunks.delete(chunkKey);
 
             }
+        } else if (entityType === 'villagers') {
+            // Only mark a chunk as unpopulated if all villagers in it are gone
+            let villagersRemaining = 0;
+            entityChunkMap.villagers.forEach((entityChunkKey, villager) => {
+                if (entityChunkKey === chunkKey) villagersRemaining++;
+            });
+
+            if (villagersRemaining === 0) {
+                populatedChunks.delete(chunkKey);
+            }
         }
     });
 
-    // Check for chunks that are now visible and need entities respawned
+    // Now check for chunks that need to have entities added
     visibleChunks.forEach(chunkKey => {
-        if (inactiveEntityStates[entityType].has(chunkKey)) {
+        if (!populatedChunks.has(chunkKey)) {
+            // Chunk needs to be populated
+            populateChunkWithEntities(chunkKey);
+        } else if (inactiveEntityStates[entityType] && inactiveEntityStates[entityType].has(chunkKey)) {
+            // We have inactive entities to restore
             const states = getEntityStatesForChunk(entityType, chunkKey);
-            respawnFn(states, chunkKey);
+            if (states.length > 0 && respawnFn) {
+                respawnFn(states, chunkKey);
+            }
         }
     });
 }
@@ -255,14 +277,23 @@ export function updateAllEntityChunks() {
  * Populate a chunk with appropriate entities
  * @param {string} chunkKey - Key of the chunk to populate
  */
-function populateChunkWithEntities(chunkKey) {
-    // Extract chunk coordinates from key
+export function populateChunkWithEntities(chunkKey) {
+    console.log("populating chunk with monsters")
+    if (populatedChunks.has(chunkKey)) {
+        return;
+    }
+
+    // Extract chunk coordinates from the key
     const [chunkX, chunkZ] = chunkKey.split(',').map(Number);
 
-    // BIRDS: Birds are handled separately in birds.js
-
-    // MONSTERS: Spawn monsters in this chunk
+    // Populate with monsters
     populateChunkWithMonsters(chunkKey, chunkX, chunkZ);
+
+    // Populate with villagers
+    populateChunkWithVillagers(chunkKey, chunkX, chunkZ);
+
+    // Mark chunk as populated
+    populatedChunks.add(chunkKey);
 }
 
 /**
@@ -305,6 +336,90 @@ function populateChunkWithMonsters(chunkKey, chunkX, chunkZ) {
 }
 
 /**
+ * Populate a chunk with villagers
+ * @param {string} chunkKey - Key of the chunk to populate
+ */
+export function populateChunkWithVillagers(chunkKey) {
+    if (!chunkKey || populatedChunks.has(chunkKey)) {
+        return;
+    }
+
+    // Check if we have saved villagers for this chunk
+    const savedVillagers = getEntityStatesForChunk('villagers', chunkKey);
+    if (savedVillagers && savedVillagers.length > 0) {
+        // We have saved villagers, respawn them using the villagers.js respawn function
+        respawnVillagers(savedVillagers);
+    } else {
+        console.log("Spawning new villagers for chunk", chunkKey);
+        // No saved villagers, generate new ones using our enhanced EntitySpawner
+
+        // Use the activeIslands Map from islands.js instead of scene traversal
+        const islands = [];
+
+        // Always collect all islands regardless of other conditions
+        // This ensures we attempt to spawn villagers on every island
+        activeIslands.forEach((island) => {
+            // Add all islands to the array with minimal filtering
+            if (island && island.mesh) {
+                islands.push({
+                    id: island.id || island.mesh.id || `island-${Math.random().toString(36).substr(2, 9)}`,
+                    mesh: island.mesh,
+                    collider: island.collider || { radius: 50 }
+                });
+            }
+        });
+
+        console.log(`Found ${islands.length} islands for villager spawning in chunk ${chunkKey}`);
+
+        // Use the EntitySpawner to find and spawn villagers in this chunk
+        if (islands.length > 0) {
+            // Parse chunk coordinates from the key
+            const [chunkX, chunkZ] = chunkKey.split(',').map(Number);
+
+            // Calculate chunk bounds with a larger buffer to ensure we catch all islands
+            // that might be relevant to this chunk
+            const bufferSize = chunkSize * 0.25; // 25% buffer to catch islands at the edges
+            const chunkBounds = {
+                minX: chunkX * chunkSize - chunkSize / 2 - bufferSize,
+                maxX: chunkX * chunkSize + chunkSize / 2 + bufferSize,
+                minZ: chunkZ * chunkSize - chunkSize / 2 - bufferSize,
+                maxZ: chunkZ * chunkSize + chunkSize / 2 + bufferSize
+            };
+
+            // Use the entitySpawner to spawn villagers with guaranteed spawning
+            // via our modified EntitySpawner implementation
+            const spawnedVillagers = entitySpawner.spawnEntitiesInChunk(
+                'villagers',
+                createVillager,
+                chunkBounds,
+                islands
+            );
+
+            // Process the newly spawned villagers to add them to the scene and register them
+            if (spawnedVillagers && spawnedVillagers.length > 0) {
+                spawnedVillagers.forEach(villager => {
+                    // Add to the scene
+                    scene.add(villager);
+
+                    // Add to active villagers tracking array in villagers.js
+                    activeVillagers.push(villager);
+
+                    // Register with the chunk system
+                    registerEntity('villagers', villager, villager.position);
+                });
+            }
+
+            console.log(`Spawned ${spawnedVillagers.length} villagers in chunk ${chunkKey}`);
+        } else {
+            console.log(`No islands found for villager spawning in chunk ${chunkKey}`);
+        }
+    }
+
+    // Mark this chunk as populated
+    populatedChunks.add(chunkKey);
+}
+
+/**
  * Remove an entity from the chunk system
  * @param {string} entityType - Type of entity ('birds', 'monsters', etc.)
  * @param {Object} entity - Entity to remove
@@ -337,4 +452,46 @@ export function getAllMonsters() {
         return []; // Return empty array as fallback
     }
     return Array.from(entityChunkMap.monsters.keys());
-} 
+}
+
+/**
+ * Get all villagers currently in the game
+ * @returns {Array} Array of all active villagers
+ */
+export function getAllVillagers() {
+    if (!entityChunkMap || !entityChunkMap.villagers) {
+        return []; // Return empty array as fallback
+    }
+    return Array.from(entityChunkMap.villagers.keys());
+}
+
+/**
+ * Get all entities of a specific type in a chunk
+ * @param {string} entityType - Type of entity ('birds', 'monsters', 'villagers', etc.)
+ * @param {string} chunkKey - The chunk key to get entities from
+ * @returns {Array} Array of entities in the specified chunk
+ */
+export function getEntitiesInChunk(entityType, chunkKey) {
+    if (!entityChunkMap || !entityChunkMap[entityType]) {
+        return [];
+    }
+
+    const entitiesInChunk = [];
+    entityChunkMap[entityType].forEach((entityChunkKey, entity) => {
+        if (entityChunkKey === chunkKey) {
+            entitiesInChunk.push(entity);
+        }
+    });
+
+    return entitiesInChunk;
+}
+
+/**
+ * Check if a specific entity type exists in a chunk
+ * @param {string} entityType - Type of entity
+ * @param {string} chunkKey - Chunk key to check
+ * @returns {boolean} True if the chunk has entities of the specified type
+ */
+export function hasEntitiesInChunk(entityType, chunkKey) {
+    return getEntitiesInChunk(entityType, chunkKey).length > 0;
+}

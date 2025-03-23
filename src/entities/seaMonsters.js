@@ -6,7 +6,7 @@ import { flashBoatDamage } from '../entities/character.js'; // Add this import
 import { getFishInventory } from '../gameplay/fishing.js'; // Import the fish inventory
 import { createTreasureDrop, updateTreasures, initTreasureSystem } from '../gameplay/treasure.js';
 import { applyOutline, removeOutline } from '../theme/outlineStyles.js';
-import { registerMonsterType, createMonster, getAllMonsters, spawnMonstersInChunk, ensureMonsterVisibility } from '../entities/monsterManager.js';
+import { registerMonsterType, createMonster, spawnMonstersInChunk, ensureMonsterVisibility } from '../entities/monsterManager.js';
 import {
     entityChunkMap,
     registerEntity,
