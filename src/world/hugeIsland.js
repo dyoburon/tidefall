@@ -50,7 +50,7 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
 
     // IMPORTANT: Add directly to scene instead of chunk group
     // This bypasses chunk-based visibility for huge islands
-    //scene.add(island);
+    scene.add(island);
 
     // Create a visible marker to show island center for debugging
     const debugMarker = new THREE.Mesh(
