@@ -8,7 +8,7 @@ import { setKnockbackActive, isKnockbackActive } from './shipController.js';
 
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-export const renderer = new THREE.WebGLRenderer({ antialias: true });
+export const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 export const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
 export const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
 export let playerData = {

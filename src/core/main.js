@@ -73,7 +73,7 @@ const fogColors = {
 
 // Add frame timing variables for FPS cap
 let lastFrameTime = 0;
-const targetFPS = 60000;
+const targetFPS = 600;
 const frameInterval = 1000 / targetFPS; // Time between frames in ms
 
 // Define the keyframes at file level scope
@@ -966,10 +966,9 @@ function animate() {
     const deltaFrameTime = now - lastFrameTime;
 
     // Skip frame if not enough time has elapsed (FPS cap)
-    /*if (deltaFrameTime < frameInterval) {
-        //requestAnimationFrame(animate);
+    if (deltaFrameTime < frameInterval) {
         return;
-    }*/
+    }
 
     // Update last frame time
     lastFrameTime = now - (deltaFrameTime % frameInterval);
@@ -1155,10 +1154,9 @@ function animate() {
     //water2.update(deltaTime);
 
     // Request next frame first
-    requestAnimationFrame(animate);
+    //requestAnimationFrame(animate);
 
     // Then render with our unified effects system
-    renderWithEffects();
 
     // Update FPS counter
     const currentFps = 1 / deltaTime;
