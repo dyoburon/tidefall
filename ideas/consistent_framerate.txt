@@ -1,0 +1,23 @@
+const FIXED_TIME_STEP = 1/60; // Always simulate in 60fps chunks
+let accumulator = 0;
+
+function update(deltaTime) {
+  accumulator += deltaTime;
+  
+  // Run physics in fixed steps regardless of frame rate
+  while (accumulator >= FIXED_TIME_STEP) {
+    updatePhysics(FIXED_TIME_STEP);
+    accumulator -= FIXED_TIME_STEP;
+  }
+  
+  // Render with interpolation between physics steps
+  const alpha = accumulator / FIXED_TIME_STEP;
+  render(alpha);
+}
+
+function updatePhysics(dt) {
+  // Always the same time step (1/60)
+  cannonball.position.x += velocity.x * dt;
+  cannonball.position.y += velocity.y * dt;
+  cannonball.position.z += velocity.z * dt;
+}

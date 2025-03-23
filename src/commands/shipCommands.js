@@ -188,6 +188,41 @@ export function wildCommand(args, chatSystem) {
     chatSystem.addSystemMessage(`🌊 Teleported to coordinates: X: ${Math.round(newX)}, Z: ${Math.round(newZ)}`);
 }
 
+/**
+ * Teleport command implementation - teleports the ship to specific coordinates
+ * @param {Array<string>} args - Command arguments (x and z coordinates)
+ * @param {object} chatSystem - Reference to the chat system
+ */
+export function teleportCommand(args, chatSystem) {
+    // Check if both x and z coordinates are provided
+    if (args.length < 2) {
+        chatSystem.addSystemMessage("❌ Please specify both X and Z coordinates. Usage: /tp [x] [z]");
+        return;
+    }
+
+    // Parse the coordinates
+    const newX = parseFloat(args[0]);
+    const newZ = parseFloat(args[1]);
+
+    // Validate that the coordinates are valid numbers
+    if (isNaN(newX) || isNaN(newZ)) {
+        chatSystem.addSystemMessage("❌ Invalid coordinates. Please enter valid numbers for X and Z.");
+        return;
+    }
+
+    // Get the current Y position (height) to maintain
+    const currentY = boat.position.y;
+
+    // Teleport the boat to the new position (keeping Y the same)
+    boat.position.x = newX;
+    boat.position.z = newZ;
+
+    // Reset any velocity
+    boatVelocity.set(0, 0, 0);
+
+    chatSystem.addSystemMessage(`🌊 Teleported to coordinates: X: ${Math.round(newX)}, Z: ${Math.round(newZ)}`);
+}
+
 // Export all ship commands
 export const shipCommands = [
     {
@@ -199,5 +234,10 @@ export const shipCommands = [
         name: 'wild',
         handler: wildCommand,
         description: 'Teleport to a random location on the map'
+    },
+    {
+        name: 'tp',
+        handler: teleportCommand,
+        description: 'Teleport to specific coordinates (usage: /tp [x] [z])'
     }
-]; 
+];

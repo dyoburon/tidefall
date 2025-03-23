@@ -1,34 +1,45 @@
-Step 1: Enhance Server-Side Cannon Handler
-File: api/cannon_handler.py
+Step 1: Create Server-Side Physics Simulation System
+Create a new utility file for centralized physics simulations
+Port cannonball trajectory calculations from client to this utility
+Integrate with the cannon handler
+New file and functions to create:
 
-Update the handle_cannon_fire function to include the following specific data in the 'cannon_fired' event:
-Position data with exact x, y, z coordinates of the cannon firing point
-Direction vector with precise x, y, z values for accurate trajectory calculation
-A unique cannon_id to track each projectile across clients
-Player identifier (player_id) to determine which boat fired the cannon
-Modify the 'cannon_fired' emit payload to include all these properties in a standardized format
-Step 2: Update Socket Event Handling in network.js
-File: src/core/network.js
+Create new file: api/simulations.py with the following functions:
+simulate_projectile(initial_position, initial_velocity, gravity, time_elapsed) - Generic projectile simulation
+simulate_cannonball(initial_position, direction, speed, gravity, time_elapsed) - Cannonball-specific simulation
+check_collision(projectile_position, target_position, hitbox_size) - Collision detection utility
+the check_collision should have some wiggle room because each client has different framerate, and this should give them a bit of leeway
+calculate_trajectory_points(initial_position, direction, speed, gravity, duration, steps) - Pre-calculate trajectory
+Client-Side Logic To Reference:
 
-Modify the setupSocketEvents function to add a listener for the 'cannon_fired' socket event
-Create a new function handleCannonFired that accepts position, direction, player_id, cannon_id, and cannon_position_name
-Implement logic to check if the cannon was fired by the current player to avoid duplicate visualizations
-If fired by another player, retrieve that player's boat mesh from the otherPlayers Map
-Call the remote cannonball creation function with all necessary data
-Step 3: Add Function to Create Remote Cannon Shots in cannonshot.js
-File: src/abilities/cannonshot.js
+cannonshot.js:createCannonball method - Contains the core cannonball trajectory logic
+cannonshot.js:cannonballSpeed property - Defines the speed (35)
+cannonshot.js:gravity property - Defines gravity (100)
+cannonshot.js:animateCannonball function - Contains the physics update logic
+Functions to modify:
 
-Create a new static function in the CannonShot class called createRemoteCannonball
-This function will take position, direction, cannon_id, and playerBoat parameters
-Implement the function to create a cannonball at the exact position specified
-Apply the exact direction vector to ensure consistent trajectory across clients
-Create all visual effects (muzzle flash, smoke) at the correct position relative to the firing boat
-If cannon_position_name is provided, use it to determine the exact cannon location on the boat
-Make animation parameters (gravity, speed) identical to the local cannonball function
-Step 4: Connect the Server and Client Systems
-File: src/core/network.js
+cannon_handler.py: Enhance handle_cannon_fire to use the simulation utilities
+cannon_handler.py: Update update_cannon_positions to call the simulation utilities
+Step 2: Server-Side Hit Detection
+Use the simulation system to detect collisions between projectiles and players
+Broadcast hit events when collisions are detected
+Functions to modify:
 
-Import the CannonShot class at the top of the file
-In the handleCannonFired function, retrieve the boat mesh of the firing player
-Call the remote cannon creation function with all specific data
-Implement error handling for malformed or unexpected cannon data
+cannon_handler.py: Integrate check_cannon_collisions with simulation utilities
+cannon_handler.py: Update handle_cannon_collision to send damage notifications
+cannon_handler.py: Remove or bypass handle_cannon_hit as client reporting is no longer needed
+Step 3: Create Centralized Damage Visualization System
+Create a new file for centralized damage visualization that can be used by all abilities
+Implement common visual effects for player damage
+New file and functions to create:
+
+Create new file: src/effects/playerDamageEffects.js
+Implement basic damage visualization functions:
+showDamageEffect(playerMesh, damageAmount, damageType) - Main function to display damage
+showHitFlash(playerMesh) - Visual flash effect on the damaged boat
+showDamageNumber(position, amount) - Floating damage number display
+showSmokeEffect(playerMesh, intensity) - Smoke effects for damaged boats
+Functions to modify:
+
+network.js: Update onCannonHit to use the new centralized damage visualization
+network.js: Modify 'cannon_hit' event handler in setupSocketEvents to call the centralized damage system

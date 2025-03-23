@@ -1,3 +1,1 @@
-So right now we have a socket event that fires when the user fires a cannonball. We want to continue working on this, so the server is going to send a socket event to all of the current clients. It's going to have things like direction, but it's not actually going to do all the physics that's going to be handled on the frontend. So it's going to be the authority on when the cannons fire, not when you know how they can and move.
-
-once the other player sees the canon, the socket canon event, it should create the animations that are present in the canon shot JS file at the correct position
+We're going to be adding the actual damage for the cannon fires. We already have some code there for it and the cannon handler, but we need to implement maybe some stuff in network JS. 
