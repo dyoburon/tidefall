@@ -1,13 +1,12 @@
 {
-    "Integrate 2 files": {
-        "instructions": "Can you try to integrate the <filename1> with the <filename2>? Let's just plan this first, how exactly we're going to do this. List all the functions that you're going to modify, but don't do any code changes. Just explain what you're going to change in each function verbally. For each of the functions please first state which file you are putting it in. Please do not duplicate any existing logic and design in a way that is maintainable. Please place code changes in the places where it makes the most sense architecturally.         Please create a step-by-step based approach with this plan broken down into 2-4 steps. Each step can modify more than one file but should logically be together.",
-        "filename1": "<file>",
-        "filename2": "<file>"
+    "Make a custom change to existing files": {
+        "instructions": "We want to accomplish this task: <change_to_make> with these files: <files>. Let's just plan this first, how exactly we're going to do this. List all the functions that you're going to modify, but don't do any code changes. Just explain what you're going to change in each function verbally. For each of the functions please first state which file you are putting it in. Please do not duplicate any existing logic and design in a way that is maintainable. Please place code changes in the places where it makes the most sense architecturally.         Please create a step-by-step based approach with this plan broken down into 2-4 steps. Each step can modify more than one file but should logically be together.",
+        "change_to_make": "<change>",
+        "files": "<files>"
     },
-    "Integrate 3 files": {
-        "instructions": "Can you try to integrate the <filename1> with the <filename2> with context <withcontext_file>? Let's just plan this first, how exactly we're going to do this. List all the functions that you're going to modify, but don't do any code changes. Just explain what you're going to change in each function verbally. For each of the functions please first state which file you are putting it in. Please do not duplicate any existing logic and design in a way that is maintainable. Please place code changes in the places where it makes the most sense architecturally. Please create a step-by-step based approach with this plan broken down into 2-4 steps. Each step can modify more than one file but should logically be together.",
-        "filename1": "<file>",
-        "filename2": "<file>",
-        "withcontext_file": "<file>"
+    "Integrate files": {
+        "instructions": "We want to accomplish this task <change_to_make> with these files: <files>. Let's just plan this first, how exactly we're going to do this. List all the functions that you're going to modify, but don't do any code changes. Just explain what you're going to change in each function verbally. For each of the functions please first state which file you are putting it in. Please do not duplicate any existing logic and design in a way that is maintainable. Please place code changes in the places where it makes the most sense architecturally.         Please create a step-by-step based approach with this plan broken down into 2-4 steps. Each step can modify more than one file but should logically be together.",
+        "change_to_make": "Integrate these files together. It's possible one was added/modified, etc. But now all these files need to work together.",
+        "files": "<files>"
     }
 }

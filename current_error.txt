@@ -1,0 +1,11 @@
+entityspawner.js:179 Uncaught TypeError: Cannot read properties of undefined (reading 'length')
+    at entityspawner.js:179:29
+    at Array.forEach (<anonymous>)
+    at EntitySpawner.spawnEntitiesInChunk (entityspawner.js:176:25)
+    at populateChunkWithVillagers (chunkEntityController.js:385:27)
+    at populateChunkWithEntities (chunkEntityController.js:293:5)
+    at chunkEntityController.js:209:13
+    at Set.forEach (<anonymous>)
+    at updateEntityVisibility (chunkEntityController.js:206:19)
+    at updateMonsterVisibility (monsterManager.js:389:26)
+    at updateAllMonsters (monsterManager.js:372:5)

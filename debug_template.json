@@ -1,0 +1,6 @@
+{
+    "Debug this issue": {
+        "instructions": "We are debugging this error <error>. Please only fix this issue and don't add anything else. Give 2-3 potential causes to start with, then narrow it down to the most likely one. Before implementing verify with the user if you should continue.",
+        "error": "<error>"
+    }
+}

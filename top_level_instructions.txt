@@ -1,11 +1,16 @@
 planning_template.json
 
-    Follow instructions from @planning_template.json. We are implementing "Integrate 3 files" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
+    Integrate files
+        Follow instructions from @planning_template.json. We are implementing "Integrate files" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
 
-    Here are the defined variables
-    filename1: @
-    filename2: @
-    withcontext_file: @
+        Here are the defined variables
+        files: [@files]
+    Make a custom change
+        Follow instructions from @planning_template.json. We are implementing "Make a custom change to existing files" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
+
+        Here are the defined variables
+        change_to_make: @current_change_to_make.txt
+        files: [@files]
 
 iterate_template.json
 
@@ -25,3 +30,8 @@ execute_template.json
     step_to_implement: <num>
     context_files: <list of files>
 
+debug_template.json
+    
+    Follow instructions from @debug_template.json. We are doing "Debug this issue" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
+
+    error: @current_error.txt
