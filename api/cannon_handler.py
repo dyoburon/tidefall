@@ -14,7 +14,7 @@ from simulations import simulate_cannonball, check_collision, calculate_trajecto
 logger = logging.getLogger(__name__)
 
 # Cannon configuration constants
-CANNON_SPEED = 16  # Units per second
+CANNON_SPEED = 100  # Units per second
 CANNON_LIFETIME = 1  # Seconds before a cannon projectile expires
 CANNON_DAMAGE = 10  # Damage inflicted by a cannon hit
 CANNON_COOLDOWN = 0.5  # Seconds between cannon shots

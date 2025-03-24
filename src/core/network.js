@@ -4,11 +4,12 @@ import { showLoginScreen } from './main';
 import { setPlayerStateFromDb, getPlayerStateFromDb } from './gameState';
 import { setupAllPlayersTracking } from './main';
 import { loadGLBModel, unloadGLBModel } from '../utils/glbLoader.js';
+import { showDamageEffect } from '../effects/playerDamageEffects.js';
 //import CannonShot from '../abilities/cannonshot.js'; // Import the CannonShot class
 
 // Network configuration
-const SERVER_URL = 'http://localhost:5001';
-//const SERVER_URL = 'https://boat-game-python.onrender.com';
+//const SERVER_URL = 'http://localhost:5001';
+const SERVER_URL = 'https://boat-game-python.onrender.com';
 
 // Network state
 export let socket;
@@ -548,17 +549,49 @@ function setupSocketEvents() {
     });
 
     socket.on('cannon_hit', (data) => {
+        console.log("we are in cannon hit from server")
         // When this player is hit by a cannon, this event is received
         // Data contains: {id, damage, hitPosition}
 
-        // Apply damage or effects to the player
+        // Use the centralized damage visualization system
+        if (boatRef) {
+            showDamageEffect(boatRef, data.damage, 'cannon');
+        }
+
+        // Still call the original callback if registered
         if (cannonHitCallback) {
             cannonHitCallback(data);
         }
-
-        // You could also trigger visual/sound effects here
     });
-}
+
+    // Also handle server-side determined cannon hits
+    socket.on('server_cannon_hit', (data) => {
+        console.log("we are in cannon hit from server")
+
+        // Server-side hit detection event
+        // Data contains: {shooter_id, hit_player_id, damage, hit_position}
+
+        // Only show damage effects if we're the player who was hit
+        // Show damage effect if we're the player who was hit
+        if (data.hit_player_id === playerId && boatRef) {
+            showDamageEffect(boatRef, data.damage, 'cannon');
+        }
+
+        // Show damage effect on other players when they're hit
+        // This allows the shooter to see the hit effect on their target
+        if (data.hit_player_id !== playerId && otherPlayers.has(data.hit_player_id)) {
+            const hitPlayer = otherPlayers.get(data.hit_player_id);
+            if (hitPlayer && hitPlayer.mesh) {
+                showDamageEffect(hitPlayer.mesh, data.damage, 'cannon');
+            }
+        }
+
+        // Call the callback if registered
+        if (cannonHitCallback) {
+            cannonHitCallback(data);
+        }
+    });
+};
 
 // Send player position update to the server
 export function updatePlayerPosition() {
@@ -688,8 +721,8 @@ function addOtherPlayerToScene(playerData) {
         const nameTexture = new THREE.CanvasTexture(nameCanvas);
         const nameMaterial = new THREE.SpriteMaterial({ map: nameTexture });
         const nameSprite = new THREE.Sprite(nameMaterial);
-        nameSprite.position.y = 10;  // Adjusted higher to appear above the model
-        nameSprite.scale.set(5, 1.25, 1);
+        nameSprite.position.y = 20;  // Adjusted higher to appear above the model
+        nameSprite.scale.set(50, 12.5, 1);
         playerGroup.add(nameSprite);
 
         // Add a vertical, thin light that follows the player (adjusted for new model)

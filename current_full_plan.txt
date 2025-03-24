@@ -43,3 +43,5 @@ Functions to modify:
 
 network.js: Update onCannonHit to use the new centralized damage visualization
 network.js: Modify 'cannon_hit' event handler in setupSocketEvents to call the centralized damage system
+
+We already have playerDamageEffects, please as an extra step check that it is valid.
