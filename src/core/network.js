@@ -905,29 +905,6 @@ export function sendChatMessage(content, messageType = 'global') {
             playerId = socket.id;
         }
 
-        // IMPORTANT: DON'T send a player_name field at all
-        // Let the server use what it has in its cache
-        // This ensures consistency between nick changes and chat
-        // Make sure firebaseDocId is properly set
-        if (!firebaseDocId && playerId) {
-            // If we have playerId but no firebaseDocId, set it
-
-            firebaseDocId = playerId.startsWith('firebase_') ?
-                playerId : 'firebase_' + playerId;
-        } else if (!firebaseDocId) {
-            // Last resort - create a temporary ID
-
-            const tempId = 'firebase_temp_' + Math.floor(Math.random() * 10000);
-            firebaseDocId = tempId;
-            playerId = tempId.replace('firebase_', '');
-        }
-
-        // Ensure the firebaseDocId is correctly formatted
-        if (!firebaseDocId.startsWith('firebase_')) {
-            firebaseDocId = 'firebase_' + firebaseDocId;
-
-        }
-
         // Create the message object WITHOUT the player_name field
         const messageObj = {
             content: content,
