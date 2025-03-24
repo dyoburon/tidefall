@@ -1,55 +1,21 @@
-Step 1: Player Health Management
-Files to modify:
-
-api/app.py
-Changes:
-
-In handle_player_join function:
-Add a default health value (e.g., 100) when creating a new player or reactivating an existing player
-Ensure health is included in player data sent to clients
-Create a new health management system:
-Add a new player_handler.py file to handle player health, death, and respawn logic
-Implement functions to damage players, check for death, and handle respawns
-Step 2: Server-side Cannon Hit Detection and Damage
-Files to modify:
-
-api/cannon_handler.py
-Changes:
-
-Update check_cannon_collisions function:
-Enhance collision detection between cannons and players
-Properly apply damage to hit players
-Modify handle_cannon_collision function:
-Ensure proper damage application
-Check player health after damage and handle death if health <= 0
-Refine handle_player_defeat function:
-Implement respawn mechanics
-Handle notifications to all clients
-Step 3: Client-side Integration
-Files to modify:
-
-src/abilities/cannonshot.js
-src/core/network.js
-Changes:
-
-In cannonshot.js:
-Update to handle player hit events from the server
-Add visual effects for player damage
-In network.js:
-Add listener for server_cannon_hit events
-Add listener for player_defeated events
-Implement visual feedback when the local player is hit
-Handle player respawn UI and movement restriction during respawn
-Step 4: Basic Death Notifications
-Files to modify:
-
-src/core/network.js
-src/effects/floatingText.js
-Changes:
-
-In network.js:
-Add a listener for player_defeated events
-Display a simple text message when the local player is defeated (e.g., "You were killed by [player]!")
-Show a basic notification when the player respawns
-Keep notifications minimal and non-intrusive
-No need for complex animations or UI elements
+Step 1: Centralize Respawn Logic in Network.js
+File: src/core/network.js
+Modify startRespawnProcess():
+Uncomment important state-tracking lines
+Properly set the respawning state variables
+Add a clear indication that player is in respawn state
+Modify endRespawnProcess():
+Create a proper central respawn function that handles both model regeneration and control resetting
+Maintain a reference to the new boat model
+Add event broadcasting to notify other systems about respawn completion
+Step 2: Update Camera Controls Integration
+File: src/controls/cameraControls.js
+Add updateTargetObject() function:
+Create a new function that allows updating the target object the camera is following
+Ensure camera properly transitions to the new target
+Enhance resetCameraPosition():
+Improve to properly handle respawn scenarios
+Add functionality to reconnect camera controls to the new player model
+Add respawn event listener:
+Create a mechanism to listen for respawn events from network.js
+Ensure camera controls are properly updated when respawn occurs

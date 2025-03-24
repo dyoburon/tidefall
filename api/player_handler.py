@@ -67,7 +67,10 @@ def handle_player_death(player_id, killer_id=None):
     - player_id: ID of the player who died
     - killer_id: ID of the player who caused the death (optional)
     """
-    # logger.error("player is dead ", player_id)
+    if player_id not in players:
+        logger.warning(f"Cannot handle death for non-existent player {player_id}")
+        return
+    
     # Log the event
     if killer_id:
         logger.info(f"Player {player_id} was defeated by {killer_id}")
@@ -85,7 +88,21 @@ def handle_player_death(player_id, killer_id=None):
         'killer_id': killer_id
     })
     
-    # Respawn immediately
+    # Schedule respawn after 3 seconds delay instead of immediate respawn
+    socketio.start_background_task(delayed_respawn, player_id, 3)
+
+def delayed_respawn(player_id, delay_seconds):
+    """
+    Respawn a player after a specified delay
+    
+    Parameters:
+    - player_id: ID of the player to respawn
+    - delay_seconds: Number of seconds to wait before respawning
+    """
+    # Sleep for the specified delay
+    socketio.sleep(delay_seconds)
+    
+    # Now respawn the player
     respawn_player(player_id)
 
 def respawn_player(player_id):
@@ -98,12 +115,7 @@ def respawn_player(player_id):
     # Reset health
     players[player_id]['health'] = DEFAULT_HEALTH
     
-    # Update in database
-    firestore_models.Player.update(
-        player_id, 
-        health=DEFAULT_HEALTH
-    )
-    
+
     # Notify all players of the respawn
     socketio.emit('player_respawned', {
         'player_id': player_id,

@@ -5,11 +5,12 @@ import { setPlayerStateFromDb, getPlayerStateFromDb } from './gameState';
 import { setupAllPlayersTracking } from './main';
 import { loadGLBModel, unloadGLBModel } from '../utils/glbLoader.js';
 import { showDamageEffect } from '../effects/playerDamageEffects.js';
+import { resetCameraPosition } from '../controls/cameraControls.js';
 //import CannonShot from '../abilities/cannonshot.js'; // Import the CannonShot class
 
 // Network configuration
-//const SERVER_URL = 'http://localhost:5001';
-const SERVER_URL = 'https://boat-game-python.onrender.com';
+const SERVER_URL = 'http://localhost:5001';
+//const SERVER_URL = 'https://boat-game-python.onrender.com';
 
 // Network state
 export let socket;
@@ -526,7 +527,6 @@ function setupSocketEvents() {
 
     // Cannon event handlers
     socket.on('cannon_fired', (data) => {
-
         // When another player fires a cannon, this event is received
         // Data contains: {id, position, direction, cannonShotData}
         handleCannonFired(data);
@@ -1397,22 +1397,23 @@ function startRespawnProcess() {
     respawnCountdown = 3; // 3 seconds respawn time
 
     // Create or show respawn overlay
-    // if (!respawnOverlayElement) {
-    respawnOverlayElement = document.createElement('div');
-    respawnOverlayElement.style.position = 'absolute';
-    respawnOverlayElement.style.top = '0';
-    respawnOverlayElement.style.left = '0';
-    respawnOverlayElement.style.width = '100%';
-    respawnOverlayElement.style.height = '100%';
-    respawnOverlayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
-    respawnOverlayElement.style.display = 'flex';
-    respawnOverlayElement.style.justifyContent = 'center';
-    respawnOverlayElement.style.alignItems = 'center';
-    respawnOverlayElement.style.fontSize = '32px';
-    respawnOverlayElement.style.color = 'white';
-    respawnOverlayElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
-    respawnOverlayElement.style.zIndex = '1000';
-    document.body.appendChild(respawnOverlayElement);
+    if (!respawnOverlayElement) {
+        respawnOverlayElement = document.createElement('div');
+        respawnOverlayElement.style.position = 'absolute';
+        respawnOverlayElement.style.top = '0';
+        respawnOverlayElement.style.left = '0';
+        respawnOverlayElement.style.width = '100%';
+        respawnOverlayElement.style.height = '100%';
+        respawnOverlayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+        respawnOverlayElement.style.display = 'flex';
+        respawnOverlayElement.style.justifyContent = 'center';
+        respawnOverlayElement.style.alignItems = 'center';
+        respawnOverlayElement.style.fontSize = '32px';
+        respawnOverlayElement.style.color = 'white';
+        respawnOverlayElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
+        respawnOverlayElement.style.zIndex = '1000';
+        document.body.appendChild(respawnOverlayElement);
+    }
     // } else {
     //    respawnOverlayElement.style.display = 'flex';
     // }
@@ -1445,7 +1446,66 @@ function startRespawnProcess() {
  * End the respawn process for the local player
  */
 function endRespawnProcess() {
-    // 
+    // Hide respawn overlay if it exists
+    if (respawnOverlayElement) {
+        respawnOverlayElement.style.display = 'none';
+    }
+
+    // Reset respawning state
+    isRespawning = false;
+
+    // Re-enable player controls if they were disabled
+    if (playerStateRef) {
+        playerStateRef.isRespawning = false;
+    }
+
+    // Reload player model
+    //if (boatRef) {
+    // Get current player position and rotation
+    const spawnPosition = new THREE.Vector3(0, 0, 0);
+    const spawnRotation = 0; // Default rotation
+
+    // sanity check if not removed
+    if (sceneRef && boatRef) {
+        sceneRef.remove(boatRef);
+    }
+
+    // Create a new group for the player
+    const newBoatGroup = new THREE.Group();
+
+    // Configure model loading
+    const modelConfig = {
+        modelId: 'player_self',
+        modelUrl: '/mediumpirate.glb',  // Path to player model
+        scaleValue: 20.0,
+        position: [0, 7, 0],
+        rotation: [0, Math.PI, 0]
+    };
+
+    // Load the model
+    loadGLBModel(newBoatGroup, modelConfig, (success) => {
+        if (!success) {
+            console.error('Failed to reload player model on respawn');
+        }
+
+        // Position at the respawn location
+        newBoatGroup.position.copy(spawnPosition);
+        newBoatGroup.rotation.y = spawnRotation;
+
+        // Update server with new position
+        updatePlayerPosition();
+
+        // Reset camera to default position
+        if (typeof resetCameraPosition === 'function') {
+            resetCameraPosition();
+        }
+
+        // Add to scene
+        sceneRef.add(newBoatGroup);
+
+        // Update boat reference
+        boatRef = newBoatGroup;
+    });
 }
 
 /**

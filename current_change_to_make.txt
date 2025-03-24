@@ -1,1 +1,3 @@
-Now we're going to make it so the users can be hit by other players. We're going to actually have a health system, so we're going to need to make changes in the backend so the players can die. Each player will need to have a level of health, and when they die, they should just respawn. because this is something we're going to be using for a lot of different abilities, let's just create a separate file and we're going to integrate it with, probably to start just Cannon Handler, but app.py for init  
+We currently want to implement respawning when the player dies. There is some logic there already, but it's not designed in a very good way. We want to clean this up and make sure that there's a central place for the logic to spawn a player rather than duplicated logic in various places.
+
+Right now, the controls don't get reset to the new model when they respawn

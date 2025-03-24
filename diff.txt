@@ -1,0 +1,175 @@
+@ -7,16 +7,18 @@ import time
+import math
+import logging
+from flask_socketio import emit
+from simulations import simulate_cannonball, check_collision, calculate_trajectory_points
+
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Cannon configuration constants
+CANNON_SPEED = 40  # Units per second
+CANNON_LIFETIME = 3  # Seconds before a cannon projectile expires
+CANNON_SPEED = 16  # Units per second
+CANNON_LIFETIME = 1  # Seconds before a cannon projectile expires
+CANNON_DAMAGE = 10  # Damage inflicted by a cannon hit
+CANNON_COOLDOWN = 0.5  # Seconds between cannon shots
+CANNON_BLAST_RADIUS = 5  # Units radius for hit detection
+CANNON_BLAST_RADIUS = 8  # Units radius for hit detection
+
+# Data structure to track active cannon projectiles
+cannons = {}  # Dictionary to store active cannon projectiles
+@ -32,6 +34,9 @@ def init_socketio(socketio_instance, players_reference):
+    # Register Socket.IO event handlers
+    socketio.on_event('cannon_fire', handle_cannon_fire)
+    socketio.on_event('cannon_hit', handle_cannon_hit)
+
+    start_cannon_update_loop(socketio_instance)
+
+    
+    # Schedule periodic cleanup of expired cannons
+    # Note: This requires a background task mechanism
+@ -49,7 +54,6 @@ def handle_cannon_fire(data):
+        player_id: string
+    }
+    """
+    print("we in here")
+    try:
+        player_id = data.get('player_id')
+        
+@ -86,7 +90,7 @@ def handle_cannon_fire(data):
+        cannons[cannon_id] = cannon_data
+        
+        # Broadcast cannon firing to all players
+        emit('cannon_fired', {
+        socketio.emit('cannon_fired', {
+            'id': player_id,
+            'position': cannon_data['position'],
+            'direction': cannon_data['direction']
+@ -109,6 +113,7 @@ def handle_cannon_hit(data):
+        player_id: string  # Sender's player_id
+    }
+    """
+    print("in the damage section")
+    try:
+        reporting_player = data.get('player_id')
+        cannon_id = data.get('cannon_id')
+@ -149,7 +154,7 @@ def handle_cannon_hit(data):
+                    handle_player_defeat(hit_player_id, cannon['owner'])
+                    
+            # Notify the hit player
+            emit('cannon_hit', {
+            socketio.emit('cannon_hit', {
+                'id': cannon['owner'],
+                'damage': CANNON_DAMAGE,
+                'hitPosition': data.get('hit_position')
+@ -178,7 +183,7 @@ def handle_player_defeat(defeated_player_id, victor_player_id):
+        players[defeated_player_id]['health'] = 100  # Reset health
+        
+        # Notify of defeat/respawn
+        emit('player_defeated', {
+        socketio.emit('player_defeated', {
+            'player_id': defeated_player_id,
+            'victor_id': victor_player_id
+        }, broadcast=True)
+@ -187,8 +192,13 @@ def update_cannon_positions():
+    """Update positions of active cannons based on their velocity and time elapsed"""
+    current_time = time.time()
+    expired_cannons = []
+    cannons_to_process = list(cannons.items())  # Create a copy of the items to iterate safely
+    
+    for cannon_id, cannon in cannons.items():
+    for cannon_id, cannon in cannons_to_process:
+        # Skip if cannon no longer exists (might have been removed by another thread)
+        if cannon_id not in cannons:
+            continue
+            
+        # Check if cannon has expired
+        if current_time > cannon['expires_at']:
+            expired_cannons.append(cannon_id)
+@ -197,18 +207,17 @@ def update_cannon_positions():
+        # Calculate time elapsed since creation
+        time_elapsed = current_time - cannon['created_at']
+        
+        # Update position based on direction and speed
+        direction = cannon['direction']
+        distance = CANNON_SPEED * time_elapsed
+        
+        new_position = {
+            'x': cannon['position']['x'] + direction['x'] * distance,
+            'y': cannon['position']['y'] + direction['y'] * distance,
+            'z': cannon['position']['z'] + direction['z'] * distance
+        }
+        # Use the simulation utility to update position
+        simulation_result = simulate_cannonball(
+            cannon['position'],
+            cannon['direction'],
+            CANNON_SPEED,
+            0.0981,  # Gravity value from cannonshot.js
+            time_elapsed
+        )
+        
+        # Update cannon position
+        cannon['position'] = new_position
+        cannon['position'] = simulation_result['position']
+        
+        # Check for potential collisions
+        check_cannon_collisions(cannon_id, cannon)
+@ -222,6 +231,7 @@ def update_cannon_positions():
+
+def check_cannon_collisions(cannon_id, cannon):
+    """Check if a cannon projectile has collided with any players"""
+    logger.error("Checking collisions for cannon:", cannon_id)
+    owner_id = cannon['owner']
+    cannon_position = cannon['position']
+    
+@ -240,8 +250,9 @@ def check_cannon_collisions(cannon_id, cannon):
+        # Calculate distance between cannon and player
+        distance = calculate_distance(cannon_position, player_position)
+        
+        # Check if collision occurred
+        if distance <= CANNON_BLAST_RADIUS:
+        # Use the simulation utility to check for collision
+        if check_collision(cannon_position, player_position, CANNON_BLAST_RADIUS):
+            print("Collision detected!")
+            # Handle collision
+            handle_cannon_collision(cannon, player_id)
+            
+@ -255,12 +266,12 @@ def check_cannon_collisions(cannon_id, cannon):
+def handle_cannon_collision(cannon, hit_player_id):
+    """Handle a collision between a cannon projectile and a player"""
+    # Notify the owner that their cannon hit someone
+    emit('cannon_hit_success', {
+    socketio.emit('cannon_hit_success', {
+        'hit_player_id': hit_player_id
+    }, room=get_player_socket_id(cannon['owner']))
+    
+    # Notify the hit player
+    emit('cannon_hit', {
+    socketio.emit('cannon_hit', {
+        'id': cannon['owner'],
+        'damage': CANNON_DAMAGE,
+        'hitPosition': cannon['position']
+@ -315,4 +326,20 @@ def cleanup_expired_cannons():
+    if expired_count > 0:
+        logger.debug(f"Cleaned up {expired_count} expired cannons")
+    
+    return expired_count
+    return expired_count
+
+def start_cannon_update_loop(socketio_instance):
+    """Start a background task that updates cannon positions at regular intervals"""
+    
+    def cannon_update_loop():
+        """Background task to continuously update cannon positions"""
+        UPDATE_INTERVAL = 0.05  # 50ms between updates (20 updates per second)
+        
+        logger.info("Starting cannon update loop")
+        while True:
+            update_cannon_positions()
+            socketio_instance.sleep(UPDATE_INTERVAL)  # Non-blocking sleep
+    
+    # Start the background task
+    socketio_instance.start_background_task(cannon_update_loop)
+    logger.info("Cannon update loop started in background")
