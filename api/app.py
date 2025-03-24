@@ -13,6 +13,7 @@ import firestore_models  # Import our new Firestore models
 from collections import defaultdict
 import mimetypes
 import cannon_handler  # Import the cannon handler module
+import player_handler  # Import the player handler module
 
 # Load environment variables from .env file
 load_dotenv()
@@ -48,6 +49,8 @@ islands = {}
 
 # Initialize cannon handler with Socket.IO and players reference
 cannon_handler.init_socketio(socketio, players)
+player_handler.init_handler(socketio, players)
+
 
 # Add this near your other global variables
 last_db_update = defaultdict(float)  # Track last database update time for each player
@@ -167,6 +170,7 @@ def handle_player_join(data):
                 player_data = {
                     'active': True,
                     'last_update': time.time(),
+                    'health': 100,  # Reset health when player rejoins
                 }
                 
                 # Update in Firestore
@@ -186,6 +190,7 @@ def handle_player_join(data):
                     'fishCount': 0,
                     'monsterKills': 0,
                     'money': 0,
+                    'health': 100,  # Default health for new players
                     'active': True,  # Mark as active when they join
                     'firebase_uid': verified_uid
                 }

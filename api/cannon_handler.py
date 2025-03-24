@@ -8,7 +8,7 @@ import math
 import logging
 from flask_socketio import emit
 from simulations import simulate_cannonball, check_collision, calculate_trajectory_points
-
+import player_handler
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -109,22 +109,12 @@ def handle_cannon_hit(data):
 
 def handle_player_defeat(defeated_player_id, victor_player_id):
     """Handle logic when a player is defeated by a cannon"""
-    # Implement defeat logic (respawn, award points, etc.)
-    logger.info(f"Player {defeated_player_id} was defeated by {victor_player_id}")
+    # This function is now deprecated and exists only for backward compatibility.
+    # All player defeat handling is now done by player_handler module.
+    logger.info(f"handle_player_defeat called, but using player_handler instead for {defeated_player_id}")
     
-    # Example: Award points to victor
-    if victor_player_id in players and 'monsterKills' in players[victor_player_id]:
-        players[victor_player_id]['monsterKills'] += 1
-        
-    # Example: Respawn defeated player
-    if defeated_player_id in players:
-        players[defeated_player_id]['health'] = 100  # Reset health
-        
-        # Notify of defeat/respawn
-        socketio.emit('player_defeated', {
-            'player_id': defeated_player_id,
-            'victor_id': victor_player_id
-        }, broadcast=True)
+    # Delegate to the player_handler module
+    player_handler.handle_player_death(defeated_player_id, victor_player_id)
 
 def update_cannon_positions():
     """Update positions of active cannons based on their velocity and time elapsed"""
@@ -215,14 +205,9 @@ def handle_cannon_collision(cannon, hit_player_id):
         'hit_position': cannon['position']
     })
     
-    # Apply damage to hit player
-    if hit_player_id in players and 'health' in players[hit_player_id]:
-        players[hit_player_id]['health'] -= CANNON_DAMAGE
-        
-        # Check if player is defeated
-        if players[hit_player_id]['health'] <= 0:
-            handle_player_defeat(hit_player_id, cannon['owner'])
-            
+    # Apply damage to hit player using the player_handler module
+    player_handler.damage_player(hit_player_id, CANNON_DAMAGE, cannon['owner'])
+    
     logger.info(f"Cannon collision: {cannon['owner']} hit {hit_player_id} for {CANNON_DAMAGE} damage")
 
 def calculate_distance(pos1, pos2):

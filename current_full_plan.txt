@@ -1,47 +1,55 @@
-Step 1: Create Server-Side Physics Simulation System
-Create a new utility file for centralized physics simulations
-Port cannonball trajectory calculations from client to this utility
-Integrate with the cannon handler
-New file and functions to create:
+Step 1: Player Health Management
+Files to modify:
 
-Create new file: api/simulations.py with the following functions:
-simulate_projectile(initial_position, initial_velocity, gravity, time_elapsed) - Generic projectile simulation
-simulate_cannonball(initial_position, direction, speed, gravity, time_elapsed) - Cannonball-specific simulation
-check_collision(projectile_position, target_position, hitbox_size) - Collision detection utility
-the check_collision should have some wiggle room because each client has different framerate, and this should give them a bit of leeway
-calculate_trajectory_points(initial_position, direction, speed, gravity, duration, steps) - Pre-calculate trajectory
-Client-Side Logic To Reference:
+api/app.py
+Changes:
 
-cannonshot.js:createCannonball method - Contains the core cannonball trajectory logic
-cannonshot.js:cannonballSpeed property - Defines the speed (35)
-cannonshot.js:gravity property - Defines gravity (100)
-cannonshot.js:animateCannonball function - Contains the physics update logic
-Functions to modify:
+In handle_player_join function:
+Add a default health value (e.g., 100) when creating a new player or reactivating an existing player
+Ensure health is included in player data sent to clients
+Create a new health management system:
+Add a new player_handler.py file to handle player health, death, and respawn logic
+Implement functions to damage players, check for death, and handle respawns
+Step 2: Server-side Cannon Hit Detection and Damage
+Files to modify:
 
-cannon_handler.py: Enhance handle_cannon_fire to use the simulation utilities
-cannon_handler.py: Update update_cannon_positions to call the simulation utilities
-Step 2: Server-Side Hit Detection
-Use the simulation system to detect collisions between projectiles and players
-Broadcast hit events when collisions are detected
-Functions to modify:
+api/cannon_handler.py
+Changes:
 
-cannon_handler.py: Integrate check_cannon_collisions with simulation utilities
-cannon_handler.py: Update handle_cannon_collision to send damage notifications
-cannon_handler.py: Remove or bypass handle_cannon_hit as client reporting is no longer needed
-Step 3: Create Centralized Damage Visualization System
-Create a new file for centralized damage visualization that can be used by all abilities
-Implement common visual effects for player damage
-New file and functions to create:
+Update check_cannon_collisions function:
+Enhance collision detection between cannons and players
+Properly apply damage to hit players
+Modify handle_cannon_collision function:
+Ensure proper damage application
+Check player health after damage and handle death if health <= 0
+Refine handle_player_defeat function:
+Implement respawn mechanics
+Handle notifications to all clients
+Step 3: Client-side Integration
+Files to modify:
 
-Create new file: src/effects/playerDamageEffects.js
-Implement basic damage visualization functions:
-showDamageEffect(playerMesh, damageAmount, damageType) - Main function to display damage
-showHitFlash(playerMesh) - Visual flash effect on the damaged boat
-showDamageNumber(position, amount) - Floating damage number display
-showSmokeEffect(playerMesh, intensity) - Smoke effects for damaged boats
-Functions to modify:
+src/abilities/cannonshot.js
+src/core/network.js
+Changes:
 
-network.js: Update onCannonHit to use the new centralized damage visualization
-network.js: Modify 'cannon_hit' event handler in setupSocketEvents to call the centralized damage system
+In cannonshot.js:
+Update to handle player hit events from the server
+Add visual effects for player damage
+In network.js:
+Add listener for server_cannon_hit events
+Add listener for player_defeated events
+Implement visual feedback when the local player is hit
+Handle player respawn UI and movement restriction during respawn
+Step 4: Basic Death Notifications
+Files to modify:
 
-We already have playerDamageEffects, please as an extra step check that it is valid.
+src/core/network.js
+src/effects/floatingText.js
+Changes:
+
+In network.js:
+Add a listener for player_defeated events
+Display a simple text message when the local player is defeated (e.g., "You were killed by [player]!")
+Show a basic notification when the player respawns
+Keep notifications minimal and non-intrusive
+No need for complex animations or UI elements
