@@ -45,6 +45,11 @@ let activeIslandsRef;
 // Callback for 'all_players' event
 let allPlayersCallback = null;
 
+// Player respawn state
+let isRespawning = false;
+let respawnCountdown = 0;
+let respawnOverlayElement = null;
+
 // Register a callback for when player list is updated
 export function onAllPlayers(callback) {
     allPlayersCallback = callback;
@@ -568,6 +573,73 @@ function setupSocketEvents() {
         // Call the callback if registered
         if (cannonHitCallback) {
             cannonHitCallback(data);
+        }
+    });
+
+    // Listen for player defeated events
+    socket.on('player_defeated', (data) => {
+        console.log('Player defeated:', data);
+
+        // Check if this is the local player
+        if (data.player_id === firebaseDocId) {
+            // First, remove the boat from the scene temporarily
+            if (boatRef) {
+                // Store current model ID for later restoration
+                const currentModelId = boatRef.userData.modelId || `player_${firebaseDocId}`;
+                boatRef.userData.storedModelId = currentModelId;
+
+                // Remove the boat from the scene but don't destroy it
+                sceneRef.remove(boatRef);
+            }
+
+            // Start respawn process for local player
+            startRespawnProcess();
+        } else {
+            // Handle other players' defeats
+            const player = otherPlayers.get(data.player_id);
+            if (player && player.mesh) {
+                // Temporarily remove the player's mesh from the scene
+                if (sceneRef.getObjectById(player.mesh.id)) {
+                    sceneRef.remove(player.mesh);
+
+                    // We won't unload the model since it will be restored when they respawn
+                    // Just storing that this player is currently defeated
+                    player.isDefeated = true;
+                }
+            }
+        }
+
+        // Show defeat notification (for all players)
+        const defeatedPlayer = otherPlayers.get(data.player_id) ||
+            (data.player_id === firebaseDocId ? { name: playerName } : { name: 'Unknown Player' });
+        const killerPlayer = otherPlayers.get(data.killer_id) ||
+            (data.killer_id === firebaseDocId ? { name: playerName } : { name: 'Another Player' });
+
+        // Display defeat message
+        if (window.addNotification) {
+            window.addNotification(`${defeatedPlayer.name} was defeated by ${killerPlayer.name}!`, 'defeat');
+        }
+    });
+
+    // Listen for player respawn events
+    socket.on('player_respawned', (data) => {
+        console.log('Player respawned:', data);
+
+        // Check if this is the local player
+        if (data.player_id === firebaseDocId) {
+            // End respawn process for local player
+            endRespawnProcess();
+        }
+
+        // Update player health in player list
+        updatePlayerInAllPlayers({
+            id: data.player_id,
+            health: data.health
+        });
+
+        // Display respawn message for local player
+        if (data.player_id === firebaseDocId && window.addNotification) {
+            window.addNotification('You have respawned!', 'respawn');
         }
     });
 };
@@ -1163,11 +1235,6 @@ function requestInitialMessages() {
     getRecentMessages('global', DEFAULT_MESSAGE_LIMIT);
 }
 
-// Add a getter for other modules that might need the ID
-export function getFirebaseUserId() {
-    return firebaseDocId;
-}
-
 // Add fish or other items to the player's inventory
 export function addToInventory(itemData) {
     if (!isConnected || !socket) return;
@@ -1319,4 +1386,80 @@ function handleCannonFired(data) {
     });
 
 
+}
+
+/**
+ * Start the respawn process for the local player
+ */
+function startRespawnProcess() {
+    // Set respawning state
+    isRespawning = true;
+    respawnCountdown = 3; // 3 seconds respawn time
+
+    // Create or show respawn overlay
+    if (!respawnOverlayElement) {
+        respawnOverlayElement = document.createElement('div');
+        respawnOverlayElement.style.position = 'absolute';
+        respawnOverlayElement.style.top = '0';
+        respawnOverlayElement.style.left = '0';
+        respawnOverlayElement.style.width = '100%';
+        respawnOverlayElement.style.height = '100%';
+        respawnOverlayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+        respawnOverlayElement.style.display = 'flex';
+        respawnOverlayElement.style.justifyContent = 'center';
+        respawnOverlayElement.style.alignItems = 'center';
+        respawnOverlayElement.style.fontSize = '32px';
+        respawnOverlayElement.style.color = 'white';
+        respawnOverlayElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
+        respawnOverlayElement.style.zIndex = '1000';
+        document.body.appendChild(respawnOverlayElement);
+    } else {
+        respawnOverlayElement.style.display = 'flex';
+    }
+
+    // Update respawn text
+    respawnOverlayElement.textContent = `You were defeated! Respawning in ${respawnCountdown}...`;
+
+    // Start countdown
+    const countdownInterval = setInterval(() => {
+        respawnCountdown--;
+
+        if (respawnCountdown <= 0) {
+            clearInterval(countdownInterval);
+            // The actual respawn will be triggered by the server
+        } else {
+            respawnOverlayElement.textContent = `You were defeated! Respawning in ${respawnCountdown}...`;
+        }
+    }, 1000);
+
+    // Disable player movement during respawn
+    if (playerStateRef) {
+        playerStateRef.isRespawning = true;
+    }
+}
+
+/**
+ * End the respawn process for the local player
+ */
+function endRespawnProcess() {
+    // Reset respawning state
+    isRespawning = false;
+
+    // Hide respawn overlay
+    if (respawnOverlayElement) {
+        respawnOverlayElement.style.display = 'none';
+    }
+
+    // Re-enable player movement
+    if (playerStateRef) {
+        playerStateRef.isRespawning = false;
+    }
+}
+
+/**
+ * Check if the player is currently respawning
+ * @returns {boolean} True if player is respawning
+ */
+export function isPlayerRespawning() {
+    return isRespawning;
 }

@@ -38,6 +38,7 @@ def damage_player(player_id, damage_amount, source_id=None):
     - True if the player was killed (health <= 0)
     - False if the player is still alive
     """
+    # logger.error("player id ", player_id, " took ")
     # Ignore if player doesn't exist or is already inactive
     if player_id not in players or not players[player_id].get('active', False):
         return False
@@ -50,18 +51,7 @@ def damage_player(player_id, damage_amount, source_id=None):
     
     # Update player health in memory
     players[player_id]['health'] = new_health
-    
-    # Update player health in database
-    firestore_models.Player.update(player_id, health=new_health)
-    
-    # Broadcast health update to all players
-    socketio.emit('player_health_update', {
-        'player_id': player_id,
-        'health': new_health,
-        'damage_amount': damage_amount,
-        'source_id': source_id
-    })
-    
+
     # Check for death
     if new_health <= 0:
         handle_player_death(player_id, source_id)
@@ -77,6 +67,7 @@ def handle_player_death(player_id, killer_id=None):
     - player_id: ID of the player who died
     - killer_id: ID of the player who caused the death (optional)
     """
+    # logger.error("player is dead ", player_id)
     # Log the event
     if killer_id:
         logger.info(f"Player {player_id} was defeated by {killer_id}")
