@@ -8,8 +8,8 @@ import { showDamageEffect } from '../effects/playerDamageEffects.js';
 //import CannonShot from '../abilities/cannonshot.js'; // Import the CannonShot class
 
 // Network configuration
-//const SERVER_URL = 'http://localhost:5001';
-const SERVER_URL = 'https://boat-game-python.onrender.com';
+const SERVER_URL = 'http://localhost:5001';
+//const SERVER_URL = 'https://boat-game-python.onrender.com';
 
 // Network state
 export let socket;
@@ -315,27 +315,6 @@ function setupSocketEvents() {
         setPlayerStateFromDb(data);
 
         setupAllPlayersTracking();
-
-        // Load the power ship GLB model when the player successfully connects
-        if (sceneRef) {
-            // Configure the power ship model with player-specific ID
-            const powerShipConfig = {
-                modelId: `player_${playerId}`, // Use player-specific ID
-                modelUrl: '/mediumpirate.glb',
-                scaleValue: 20.0,
-                position: [0, 7, 0],
-                rotation: [0, Math.PI, 0],
-                // Optional fallback in case the power ship model fails to load
-                fallbackConfig: {
-                    modelUrl: '/mediumpirate.glb',
-                    scaleValue: 20.0,
-                    position: [0, 7, 0],
-                    rotation: [0, Math.PI, 0]
-                }
-            };
-
-            loadGLBModel(sceneRef, powerShipConfig);
-        }
 
 
         // Example usage in game code
