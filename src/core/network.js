@@ -19,8 +19,8 @@ const DEFAULT_MESSAGE_LIMIT = 50;
 let cannonHitCallback = null;
 
 // Network configuration
-//const SERVER_URL = 'http://localhost:5001';
-const SERVER_URL = 'https://boat-game-python.onrender.com';
+const SERVER_URL = 'http://localhost:5001';
+//const SERVER_URL = 'https://boat-game-python.onrender.com';
 
 // Network state
 export let socket;
@@ -905,6 +905,9 @@ export function sendChatMessage(content, messageType = 'global') {
             playerId = socket.id;
         }
 
+        // IMPORTANT: DON'T send a player_name field at all
+        // Let the server use what it has in its cache
+        // This ensures consistency between nick changes and chat
         // Make sure firebaseDocId is properly set
         if (!firebaseDocId && playerId) {
             // If we have playerId but no firebaseDocId, set it
@@ -924,12 +927,6 @@ export function sendChatMessage(content, messageType = 'global') {
             firebaseDocId = 'firebase_' + firebaseDocId;
 
         }
-
-        // IMPORTANT: DON'T send a player_name field at all
-        // Let the server use what it has in its cache
-        // This ensures consistency between nick changes and chat
-
-
 
         // Create the message object WITHOUT the player_name field
         const messageObj = {

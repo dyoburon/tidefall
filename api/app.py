@@ -432,7 +432,7 @@ def handle_chat_message(data):
     
     # Handle different message formats
     if isinstance(data, str):
-        print(f"CHAT DEBUG: Data is a string, converting to object")
+        #print(f"CHAT DEBUG: Data is a string, converting to object")
         content = data.strip()
         player_id = None
         player_name = None
@@ -441,9 +441,9 @@ def handle_chat_message(data):
         player_id = data.get('player_id', None)
         player_name = data.get('player_name', None)
 
-    print(f"CHAT DEBUG: Content: '{content}'")
-    print(f"CHAT DEBUG: Player ID: '{player_id}'")
-    print(f"CHAT DEBUG: Player Name: '{player_name}'")
+   # print(f"CHAT DEBUG: Content: '{content}'")
+    #print(f"CHAT DEBUG: Player ID: '{player_id}'")
+    #print(f"CHAT DEBUG: Player Name: '{player_name}'")
     
     # Validate message
     if not content or len(content) > 500:
@@ -458,19 +458,11 @@ def handle_chat_message(data):
     # If player_name wasn't provided, try to get it from our players cache
     if not player_name and player_id in players:
         player_name = players[player_id].get('name', 'Unknown Sailor')
-        print(f"CHAT DEBUG: Retrieved player name from cache: {player_name}")
-    
-    # Debug log to check if we actually have the player in cache
-    if player_id in players:
-        print(f"CHAT DEBUG: PLAYER FOUND IN CACHE: {player_id}")
-        print(f"CHAT DEBUG: PLAYER NAME IN CACHE: {players[player_id].get('name', 'No name found!')}")
-    else:
-        print(f"CHAT DEBUG: PLAYER NOT FOUND IN CACHE: {player_id}")
-        print(f"CHAT DEBUG: AVAILABLE PLAYER IDS: {list(players.keys())[:10]}") # Show up to 10 for brevity
-    
+        #print(f"CHAT DEBUG: Retrieved player name from cache: {player_name}")
+
     # IMPORTANT: Always use the client-provided name if available
     final_name = player_name or 'Unknown Sailor'
-    print(f"CHAT DEBUG: FINAL NAME FOR CHAT: {final_name}")
+    #print(f"CHAT DEBUG: FINAL NAME FOR CHAT: {final_name}")
     
     # Send message object with more info instead of just content
     message_obj = {
@@ -480,19 +472,19 @@ def handle_chat_message(data):
         'timestamp': datetime.now().isoformat()
     }
     
-    print(f"CHAT DEBUG: Broadcasting message object: {message_obj}")
+    #print(f"CHAT DEBUG: Broadcasting message object: {message_obj}")
     logger.info(f"CHAT DEBUG: Broadcasting message with player name: '{final_name}'")
     
     # IMPORTANT: Make sure we're sending the OBJECT, not just the content string
     try:
         # Send as JSON to ensure proper serialization
         emit('new_message', message_obj, broadcast=True)
-        print(f"CHAT DEBUG: Broadcast complete")
+        #print(f"CHAT DEBUG: Broadcast complete")
     except Exception as e:
-        print(f"CHAT DEBUG: ERROR BROADCASTING MESSAGE: {str(e)}")
+        #print(f"CHAT DEBUG: ERROR BROADCASTING MESSAGE: {str(e)}")
         logger.error(f"CHAT DEBUG: Error broadcasting message: {str(e)}")
     
-    print(f"=====================================")
+    #print(f"=====================================")
 
 @socketio.on('update_player_color')
 def handle_update_player_color(data):
@@ -735,7 +727,7 @@ def handle_get_inventory(data):
     Handle request for player inventory
     Expects: { player_id }
     """
-    print(f"DEBUG: Getting inventory for {data}")
+    #print(f"DEBUG: Getting inventory for {data}")
     #logger.error(f"DEBUG: Getting inventory for {data}")
     player_id = data.get('player_id')
     if not player_id:
@@ -754,4 +746,4 @@ def handle_get_inventory(data):
 if __name__ == '__main__':
     # Run the Socket.IO server with debug and reloader enabled
     socketio.run(app, host='0.0.0.0') 
-    # socketio.run(app, host='0.0.0.0', port=5001, debug=True, use_reloader=True) 
+    #socketio.run(app, host='0.0.0.0', port=5001, debug=True, use_reloader=True) 
