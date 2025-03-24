@@ -76,9 +76,9 @@ def handle_player_death(player_id, killer_id=None):
         logger.info(f"Player {player_id} was defeated by {killer_id}")
         
         # Award a kill to the player who caused the death
-        if killer_id in players and 'monsterKills' in players[killer_id]:
-            players[killer_id]['monsterKills'] += 1
-            firestore_models.Player.update(killer_id, monsterKills=players[killer_id]['monsterKills'])
+        #if killer_id in players and 'monsterKills' in players[killer_id]:
+            #players[killer_id]['monsterKills'] += 1
+            #firestore_models.Player.update(killer_id, monsterKills=players[killer_id]['monsterKills'])
     else:
         logger.info(f"Player {player_id} was defeated")
     

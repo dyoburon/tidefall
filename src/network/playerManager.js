@@ -181,14 +181,6 @@ export function removeOtherPlayerFromScene(playerId) {
     });
 }
 
-/**
- * Check if the player is currently respawning
- * @returns {boolean} True if player is respawning
- */
-export function isPlayerRespawning() {
-    return isRespawning;
-}
-
 export function getOtherPlayers() {
     return otherPlayers;
 }

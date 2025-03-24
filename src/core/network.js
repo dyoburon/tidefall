@@ -6,7 +6,7 @@ import { setupAllPlayersTracking } from './main';
 import { loadGLBModel, unloadGLBModel } from '../utils/glbLoader.js';
 import { showDamageEffect } from '../effects/playerDamageEffects.js';
 import { resetCameraPosition, reconnectControlsToModel } from '../controls/cameraControls.js';
-import { addOtherPlayerToScene, removeOtherPlayerFromScene, updatePlayerInAllPlayers, isPlayerRespawning, getOtherPlayers } from '../network/playerManager.js';
+import { addOtherPlayerToScene, removeOtherPlayerFromScene, updatePlayerInAllPlayers, getOtherPlayers } from '../network/playerManager.js';
 //import CannonShot from '../abilities/cannonshot.js'; // Import the CannonShot class
 
 // Global initialization for chat and callbacks
@@ -139,11 +139,6 @@ export const respawnManager = {
         // Reset respawning state
         this.isRespawning = false;
 
-        // Re-enable player controls
-        if (this.playerState) {
-            this.playerState.isRespawning = false;
-        }
-
         // Get respawn position
         const spawnPosition = this.getRespawnPosition();
         const spawnRotation = 0; // Default rotation
@@ -164,12 +159,6 @@ export const respawnManager = {
 
             // Update server with new position
             updatePlayerPosition();
-
-            // Reset camera
-            //resetCameraPosition();
-
-            // Reconnect camera controls - this ensures camera targets are properly updated
-            //reconnectControlsToModel(this.boat);
 
             console.log('Boat respawned at:', spawnPosition);
         } else {
