@@ -1,3 +1,1 @@
-We currently want to implement respawning when the player dies. There is some logic there already, but it's not designed in a very good way. We want to clean this up and make sure that there's a central place for the logic to spawn a player rather than duplicated logic in various places.
-
-Right now, the controls don't get reset to the new model when they respawn
+Going to attempt the refactor of network.js. Please start with a plan. We're going to what function should belong to what file, make it logical and make a file that's gonna be kind of the integration of all these files together. That will be the new network.js, will be the integration of all the networking functions could call it the network manager. 

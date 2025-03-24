@@ -1,21 +1,102 @@
-Step 1: Centralize Respawn Logic in Network.js
-File: src/core/network.js
-Modify startRespawnProcess():
-Uncomment important state-tracking lines
-Properly set the respawning state variables
-Add a clear indication that player is in respawn state
-Modify endRespawnProcess():
-Create a proper central respawn function that handles both model regeneration and control resetting
-Maintain a reference to the new boat model
-Add event broadcasting to notify other systems about respawn completion
-Step 2: Update Camera Controls Integration
-File: src/controls/cameraControls.js
-Add updateTargetObject() function:
-Create a new function that allows updating the target object the camera is following
-Ensure camera properly transitions to the new target
-Enhance resetCameraPosition():
-Improve to properly handle respawn scenarios
-Add functionality to reconnect camera controls to the new player model
-Add respawn event listener:
-Create a mechanism to listen for respawn events from network.js
-Ensure camera controls are properly updated when respawn occurs
+Step 1: Create Core Network Manager and Connection Modules
+File: src/core/network/networkManager.js
+This will centralize network management and serve as the main entry point:
+
+Moving these existing functions:
+
+initializeNetwork()
+disconnect()
+isNetworkConnected()
+Global variables like socket, isConnected, etc.
+New functions needed (minimal):
+
+initModules() - A new helper function to initialize all the specialized modules
+File: src/core/network/connectionHandler.js
+Handle basic socket connection functionality:
+
+Moving these existing functions:
+
+Parts of setupSocketEvents() related to connection handling
+Parts of initializeNetwork() related to connecting
+No new functions needed
+
+Step 2: Create Player and Game State Modules
+File: src/core/network/playerManager.js
+Handle all player-related networking:
+
+Moving these existing functions:
+
+addOtherPlayerToScene()
+updateOtherPlayerPosition()
+updateOtherPlayerInfo()
+removeOtherPlayerFromScene()
+applyColorToBoat()
+createBoatTextures()
+onAllPlayers()
+getAllPlayers()
+updatePlayerPosition()
+setPlayerName()
+setPlayerColor()
+getPlayerName()
+getConnectedPlayersCount()
+updatePlayerInAllPlayers()
+registerIslands()
+No new functions needed
+
+File: src/core/network/statsManager.js
+Handle all player stats and achievements:
+
+Moving these existing functions:
+
+updatePlayerStats()
+incrementPlayerStats()
+getPlayerStats()
+onFishCaught()
+onMonsterKilled()
+onMoneyEarned()
+initializePlayerStats()
+No new functions needed
+
+Step 3: Create Specialized Feature Modules
+File: src/core/network/chatSystem.js
+Handle all chat functionality:
+
+Moving these existing functions:
+
+sendChatMessage()
+getRecentMessages()
+onChatMessage()
+onRecentMessages()
+getChatHistory()
+requestInitialMessages()
+No new functions needed
+
+File: src/core/network/inventorySystem.js
+Handle all inventory and item management:
+
+Moving these existing functions:
+
+addToInventory()
+getPlayerInventory()
+playerHasItem()
+No new functions needed
+
+File: src/core/network/combatSystem.js
+Handle all combat-related networking:
+
+Moving these existing functions:
+
+fireCannon()
+onCannonHit()
+handleCannonFired()
+No new functions needed
+
+File: src/core/network/respawnSystem.js
+Handle player death and respawn logic:
+
+Moving these existing functions:
+
+startRespawnProcess()
+endRespawnProcess()
+isPlayerRespawning()
+No new functions needed

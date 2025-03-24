@@ -486,7 +486,7 @@ def handle_chat_message(data):
     # IMPORTANT: Make sure we're sending the OBJECT, not just the content string
     try:
         # Send as JSON to ensure proper serialization
-        emit('new_message', message_obj, broadcast=True, json=True)
+        emit('new_message', message_obj, broadcast=True)
         print(f"CHAT DEBUG: Broadcast complete")
     except Exception as e:
         print(f"CHAT DEBUG: ERROR BROADCASTING MESSAGE: {str(e)}")
@@ -753,5 +753,5 @@ def handle_get_inventory(data):
 
 if __name__ == '__main__':
     # Run the Socket.IO server with debug and reloader enabled
-    # socketio.run(app, host='0.0.0.0') 
-    socketio.run(app, host='0.0.0.0', port=5001, debug=True, use_reloader=True) 
+    socketio.run(app, host='0.0.0.0') 
+    # socketio.run(app, host='0.0.0.0', port=5001, debug=True, use_reloader=True) 
