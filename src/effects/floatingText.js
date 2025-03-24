@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { scene } from '../core/gameState.js';
 
 // Font settings for the floating text
-const DEFAULT_FONT_SIZE = 1.0;
+const DEFAULT_FONT_SIZE = 50.0;
 const DEFAULT_DURATION = 1.0; // seconds
 const DEFAULT_RISE_FACTOR = 3.0; // units per second
 const DEFAULT_COLOR = 0xffffff; // white
@@ -99,7 +99,7 @@ export function createFloatingText({
     const endTime = startTime + (duration * 1000);
 
     // Keep track of the original position
-    const originalY = position.y;
+    const originalY = position.y + 10;
 
     // Create animation function
     const animate = () => {

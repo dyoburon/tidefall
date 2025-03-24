@@ -126,28 +126,33 @@ export function showHitFlash(playerMesh) {
  * @param {number} amount - Amount of damage to display
  */
 export function showDamageNumber(position, amount) {
+    console.log("Showing damage number at position:", position, "amount:", amount);
+
     // Add some randomness to position so multiple hits don't overlap
     const offsetPosition = position.clone().add(
         new THREE.Vector3(
-            (Math.random() - 0.5) * 2,
-            Math.random() * 2,
-            (Math.random() - 0.5) * 2
+            ((Math.random() * 3) - 1.0) * 2,
+            Math.random() * 2 + 2, // Add more height to ensure visibility
+            ((Math.random() * 3) - 1.0) * 2
         )
     );
 
     // Format damage amount
     const damageText = `-${Math.round(amount)}`;
+    console.log("Creating damage text:", damageText, "at offset position:", offsetPosition);
 
     // Create floating text that rises and fades
-    createFloatingText({
+    const textObj = createFloatingText({
         text: damageText,
         position: offsetPosition,
-        color: 0xff4444,
-        size: 1.0 * DAMAGE_NUMBER_SCALE,
-        duration: DAMAGE_NUMBER_DURATION,
-        riseFactor: 5.0,
+        color: 0xff0000, // Brighter red
+        size: 2.5 * DAMAGE_NUMBER_SCALE, // Larger size
+        duration: 2.0, // Longer duration
+        riseFactor: 3.0, // Slower rise
         fadeOut: true
     });
+
+    console.log("Floating text object created:", textObj ? "success" : "failed");
 }
 
 /**
