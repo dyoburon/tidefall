@@ -1393,32 +1393,33 @@ function handleCannonFired(data) {
  */
 function startRespawnProcess() {
     // Set respawning state
-    isRespawning = true;
+    //isRespawning = true;
     respawnCountdown = 3; // 3 seconds respawn time
 
     // Create or show respawn overlay
-    if (!respawnOverlayElement) {
-        respawnOverlayElement = document.createElement('div');
-        respawnOverlayElement.style.position = 'absolute';
-        respawnOverlayElement.style.top = '0';
-        respawnOverlayElement.style.left = '0';
-        respawnOverlayElement.style.width = '100%';
-        respawnOverlayElement.style.height = '100%';
-        respawnOverlayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
-        respawnOverlayElement.style.display = 'flex';
-        respawnOverlayElement.style.justifyContent = 'center';
-        respawnOverlayElement.style.alignItems = 'center';
-        respawnOverlayElement.style.fontSize = '32px';
-        respawnOverlayElement.style.color = 'white';
-        respawnOverlayElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
-        respawnOverlayElement.style.zIndex = '1000';
-        document.body.appendChild(respawnOverlayElement);
-    } else {
-        respawnOverlayElement.style.display = 'flex';
-    }
+    // if (!respawnOverlayElement) {
+    respawnOverlayElement = document.createElement('div');
+    respawnOverlayElement.style.position = 'absolute';
+    respawnOverlayElement.style.top = '0';
+    respawnOverlayElement.style.left = '0';
+    respawnOverlayElement.style.width = '100%';
+    respawnOverlayElement.style.height = '100%';
+    respawnOverlayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+    respawnOverlayElement.style.display = 'flex';
+    respawnOverlayElement.style.justifyContent = 'center';
+    respawnOverlayElement.style.alignItems = 'center';
+    respawnOverlayElement.style.fontSize = '32px';
+    respawnOverlayElement.style.color = 'white';
+    respawnOverlayElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
+    respawnOverlayElement.style.zIndex = '1000';
+    document.body.appendChild(respawnOverlayElement);
+    // } else {
+    //    respawnOverlayElement.style.display = 'flex';
+    // }
 
     // Update respawn text
     respawnOverlayElement.textContent = `You were defeated! Respawning in ${respawnCountdown}...`;
+
 
     // Start countdown
     const countdownInterval = setInterval(() => {
@@ -1426,6 +1427,8 @@ function startRespawnProcess() {
 
         if (respawnCountdown <= 0) {
             clearInterval(countdownInterval);
+            respawnOverlayElement.style.display = 'none';
+
             // The actual respawn will be triggered by the server
         } else {
             respawnOverlayElement.textContent = `You were defeated! Respawning in ${respawnCountdown}...`;
@@ -1433,27 +1436,16 @@ function startRespawnProcess() {
     }, 1000);
 
     // Disable player movement during respawn
-    if (playerStateRef) {
-        playerStateRef.isRespawning = true;
-    }
+    //if (playerStateRef) {
+    //   playerStateRef.isRespawning = true;
+    //}
 }
 
 /**
  * End the respawn process for the local player
  */
 function endRespawnProcess() {
-    // Reset respawning state
-    isRespawning = false;
-
-    // Hide respawn overlay
-    if (respawnOverlayElement) {
-        respawnOverlayElement.style.display = 'none';
-    }
-
-    // Re-enable player movement
-    if (playerStateRef) {
-        playerStateRef.isRespawning = false;
-    }
+    // 
 }
 
 /**
