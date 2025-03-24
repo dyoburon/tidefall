@@ -1,102 +1,34 @@
-Step 1: Create Core Network Manager and Connection Modules
-File: src/core/network/networkManager.js
-This will centralize network management and serve as the main entry point:
+Step 1: Create a Centralized Respawn Manager in network.js
+File: src/core/network.js
 
-Moving these existing functions:
+Create a new centralized respawnManager object with methods:
+initRespawnManager: Set up the manager with needed references
+startRespawn: Handle the respawn countdown and UI
+completeRespawn: Handle the actual respawning process
+setRespawnPosition: Determine the respawn position (centralized logic)
+Refactor the existing startRespawnProcess and endRespawnProcess functions to use the new respawn manager
+Step 2: Fix Camera Control Reset during Respawn
+File: src/controls/cameraControls.js
 
-initializeNetwork()
-disconnect()
-isNetworkConnected()
-Global variables like socket, isConnected, etc.
-New functions needed (minimal):
+Enhance the resetCameraPosition function to properly reconnect to the new player model
+Add a new reconnectControlsToModel function that will:
+Update any camera target references
+Reset the camera orbit parameters
+Reinitialize any touch/mouse controls that reference the boat
+Step 3: Connect the Systems
+File: src/core/network.js
 
-initModules() - A new helper function to initialize all the specialized modules
-File: src/core/network/connectionHandler.js
-Handle basic socket connection functionality:
+Modify the endRespawnProcess function to:
+Call the appropriate camera control reconnect functions after creating the new boat model
+Ensure proper state is passed to the camera controls
+Update any references in playerState to the new boat model
+Step 4: Update Game State and Movement Controls
+File: src/core/network.js
 
-Moving these existing functions:
-
-Parts of setupSocketEvents() related to connection handling
-Parts of initializeNetwork() related to connecting
-No new functions needed
-
-Step 2: Create Player and Game State Modules
-File: src/core/network/playerManager.js
-Handle all player-related networking:
-
-Moving these existing functions:
-
-addOtherPlayerToScene()
-updateOtherPlayerPosition()
-updateOtherPlayerInfo()
-removeOtherPlayerFromScene()
-applyColorToBoat()
-createBoatTextures()
-onAllPlayers()
-getAllPlayers()
-updatePlayerPosition()
-setPlayerName()
-setPlayerColor()
-getPlayerName()
-getConnectedPlayersCount()
-updatePlayerInAllPlayers()
-registerIslands()
-No new functions needed
-
-File: src/core/network/statsManager.js
-Handle all player stats and achievements:
-
-Moving these existing functions:
-
-updatePlayerStats()
-incrementPlayerStats()
-getPlayerStats()
-onFishCaught()
-onMonsterKilled()
-onMoneyEarned()
-initializePlayerStats()
-No new functions needed
-
-Step 3: Create Specialized Feature Modules
-File: src/core/network/chatSystem.js
-Handle all chat functionality:
-
-Moving these existing functions:
-
-sendChatMessage()
-getRecentMessages()
-onChatMessage()
-onRecentMessages()
-getChatHistory()
-requestInitialMessages()
-No new functions needed
-
-File: src/core/network/inventorySystem.js
-Handle all inventory and item management:
-
-Moving these existing functions:
-
-addToInventory()
-getPlayerInventory()
-playerHasItem()
-No new functions needed
-
-File: src/core/network/combatSystem.js
-Handle all combat-related networking:
-
-Moving these existing functions:
-
-fireCannon()
-onCannonHit()
-handleCannonFired()
-No new functions needed
-
-File: src/core/network/respawnSystem.js
-Handle player death and respawn logic:
-
-Moving these existing functions:
-
-startRespawnProcess()
-endRespawnProcess()
-isPlayerRespawning()
-No new functions needed
+Add a function to update the boat reference in gameState.js
+Make sure to call this after creating the new boat model in endRespawnProcess
+Verify that all systems using the boat reference are updated
+Add validation code to check that the controls are properly connected to the new boat model by:
+Verifying the boat reference is updated in all necessary places (gameState.js, shipController.js)
+Ensuring any input handlers are properly connected to the new boat
+Testing that movement keys trigger the expected boat behavior after respawn

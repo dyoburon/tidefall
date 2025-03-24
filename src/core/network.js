@@ -19,7 +19,7 @@ const DEFAULT_MESSAGE_LIMIT = 50;
 let cannonHitCallback = null;
 
 // Network configuration
-//const SERVER_URL = 'http://localhost:5001';
+// const SERVER_URL = 'http://localhost:5001';
 const SERVER_URL = 'https://boat-game-python.onrender.com';
 
 // Network state
@@ -47,10 +47,196 @@ let activeIslandsRef;
 // Callback for 'all_players' event
 let allPlayersCallback = null;
 
-// Player respawn state
-let isRespawning = false;
-let respawnCountdown = 0;
-let respawnOverlayElement = null;
+// Respawn Manager - centralized respawn handling
+export const respawnManager = {
+    // References
+    playerState: null,
+    boat: null,
+
+    // State
+    isRespawning: false,
+    respawnCountdown: 0,
+    respawnOverlayElement: null,
+    countdownInterval: null,
+
+    /**
+     * Initialize the respawn manager with references
+     */
+    initRespawnManager(playerState, boat) {
+        this.playerState = playerState;
+        this.boat = boat;
+        this.isRespawning = false;
+        this.respawnCountdown = 0;
+    },
+
+    /**
+     * Start the respawn countdown and show UI
+     */
+    startRespawn() {
+        // Set respawning state
+        this.isRespawning = true;
+        this.respawnCountdown = 3; // 3 seconds respawn time
+
+        // Create or show respawn overlay
+        if (!this.respawnOverlayElement) {
+            this.respawnOverlayElement = document.createElement('div');
+            this.respawnOverlayElement.style.position = 'absolute';
+            this.respawnOverlayElement.style.top = '0';
+            this.respawnOverlayElement.style.left = '0';
+            this.respawnOverlayElement.style.width = '100%';
+            this.respawnOverlayElement.style.height = '100%';
+            this.respawnOverlayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+            this.respawnOverlayElement.style.display = 'flex';
+            this.respawnOverlayElement.style.justifyContent = 'center';
+            this.respawnOverlayElement.style.alignItems = 'center';
+            this.respawnOverlayElement.style.fontSize = '32px';
+            this.respawnOverlayElement.style.color = 'white';
+            this.respawnOverlayElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
+            this.respawnOverlayElement.style.zIndex = '1000';
+            document.body.appendChild(this.respawnOverlayElement);
+        } else {
+            this.respawnOverlayElement.style.display = 'flex';
+        }
+
+        // Update respawn text
+        this.respawnOverlayElement.textContent = `You were defeated! Respawning in ${this.respawnCountdown}...`;
+
+        // Start countdown
+        this.countdownInterval = setInterval(() => {
+            this.respawnCountdown--;
+
+            if (this.respawnCountdown <= 0) {
+                clearInterval(this.countdownInterval);
+                this.respawnOverlayElement.style.display = 'none';
+
+                // Trigger the actual respawn
+                this.completeRespawn();
+            } else {
+                this.respawnOverlayElement.textContent = `You were defeated! Respawning in ${this.respawnCountdown}...`;
+            }
+        }, 1000);
+
+        // Disable player movement during respawn
+        if (this.playerState) {
+            this.playerState.isRespawning = true;
+        }
+    },
+
+    /**
+     * Complete the respawn process
+     */
+    completeRespawn() {
+        // Hide respawn overlay if it exists
+        if (this.respawnOverlayElement) {
+            this.respawnOverlayElement.style.display = 'none';
+        }
+
+        // Reset respawning state
+        this.isRespawning = false;
+
+        // Re-enable player controls
+        if (this.playerState) {
+            this.playerState.isRespawning = false;
+        }
+
+        // Get respawn position
+        const spawnPosition = this.getRespawnPosition();
+        const spawnRotation = 0; // Default rotation
+
+        // Remove old boat if it exists
+        /*
+        if (this.scene && this.boat) {
+            this.scene.remove(this.boat);
+        }*/
+
+        // Create a new group for the player
+        const newBoatGroup = new THREE.Group();
+
+        // Configure model loading
+        const modelConfig = {
+            modelId: 'player_self',
+            modelUrl: '/mediumpirate.glb',  // Path to player model
+            scaleValue: 20.0,
+            position: [0, 7, 0],
+            rotation: [0, Math.PI, 0]
+        };
+
+        // Load the model
+        loadGLBModel(newBoatGroup, modelConfig, (success) => {
+            if (!success) {
+                console.error('Failed to reload player model on respawn');
+            }
+
+            // Position at the respawn location
+            newBoatGroup.position.copy(spawnPosition);
+            newBoatGroup.rotation.y = spawnRotation;
+
+            // Update server with new position
+            updatePlayerPosition();
+
+            // Reset camera to default position
+            if (typeof resetCameraPosition === 'function') {
+                resetCameraPosition();
+            }
+
+            // Add to scene
+            sceneRef.add(newBoatGroup);
+
+            // Update boat reference
+            this.boat = newBoatGroup;
+            boatRef = newBoatGroup; // Update global reference as well
+        });
+    },
+
+    /**
+     * Set the respawn position for the player
+     */
+    getRespawnPosition() {
+        // Default to origin if no other logic is available
+        return new THREE.Vector3(0, 0, 0);
+
+        // In the future, could implement more complex logic:
+        // - Spawn near teammates
+        // - Spawn at control points
+        // - Spawn away from enemies
+    },
+
+    /**
+     * Reload a player's GLB model after respawn (for other players)
+     * @param {string} playerId - ID of the player to reload
+     */
+    reloadPlayerGLB(playerId) {
+        // Get references to other players
+        const otherPlayers = getOtherPlayers();
+        const player = otherPlayers.get(playerId);
+
+        if (!player) return;
+
+        // Remove existing model from scene
+        if (player.mesh) {
+            //sceneRef.remove(player.mesh);
+        }
+
+        // Get spawn position (or use player's last known position)
+        const spawnPosition = this.getRespawnPosition();
+
+        // Use the existing addOtherPlayerToScene function which already works correctly
+        // Create a player data object that matches what addOtherPlayerToScene expects
+        const playerData = {
+            id: playerId,
+            name: player.data ? player.data.name : 'Unknown Player',
+            position: spawnPosition,
+            rotation: 0, // Default rotation
+            color: player.data ? player.data.color : null
+        };
+
+        // Remove the player first to ensure clean state
+        removeOtherPlayerFromScene(playerId);
+
+        // Re-add the player with the working function from playerManager
+        addOtherPlayerToScene(playerData);
+    },
+};
 
 // Register a callback for when player list is updated
 export function onAllPlayers(callback) {
@@ -430,7 +616,8 @@ function setupSocketEvents() {
             }
 
             // Start respawn process for local player
-            startRespawnProcess();
+            respawnManager.initRespawnManager(sceneRef, playerStateRef, boatRef);
+            respawnManager.startRespawn();
         } else {
             // Handle other players' defeats
             const player = otherPlayers.get(data.player_id);
@@ -465,7 +652,11 @@ function setupSocketEvents() {
         // Check if this is the local player
         if (data.player_id === firebaseDocId) {
             // End respawn process for local player
-            endRespawnProcess();
+            respawnManager.completeRespawn();
+        } else {
+            console.log("in the respawn else")
+            // Reload the player's GLB model
+            respawnManager.reloadPlayerGLB(data.player_id);
         }
 
         // Update player health in player list
@@ -992,118 +1183,15 @@ function handleCannonFired(data) {
  * Start the respawn process for the local player
  */
 function startRespawnProcess() {
-    // Set respawning state
-    //isRespawning = true;
-    respawnCountdown = 3; // 3 seconds respawn time
-
-    // Create or show respawn overlay
-    if (!respawnOverlayElement) {
-        respawnOverlayElement = document.createElement('div');
-        respawnOverlayElement.style.position = 'absolute';
-        respawnOverlayElement.style.top = '0';
-        respawnOverlayElement.style.left = '0';
-        respawnOverlayElement.style.width = '100%';
-        respawnOverlayElement.style.height = '100%';
-        respawnOverlayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
-        respawnOverlayElement.style.display = 'flex';
-        respawnOverlayElement.style.justifyContent = 'center';
-        respawnOverlayElement.style.alignItems = 'center';
-        respawnOverlayElement.style.fontSize = '32px';
-        respawnOverlayElement.style.color = 'white';
-        respawnOverlayElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
-        respawnOverlayElement.style.zIndex = '1000';
-        document.body.appendChild(respawnOverlayElement);
-    }
-    // } else {
-    //    respawnOverlayElement.style.display = 'flex';
-    // }
-
-    // Update respawn text
-    respawnOverlayElement.textContent = `You were defeated! Respawning in ${respawnCountdown}...`;
-
-
-    // Start countdown
-    const countdownInterval = setInterval(() => {
-        respawnCountdown--;
-
-        if (respawnCountdown <= 0) {
-            clearInterval(countdownInterval);
-            respawnOverlayElement.style.display = 'none';
-
-            // The actual respawn will be triggered by the server
-        } else {
-            respawnOverlayElement.textContent = `You were defeated! Respawning in ${respawnCountdown}...`;
-        }
-    }, 1000);
-
-    // Disable player movement during respawn
-    //if (playerStateRef) {
-    //   playerStateRef.isRespawning = true;
-    //}
+    // Use the respawn manager instead
+    respawnManager.initRespawnManager(sceneRef, playerStateRef, boatRef);
+    respawnManager.startRespawn();
 }
 
 /**
  * End the respawn process for the local player
  */
 function endRespawnProcess() {
-    // Hide respawn overlay if it exists
-    if (respawnOverlayElement) {
-        respawnOverlayElement.style.display = 'none';
-    }
-
-    // Reset respawning state
-    isRespawning = false;
-
-    // Re-enable player controls if they were disabled
-    if (playerStateRef) {
-        playerStateRef.isRespawning = false;
-    }
-
-    // Reload player model
-    //if (boatRef) {
-    // Get current player position and rotation
-    const spawnPosition = new THREE.Vector3(0, 0, 0);
-    const spawnRotation = 0; // Default rotation
-
-    // sanity check if not removed
-    if (sceneRef && boatRef) {
-        sceneRef.remove(boatRef);
-    }
-
-    // Create a new group for the player
-    const newBoatGroup = new THREE.Group();
-
-    // Configure model loading
-    const modelConfig = {
-        modelId: 'player_self',
-        modelUrl: '/mediumpirate.glb',  // Path to player model
-        scaleValue: 20.0,
-        position: [0, 7, 0],
-        rotation: [0, Math.PI, 0]
-    };
-
-    // Load the model
-    loadGLBModel(newBoatGroup, modelConfig, (success) => {
-        if (!success) {
-            console.error('Failed to reload player model on respawn');
-        }
-
-        // Position at the respawn location
-        newBoatGroup.position.copy(spawnPosition);
-        newBoatGroup.rotation.y = spawnRotation;
-
-        // Update server with new position
-        updatePlayerPosition();
-
-        // Reset camera to default position
-        if (typeof resetCameraPosition === 'function') {
-            resetCameraPosition();
-        }
-
-        // Add to scene
-        sceneRef.add(newBoatGroup);
-
-        // Update boat reference
-        boatRef = newBoatGroup;
-    });
+    // The respawn manager now handles the complete respawn process
+    respawnManager.completeRespawn();
 }
