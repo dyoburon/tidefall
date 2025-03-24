@@ -260,8 +260,13 @@ def start_cannon_update_loop(socketio_instance):
         
         logger.info("Starting cannon update loop")
         while True:
-            update_cannon_positions()
-            socketio_instance.sleep(UPDATE_INTERVAL)  # Non-blocking sleep
+            try:
+                update_cannon_positions()
+                socketio_instance.sleep(UPDATE_INTERVAL)  # Non-blocking sleep
+            except Exception as e:
+                logger.error(f"Error in cannon update loop: {str(e)}")
+                socketio_instance.sleep(1)  # Brief pause before continuing
+                # The loop will automatically continue and effectively restart
     
     # Start the background task
     socketio_instance.start_background_task(cannon_update_loop)
