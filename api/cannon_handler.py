@@ -91,7 +91,7 @@ def handle_cannon_fire(data):
         cannons[cannon_id] = cannon_data
         
         # Broadcast cannon firing to all players
-        socketio.emit('cannon_fired', {
+        emit('cannon_fired', {
             'id': player_id,
             'position': cannon_data['position'],
             'direction': cannon_data['direction']
