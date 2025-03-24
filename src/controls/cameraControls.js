@@ -411,7 +411,6 @@ function handleCameraZoom() {
         isZooming = false;
         return;
     }
-
     // Get time since last frame - fallback to 1/60 if not available
     const deltaTime = window.lastFrameDeltaTime || (1 / 60);
 
