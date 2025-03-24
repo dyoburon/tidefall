@@ -77,6 +77,11 @@ export const respawnManager = {
         this.isRespawning = true;
         this.respawnCountdown = 3; // 3 seconds respawn time
 
+        // Make boat invisible during respawn countdown
+        if (this.boat) {
+            this.boat.visible = false;
+        }
+
         // Create or show respawn overlay
         if (!this.respawnOverlayElement) {
             this.respawnOverlayElement = document.createElement('div');
@@ -143,109 +148,33 @@ export const respawnManager = {
         const spawnPosition = this.getRespawnPosition();
         const spawnRotation = 0; // Default rotation
 
-        // Remove old boat if it exists
-        /*
-        if (this.scene && this.boat) {
-            this.scene.remove(this.boat);
-        }*/
+        // Instead of creating a new boat, just teleport and reset the existing one
+        if (this.boat) {
+            console.log('Teleporting boat to respawn point');
 
-        // Create a new group for the player
-        const newBoatGroup = new THREE.Group();
+            // Reset position
+            this.boat.position.copy(spawnPosition);
+            this.boat.rotation.y = spawnRotation;
 
-        // Configure model loading
-        const modelConfig = {
-            modelId: 'player_self',
-            modelUrl: '/mediumpirate.glb',  // Path to player model
-            scaleValue: 20.0,
-            position: [0, 7, 0],
-            rotation: [0, Math.PI, 0]
-        };
+            // Reset velocity
+            //boatVelocity.set(0, 0, 0);
 
-        // Load the model
-        loadGLBModel(newBoatGroup, modelConfig, (success) => {
-            if (!success) {
-                console.error('Failed to reload player model on respawn');
-            }
-
-            // Position at the respawn location
-            newBoatGroup.position.copy(spawnPosition);
-            newBoatGroup.rotation.y = spawnRotation;
+            // Make boat visible again
+            this.boat.visible = true;
 
             // Update server with new position
             updatePlayerPosition();
 
-            // Reset camera to default position
-            resetCameraPosition();
+            // Reset camera
+            //resetCameraPosition();
 
-            // Add to scene
-            sceneRef.add(newBoatGroup);
+            // Reconnect camera controls - this ensures camera targets are properly updated
+            //reconnectControlsToModel(this.boat);
 
-            // Update the boat object in place rather than reassigning
-            // This preserves all references across files
-            updateBoatReference(newBoatGroup);
-
-            // Make sure velocity is reset
-            boatVelocity.set(0, 0, 0);
-
-            // Ensure boat is reconnected to controls
-            reconnectControlsToModel(newBoatGroup);
-
-            // Validate that all systems are properly connected to the new boat model
-            //this.validateBoatConnections(newBoatGroup);
-        });
-    },
-
-    /**
-     * Validate that all systems are properly connected to the new boat model
-     * @param {THREE.Group} boatModel - The new boat model to validate connections for
-     */
-    validateBoatConnections(boatModel) {
-        let allValid = true;
-        const validationResults = {};
-
-        // Validate gameState reference
-        try {
-            const { boat: gameStateBoat } = require('./gameState.js');
-            validationResults.gameStateBoat = (gameStateBoat === boatModel);
-            if (!validationResults.gameStateBoat) {
-                console.warn('Boat reference in gameState.js does not match new boat model');
-                allValid = false;
-            }
-        } catch (error) {
-            console.error('Error validating gameState boat reference:', error);
-            validationResults.gameStateBoat = false;
-            allValid = false;
+            console.log('Boat respawned at:', spawnPosition);
+        } else {
+            console.error('Could not respawn boat: boat reference is null');
         }
-
-        // Validate shipController references
-        try {
-            // Test movement keys to verify the controls are properly connected
-            const { keys } = require('./gameState.js');
-
-            // Set forward key to true to test boat movement
-            const originalForward = keys.forward;
-            keys.forward = true;
-
-            // Small delay to allow frame updates
-            setTimeout(() => {
-                // Reset keys to original state
-                keys.forward = originalForward;
-
-                console.log('Movement key test completed');
-            }, 100);
-
-            validationResults.shipController = true;
-        } catch (error) {
-            console.error('Error validating shipController connection:', error);
-            validationResults.shipController = false;
-            allValid = false;
-        }
-
-        // Log validation results
-        console.log('Boat connection validation results:', validationResults);
-        console.log('All connections valid:', allValid);
-
-        return allValid;
     },
 
     /**
@@ -267,6 +196,7 @@ export const respawnManager = {
      */
     reloadPlayerGLB(playerId) {
         // Get references to other players
+
         const otherPlayers = getOtherPlayers();
         const player = otherPlayers.get(playerId);
 
@@ -274,8 +204,10 @@ export const respawnManager = {
 
         // Remove existing model from scene
         if (player.mesh) {
-            //sceneRef.remove(player.mesh);
+            player.mesh.visible = true;
         }
+
+        /*
 
         // Get spawn position (or use player's last known position)
         const spawnPosition = this.getRespawnPosition();
@@ -294,7 +226,7 @@ export const respawnManager = {
         removeOtherPlayerFromScene(playerId);
 
         // Re-add the player with the working function from playerManager
-        addOtherPlayerToScene(playerData);
+        addOtherPlayerToScene(playerData);*/
     },
 };
 
@@ -666,30 +598,15 @@ function setupSocketEvents() {
         // Check if this is the local player
         if (data.player_id === firebaseDocId) {
             // First, remove the boat from the scene temporarily
-            if (boatRef) {
-                // Store current model ID for later restoration
-                const currentModelId = boatRef.userData.modelId || `player_${firebaseDocId}`;
-                boatRef.userData.storedModelId = currentModelId;
-
-                // Remove the boat from the scene but don't destroy it
-                sceneRef.remove(boatRef);
-            }
 
             // Start respawn process for local player
-            respawnManager.initRespawnManager(sceneRef, playerStateRef, boatRef);
+            respawnManager.initRespawnManager(playerStateRef, boatRef);
             respawnManager.startRespawn();
         } else {
             // Handle other players' defeats
             const player = otherPlayers.get(data.player_id);
             if (player && player.mesh) {
-                // Temporarily remove the player's mesh from the scene
-                if (sceneRef.getObjectById(player.mesh.id)) {
-                    sceneRef.remove(player.mesh);
-
-                    // We won't unload the model since it will be restored when they respawn
-                    // Just storing that this player is currently defeated
-                    player.isDefeated = true;
-                }
+                player.mesh.visible = false;
             }
         }
 

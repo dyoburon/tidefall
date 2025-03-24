@@ -21,7 +21,7 @@ export const boatVelocity = new THREE.Vector3(0, 0, 0);
 export const boatSpeed = 0.7; // Much slower speed (was 0.03)
 export const rotationSpeed = 0.03; // Slower turning (was 0.03)
 export const keys = { forward: false, backward: false, left: false, right: false };
-export let boat = createBoat(scene);
+export const boat = createBoat(scene);
 let time = 0;
 
 // Add this near the top with other exports
@@ -361,24 +361,4 @@ export function updateDirectKnockback(deltaTime) {
     }
 
     return true;
-}
-
-// Add this function to update the boat reference after respawn
-export function updateBoatReference(newBoat) {
-    // Copy position and rotation
-    boat.position.copy(newBoat.position);
-    boat.rotation.copy(newBoat.rotation);
-    boat.scale.copy(newBoat.scale);
-
-    // Replace children (meshes, etc.)
-    while (boat.children.length > 0) {
-        boat.remove(boat.children[0]);
-    }
-
-    // Add all children from the new boat
-    newBoat.children.forEach(child => {
-        boat.add(child.clone());
-    });
-
-    return boat;
 }

@@ -435,37 +435,6 @@ export function resetCameraPosition() {
     console.log("Camera position reset");
 }
 
-// Function to reconnect camera controls to a new boat model
-export function reconnectControlsToModel(newBoatReference) {
-    // Update the boat reference if provided
-    if (newBoatReference) {
-        // Note: The actual updating of the boat reference will be done in gameState.js
-        // This is just to handle any camera-specific reconnection logic
-
-        // Reset camera target parameters
-        if (window.cameraOrbitPosition) {
-            window.cameraOrbitPosition.distance = DEFAULT_DISTANCE;
-            window.cameraOrbitPosition.phi = Math.PI / 5;
-            window.cameraOrbitPosition.theta = Math.PI;
-        }
-
-        // Reset any camera tracking variables
-        lastBoatRotation = getBoatRotationY();
-
-        // Force camera to locked mode
-        toggleCameraLock(true);
-
-        // Update camera immediately with new boat reference
-        updateCameraPosition();
-
-        console.log("Camera controls reconnected to new boat model");
-    } else {
-        console.warn("Cannot reconnect camera controls: No boat reference provided");
-    }
-
-    return true;
-}
-
 // Function to smoothly zoom camera to a specific distance
 export function zoomCameraTo(targetDistance) {
     zoomTarget = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, targetDistance));
