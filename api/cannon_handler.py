@@ -18,7 +18,7 @@ CANNON_SPEED = 100  # Units per second
 CANNON_LIFETIME = 1  # Seconds before a cannon projectile expires
 CANNON_DAMAGE = 10  # Damage inflicted by a cannon hit
 CANNON_COOLDOWN = 0.5  # Seconds between cannon shots
-CANNON_BLAST_RADIUS = 8  # Units radius for hit detection
+CANNON_BLAST_RADIUS = 10  # Units radius for hit detection
 
 # Data structure to track active cannon projectiles
 cannons = {}  # Dictionary to store active cannon projectiles
