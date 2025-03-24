@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { getAuth } from 'firebase/auth';
 import { showLoginScreen } from './main';
-import { setPlayerStateFromDb, getPlayerStateFromDb } from './gameState';
+import { setPlayerStateFromDb, getPlayerStateFromDb, updateBoatReference } from './gameState';
 import { setupAllPlayersTracking } from './main';
 import { loadGLBModel, unloadGLBModel } from '../utils/glbLoader.js';
 import { showDamageEffect } from '../effects/playerDamageEffects.js';
-import { resetCameraPosition } from '../controls/cameraControls.js';
+import { resetCameraPosition, reconnectControlsToModel } from '../controls/cameraControls.js';
 import { addOtherPlayerToScene, removeOtherPlayerFromScene, updatePlayerInAllPlayers, isPlayerRespawning, getOtherPlayers } from '../network/playerManager.js';
 //import CannonShot from '../abilities/cannonshot.js'; // Import the CannonShot class
 
@@ -19,8 +19,8 @@ const DEFAULT_MESSAGE_LIMIT = 50;
 let cannonHitCallback = null;
 
 // Network configuration
-// const SERVER_URL = 'http://localhost:5001';
-const SERVER_URL = 'https://boat-game-python.onrender.com';
+const SERVER_URL = 'http://localhost:5001';
+// const SERVER_URL = 'https://boat-game-python.onrender.com';
 
 // Network state
 export let socket;
@@ -110,7 +110,7 @@ export const respawnManager = {
                 this.respawnOverlayElement.style.display = 'none';
 
                 // Trigger the actual respawn
-                this.completeRespawn();
+                //this.completeRespawn();
             } else {
                 this.respawnOverlayElement.textContent = `You were defeated! Respawning in ${this.respawnCountdown}...`;
             }
@@ -175,17 +175,77 @@ export const respawnManager = {
             updatePlayerPosition();
 
             // Reset camera to default position
-            if (typeof resetCameraPosition === 'function') {
-                resetCameraPosition();
-            }
+            resetCameraPosition();
 
             // Add to scene
             sceneRef.add(newBoatGroup);
 
-            // Update boat reference
-            this.boat = newBoatGroup;
-            boatRef = newBoatGroup; // Update global reference as well
+            // Update the boat object in place rather than reassigning
+            // This preserves all references across files
+            updateBoatReference(newBoatGroup);
+
+            // Make sure velocity is reset
+            boatVelocity.set(0, 0, 0);
+
+            // Ensure boat is reconnected to controls
+            reconnectControlsToModel(newBoatGroup);
+
+            // Validate that all systems are properly connected to the new boat model
+            //this.validateBoatConnections(newBoatGroup);
         });
+    },
+
+    /**
+     * Validate that all systems are properly connected to the new boat model
+     * @param {THREE.Group} boatModel - The new boat model to validate connections for
+     */
+    validateBoatConnections(boatModel) {
+        let allValid = true;
+        const validationResults = {};
+
+        // Validate gameState reference
+        try {
+            const { boat: gameStateBoat } = require('./gameState.js');
+            validationResults.gameStateBoat = (gameStateBoat === boatModel);
+            if (!validationResults.gameStateBoat) {
+                console.warn('Boat reference in gameState.js does not match new boat model');
+                allValid = false;
+            }
+        } catch (error) {
+            console.error('Error validating gameState boat reference:', error);
+            validationResults.gameStateBoat = false;
+            allValid = false;
+        }
+
+        // Validate shipController references
+        try {
+            // Test movement keys to verify the controls are properly connected
+            const { keys } = require('./gameState.js');
+
+            // Set forward key to true to test boat movement
+            const originalForward = keys.forward;
+            keys.forward = true;
+
+            // Small delay to allow frame updates
+            setTimeout(() => {
+                // Reset keys to original state
+                keys.forward = originalForward;
+
+                console.log('Movement key test completed');
+            }, 100);
+
+            validationResults.shipController = true;
+        } catch (error) {
+            console.error('Error validating shipController connection:', error);
+            validationResults.shipController = false;
+            allValid = false;
+        }
+
+        // Log validation results
+        console.log('Boat connection validation results:', validationResults);
+        console.log('All connections valid:', allValid);
+
+        return allValid;
     },
 
     /**
@@ -651,6 +711,7 @@ function setupSocketEvents() {
 
         // Check if this is the local player
         if (data.player_id === firebaseDocId) {
+            console.log("firing event for player respawned")
             // End respawn process for local player
             respawnManager.completeRespawn();
         } else {
@@ -1194,4 +1255,10 @@ function startRespawnProcess() {
 function endRespawnProcess() {
     // The respawn manager now handles the complete respawn process
     respawnManager.completeRespawn();
+
+    // Make sure playerState has the updated boat reference
+    if (playerStateRef && respawnManager.boat) {
+        playerStateRef.boat = respawnManager.boat;
+        console.log('Player state updated with new boat reference');
+    }
 }

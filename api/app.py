@@ -746,5 +746,5 @@ def handle_get_inventory(data):
 if __name__ == '__main__':
     # Run the Socket.IO server with debug and reloader enabled
     
-    socketio.run(app, host='0.0.0.0') 
-    # socketio.run(app, host='0.0.0.0', port=5001, debug=True, use_reloader=True) 
+    # socketio.run(app, host='0.0.0.0') 
+    socketio.run(app, host='0.0.0.0', port=5001, debug=True, use_reloader=True) 
