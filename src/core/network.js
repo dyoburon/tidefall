@@ -56,13 +56,8 @@ let respawnOverlayElement = null;
 export function onAllPlayers(callback) {
     allPlayersCallback = callback;
 
-    // Register the socket listener if it doesn't exist
-
-
     if (socket) {
-
         socket.on('all_players', (players) => {
-
 
             // Add player stats if available
             players.forEach(player => {
@@ -110,9 +105,6 @@ export async function initializeNetwork(
     color,
     userId = null // Firebase UID
 ) {
-
-
-    // Store references to game objects
     sceneRef = scene;
     playerStateRef = playerState;
     boatRef = boat;
@@ -129,7 +121,6 @@ export async function initializeNetwork(
     // Initialize Socket.IO connection
     socket = io(SERVER_URL);
 
-    // Add this line to make socket globally available
     window.socket = socket;  // Make socket available on window for other components
 
     // Set up event handlers
@@ -147,17 +138,10 @@ export async function initializeNetwork(
         }
     }
 
-
-
     // Once connected, we'll send the player_join event
     socket.on('connect', () => {
 
         isConnected = true;
-
-        // CRUCIAL FIX: Get the current Firebase UID value at connection time
-        // This ensures we're using the most up-to-date value
-
-
         // Send player data with the token to authenticate
         socket.emit('player_join', {
             name: playerName,
@@ -205,28 +189,17 @@ function setupSocketEvents() {
 
         setupAllPlayersTracking();
 
-
-        // Example usage in game code
-
-
         getPlayerInventory((inventory) => {
-
             if (inventory) {
-
-
-
                 // Check if player has a specific item
                 if (playerHasItem(inventory, 'fish', 'Rare Tuna')) {
 
                 }
             }
         });
-
-
         // IMPORTANT FIX: Update the playerName variable with the server-stored name
         // This ensures clan tags are maintained after page reload
         if (data.name) {
-
             playerName = data.name; // Update the local variable directly with server data
         }
 
@@ -238,9 +211,6 @@ function setupSocketEvents() {
 
         // Request all current players (as a backup in case the automatic all_players event wasn't received)
         socket.emit('get_all_players');
-
-        // Request initial chat messages
-        // requestInitialMessages();
     });
 
     // Handle receiving all current players
@@ -288,8 +258,6 @@ function setupSocketEvents() {
 
     // Leaderboard events
     socket.on('leaderboard_update', (data) => {
-
-
         // Update the UI with new leaderboard data
         if (typeof updateLeaderboardData === 'function') {
             updateLeaderboardData(data);
@@ -300,8 +268,6 @@ function setupSocketEvents() {
 
     // Add this handler to process the player stats response
     socket.on('player_stats', (data) => {
-
-
         // Update local player stats
         if (data.fishCount !== undefined) {
             playerStats.fishCount = data.fishCount;
@@ -321,9 +287,6 @@ function setupSocketEvents() {
 
     // Chat events
     socket.on('new_message', (data) => {
-
-
-
         // Handle string messages (backwards compatibility)
         if (typeof data === 'string') {
 
@@ -333,16 +296,7 @@ function setupSocketEvents() {
                 sender_name: 'Unknown Sailor'
             };
         } else if (data && typeof data === 'object') {
-
-
-            // Check if data has required fields
-            if (!data.content) {
-
-            }
-
             if (!data.sender_name) {
-
-
                 // If this is our own message and it's missing the sender name
                 if (data.player_id === firebaseDocId) {
 
@@ -821,8 +775,6 @@ export function onFishCaught(value = 1) {
     // Update local stats
     playerStats.fishCount += value;
 
-
-
     // Send the fish caught action to server
     socket.emit('player_action', {
         action: 'fish_caught',
@@ -842,8 +794,6 @@ export function onMonsterKilled(value = 1) {
 
     // Update local stats
     playerStats.monsterKills += value;
-
-
 
     // Send the monster killed action to server
     socket.emit('player_action', {
@@ -882,8 +832,6 @@ export function onMoneyEarned(value) {
 function initializePlayerStats() {
     if (!isConnected || !socket || !playerId) return;
 
-
-
     // Request player stats from server
     socket.emit('get_player_stats', { id: playerId, player_id: firebaseDocId });
 }
@@ -912,18 +860,11 @@ export function sendChatMessage(content, messageType = 'global') {
             player_id: firebaseDocId
             // Removed player_name field to let server use its cached value
         };
-
-        // Log the complete message object being sent
-
-
         // Now send the message
         socket.emit('send_message', messageObj);
 
-
-
         return true;
     } catch (error) {
-
         return false;
     }
 }
@@ -931,9 +872,6 @@ export function sendChatMessage(content, messageType = 'global') {
 // Request recent messages from the server
 export function getRecentMessages(messageType = 'global', limit = DEFAULT_MESSAGE_LIMIT) {
     if (!isConnected || !socket) return false;
-
-
-
     socket.emit('get_recent_messages', {
         type: messageType,
         limit: limit,
@@ -956,11 +894,6 @@ export function onRecentMessages(callback) {
 // Get message history from memory
 export function getChatHistory() {
     return [...messageHistory]; // Return a copy to prevent external modification
-}
-
-// Request initial messages when connecting
-function requestInitialMessages() {
-    getRecentMessages('global', DEFAULT_MESSAGE_LIMIT);
 }
 
 // Add fish or other items to the player's inventory
