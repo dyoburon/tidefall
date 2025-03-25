@@ -1,34 +1,32 @@
-Step 1: Create a Centralized Respawn Manager in network.js
-File: src/core/network.js
-
-Create a new centralized respawnManager object with methods:
-initRespawnManager: Set up the manager with needed references
-startRespawn: Handle the respawn countdown and UI
-completeRespawn: Handle the actual respawning process
-setRespawnPosition: Determine the respawn position (centralized logic)
-Refactor the existing startRespawnProcess and endRespawnProcess functions to use the new respawn manager
-Step 2: Fix Camera Control Reset during Respawn
-File: src/controls/cameraControls.js
-
-Enhance the resetCameraPosition function to properly reconnect to the new player model
-Add a new reconnectControlsToModel function that will:
-Update any camera target references
-Reset the camera orbit parameters
-Reinitialize any touch/mouse controls that reference the boat
-Step 3: Connect the Systems
-File: src/core/network.js
-
-Modify the endRespawnProcess function to:
-Call the appropriate camera control reconnect functions after creating the new boat model
-Ensure proper state is passed to the camera controls
-Update any references in playerState to the new boat model
-Step 4: Update Game State and Movement Controls
-File: src/core/network.js
-
-Add a function to update the boat reference in gameState.js
-Make sure to call this after creating the new boat model in endRespawnProcess
-Verify that all systems using the boat reference are updated
-Add validation code to check that the controls are properly connected to the new boat model by:
-Verifying the boat reference is updated in all necessary places (gameState.js, shipController.js)
-Ensuring any input handlers are properly connected to the new boat
-Testing that movement keys trigger the expected boat behavior after respawn
+Step 1: Create Portal Structure and Visual Components
+File: /Users/dylanburton/Desktop/game/src/portals/vibeverse.js (new file)
+Create a createVibeversePortal function that will:
+Generate a circular green portal mesh (as shown in the image)
+Set up portal animation effects (glow, rotation)
+Create a placePortalInWorld function to position the portal in a designated location
+Step 2: Implement Reusable Portal Collision Logic
+File: /Users/dylanburton/Desktop/game/src/portals/vibeverse.js
+Create a generic checkPortalCollision function that:
+Takes portal position and player/boat position as parameters
+Calculates distance and determines if a collision occurred
+Returns boolean indicating collision status
+Export this function so it can be reused with other portals
+Create a handlePortalEntry function that will:
+Generate the portal URL with the required parameters
+Handle the redirection to "http://portal.pieter.com" with:
+ref=tidefall.io
+username parameter from player data
+No other parameters for now as specified
+Step 3: Integrate Portal with Game State
+File: /Users/dylanburton/Desktop/game/src/core/gameState.js
+Add portal object to the exported objects
+Import the Vibeverse portal module
+Add a function to initialize the portal in the game world
+Add a portal activation state to track when a player has entered the portal
+Step 4: Connect Portal to the Main Game Loop
+File: /Users/dylanburton/Desktop/game/src/main.js
+Import the portal collision detection function from vibeverse.js
+Get the boat position from gameState
+Add portal collision check to the update cycle using boat position
+Ensure portal visual effects are updated each frame
+Handle transition/redirection when a player enters the portal

@@ -11,6 +11,7 @@ import { scene } from '../core/gameState.js';
 // Font settings for the floating text
 const DEFAULT_FONT_SIZE = 50.0;
 const DEFAULT_DURATION = 1.0; // seconds
+const DEFAULT_DISAPPEAR = true; // seconds
 const DEFAULT_RISE_FACTOR = 3.0; // units per second
 const DEFAULT_COLOR = 0xffffff; // white
 
@@ -34,6 +35,7 @@ export function createFloatingText({
     color = DEFAULT_COLOR,
     size = DEFAULT_FONT_SIZE,
     duration = DEFAULT_DURATION,
+    dissapear = DEFAULT_DISAPPEAR,
     riseFactor = DEFAULT_RISE_FACTOR,
     fadeOut = true,
     onComplete
@@ -47,16 +49,21 @@ export function createFloatingText({
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    // Set canvas size - adjusting based on text length
+    // Calculate size multiplier - used for scaling various aspects
+    const sizeMultiplier = Math.max(1, size / DEFAULT_FONT_SIZE);
+
+    // Set canvas size - adjusting based on text length and size
     const textLength = text.length;
-    canvas.width = Math.max(128, textLength * 32);
-    canvas.height = 64;
+    // Make canvas extremely large to accommodate any size text
+    canvas.width = Math.max(2048, textLength * 256) * sizeMultiplier;
+    canvas.height = 1024 * sizeMultiplier;
 
     // Clear the canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Configure text style
-    const fontSize = 32 * size;
+    // Configure text style - use a more moderate scaling for font size
+    // to prevent excessive sizing while still allowing large text
+    const fontSize = Math.min(canvas.height / 2, 64 * Math.pow(sizeMultiplier, 0.7));
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -67,7 +74,7 @@ export function createFloatingText({
 
     // Add stroke/outline to make text more readable
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = Math.max(4, 6 * Math.pow(sizeMultiplier, 0.5)); // Scale stroke with size
 
     // Draw the text
     ctx.strokeText(text, canvas.width / 2, canvas.height / 2);
@@ -88,7 +95,8 @@ export function createFloatingText({
     const sprite = new THREE.Sprite(material);
     sprite.position.copy(position);
 
-    // Scale the sprite based on size
+    // Scale the sprite based on size - adjust this to make the text
+    // appear at the desired scale in the 3D world
     sprite.scale.set(size * 2, size, 1);
 
     // Add to scene
@@ -123,14 +131,16 @@ export function createFloatingText({
         if (now < endTime) {
             requestAnimationFrame(animate);
         } else {
-            // Cleanup
-            scene.remove(sprite);
-            sprite.material.dispose();
-            sprite.material.map.dispose();
+            if (dissapear) {
+                // Cleanup
+                scene.remove(sprite);
+                sprite.material.dispose();
+                sprite.material.map.dispose();
 
-            // Call onComplete callback if provided
-            if (typeof onComplete === 'function') {
-                onComplete();
+                // Call onComplete callback if provided
+                if (typeof onComplete === 'function') {
+                    onComplete();
+                }
             }
         }
     };

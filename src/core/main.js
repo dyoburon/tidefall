@@ -60,7 +60,7 @@ import { updateDragEffects, updateWaterDragEffects } from '../animations/monster
 import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updateEffectsSize } from '../utils/glbOutlineEffects.js';
 import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js';
 import { updateHarpoonTension } from '../abilities/harpoonTensionSystem.js';
-
+import { initializePortal, updatePortal, setPortalActivated } from '../portals/vibeverse.js'
 
 
 // Define these variables at the file level scope (outside any functions)
@@ -96,43 +96,6 @@ initDamageSystem();
 const abilityManager = new AbilityManager(scene, camera, boat);
 
 //const spatialAudio = new SpatialAudioSystem(camera, scene);
-
-/*
-// Create a test beacon sound
-const beaconPosition = new THREE.Vector3(0, 0, 0); // Place it somewhere in your world
-const beaconId = spatialAudio.createTestBeacon(beaconPosition, {
-    frequency: 440, // A4 note
-    interval: 2000, // Beep every 2 seconds
-    refDistance: 200, // Start hearing clearly at this distance
-    maxDistance: 1000, // Can't hear beyond this distance
-    volume: 0.8,
-    debug: true // Shows a visual sphere at the sound location
-});
-*/
-/*
-const cubeTextureLoader = new THREE.CubeTextureLoader();
-cubeTextureLoader.setPath('/threejs-water-shader/');
-const environmentMap = cubeTextureLoader.load([
-    './px.png', // positive x
-    './nx.png', // negative x 
-    './py.png', // positive y
-    './ny.png', // negative y
-    './pz.png', // positive z
-    './nz.png'  // negative z
-]);
-
-
-const waterResolution = { size: 124 };
-const water2 = new Water({
-    environmentMap,
-    resolution: waterResolution.size
-});
-//scene.add(water2);
-
-
-
-scene.background = environmentMap;
-scene.environment = environmentMap;*/
 
 
 // Add these variables to your global scope
@@ -186,6 +149,8 @@ if (window.realisticSkyMesh) {
     window.realisticSkyMesh = null;
 }
 toggleSkySystem();
+initializePortal(new THREE.Vector3(500, 0, 0), "Vibeverse");
+setPortalActivated()
 
 // Toggle to enable realistic sky
 const skyEnabled = toggleSkySystem();
@@ -257,17 +222,6 @@ const waterMaterial = new THREE.ShaderMaterial({
     fragmentShader: waterShader.fragmentShader,
     side: THREE.DoubleSide,
 });
-//const water = new THREE.Mesh(waterGeometry, waterMaterial);
-//water.rotation.x = -Math.PI / 2;
-//scene.add(water);
-
-// Comment out any calls to spawn massive islands
-/*
-spawnMassiveIsland(scene);
-*/
-
-// Add this line to spawn your block cave instead
-//const blockCave = spawnBlockCave(scene, new THREE.Vector3(0, 0, 0));
 
 
 spawnMassiveIsland(scene);
@@ -1106,15 +1060,6 @@ function animate() {
         // Our collision system will handle the response
     }
 
-    // Right before updating position, add this logging
-    if (window.collisionDebugActive && window.boatInParabolicFlight) {
-
-
-
-
-
-    }
-
     if (!collided) {
         // Only update X and Z position - Y is controlled by collision system when in flight
         if (window.boatInParabolicFlight) {
@@ -1225,6 +1170,8 @@ function animate() {
 
     // Update sail animation
     animateSail(deltaTime);
+
+    updatePortal(boat.position)
 
 
     abilityManager.update(deltaTime);

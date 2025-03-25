@@ -1,3 +1,23 @@
-We currently want to implement respawning when the player dies. There is some logic there already, but it's not designed in a very good way. We want to clean this up and make sure that there's a central place for the logic to spawn a player rather than duplicated logic in various places.
+Portal Entry (From a Game to the Portal):
+Players start in a game (e.g., fly.pieter.com).
 
-Right now, the controls don't get reset to the new model when they respawn
+When they enter the "Vibeverse Portal," they are redirected to http://portal.pieter.com with specific GET query parameters attached to the URL.
+
+Example URL:
+http://portal.pieter.com/?username=levelsio&color=red&speed=5&ref=fly.pieter.com
+
+The parameters include:
+username: The player's name (e.g., "levelsio").
+
+color: The player's color (e.g., "red" or a hex code like "#FF0000").
+
+speed: The player's speed in meters per second (e.g., "5").
+
+ref: The URL of the game they came from (e.g., "fly.pieter.com").
+
+Optional additional params: avatar_url, team, speed_x, speed_y, speed_z, rotation_x, rotation_y.
+
+
+Okay, we're going to create a portal to the Vibeverse, I'd like you to put the file in the portals folder and I'll attach an image of like what the portal should look like. the url of the site is tidefall.io for the ref so they can go back, dont set any other parameters for now
+
+

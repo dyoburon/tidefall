@@ -356,6 +356,9 @@ function setupSocketEvents() {
 
         setupAllPlayersTracking();
 
+        // Update local player information after loading
+        updateOtherPlayerInfo(data);
+
         getPlayerInventory((inventory) => {
             if (inventory) {
                 // Check if player has a specific item

@@ -148,6 +148,7 @@ export function showDamageNumber(position, amount) {
         color: 0xff0000, // Brighter red
         size: 2.5 * DAMAGE_NUMBER_SCALE, // Larger size
         duration: 2.0, // Longer duration
+        disappear: true,
         riseFactor: 3.0, // Slower rise
         fadeOut: true
     });
