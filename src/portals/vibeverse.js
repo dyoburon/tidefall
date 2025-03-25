@@ -12,7 +12,7 @@ const PORTAL_THICKNESS = 20; // Thickness of the arch border
 const PORTAL_SEGMENTS = 32;
 const PORTAL_COLOR = 0x00ff66; // Bright green color
 const PORTAL_GLOW_COLOR = 0x66ffaa;
-const PORTAL_COLLISION_RADIUS = 130; // How close the player needs to be to trigger the portal
+const PORTAL_COLLISION_RADIUS = 100; // How close the player needs to be to trigger the portal
 
 // Array to track all portals in the game
 const portals = [];
@@ -211,7 +211,7 @@ function checkPortalCollision(portalPos, playerPos, collisionRadius = PORTAL_COL
 
     // Calculate distance between player and portal (only on X-Z plane)
     const dx = portalPos.x - playerPos.x;
-    const dz = portalPos.z - playerPos.z;
+    const dz = (portalPos.z - 100) - playerPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
 
     // Return true if within collision radius
