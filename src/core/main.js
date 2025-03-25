@@ -159,7 +159,7 @@ if (refParam) {
     portalBackUrl = refParam
     const portal3 = createPortal(new THREE.Vector3(-500, 0, 0), "BACK", "https://" + portalBackUrl);
 }
-const portal1 = createPortal(new THREE.Vector3(500, 0, 0), "Vibeverse", "https://fly.pieter.com");
+const portal1 = createPortal(new THREE.Vector3(500, 0, 0), "Vibeverse", "https://portal.pieter.com");
 const portal4 = createPortal(new THREE.Vector3(500, 0, 600), "Jetski", "https://jetski.cemilsevim.com/");
 const portal2 = createPortal(new THREE.Vector3(500, 0, 300), "Metaverse", "https://metaverse-delta.vercel.app/", { useTexture: true, textureUrl: './zuck.jpg' });
 
