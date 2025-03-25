@@ -12,25 +12,16 @@ const PORTAL_THICKNESS = 20; // Thickness of the arch border
 const PORTAL_SEGMENTS = 32;
 const PORTAL_COLOR = 0x00ff66; // Bright green color
 const PORTAL_GLOW_COLOR = 0x66ffaa;
-const PORTAL_COLLISION_RADIUS = 100; // How close the player needs to be to trigger the portal
+const PORTAL_COLLISION_RADIUS = 130; // How close the player needs to be to trigger the portal
 
-// Portal state tracking
-let portalState = {
-    active: false,          // Whether the portal is active in the scene
-    activated: false,       // Whether the player has entered the portal
-    instance: null,         // Reference to the portal's THREE.Group
-};
-
-let portalMesh;
-let portalGlow;
-let portalPosition = new THREE.Vector3(100, 0, 0);
-let triggerCollision = false;
+// Array to track all portals in the game
+const portals = [];
 
 /**
  * Creates an arch-shaped portal mesh with glowing effect
  * @returns {THREE.Group} Portal group containing the main mesh and glow effect
  */
-export function createVibeversePortal() {
+function createVibeversePortal() {
     // Create a group to hold all portal elements
     const portalGroup = new THREE.Group();
 
@@ -76,25 +67,19 @@ export function createVibeversePortal() {
         side: THREE.DoubleSide
     });
 
-    portalGlow = new THREE.Mesh(glowGeometry, glowMaterial);
-    portalGlow.position.set(0, height * 0.35, -0.1); // Slightly behind the main portal
-
-    portalMesh = portalGroup; // Store the entire group as the portal mesh for reference
-    applyOutline(portalMesh);
+    applyOutline(portalGroup);
     return portalGroup;
 }
 
 /**
- * Places the portal in the world at the specified position
+ * Creates a new portal and places it in the world
  * @param {THREE.Vector3} position The world position for the portal
+ * @param {String} text The text to display above the portal
  * @param {Object} options Additional options for portal placement
- * @returns {THREE.Group} The placed portal group
+ * @returns {Object} The portal object with its properties and instance
  */
-export function placePortalInWorld(position, text, options = {}) {
+export function createPortal(position, text, url, options = {}) {
     const portal = createVibeversePortal();
-
-    // Store the position for collision detection
-    portalPosition = position.clone();
 
     // Set the portal position
     portal.position.copy(position);
@@ -112,7 +97,7 @@ export function placePortalInWorld(position, text, options = {}) {
     // Add a simple floating text above the portal
     const textPosition = position.clone();
     textPosition.y += 86; // Position above the arch
-    textPosition.z -= 100
+    textPosition.z -= 100;
 
     const textObj = createFloatingText({
         text: text,
@@ -128,96 +113,90 @@ export function placePortalInWorld(position, text, options = {}) {
     // Add the portal to the scene
     addToScene(portal);
 
-    return portal;
+    // Create portal object with all necessary properties
+    const portalObject = {
+        instance: portal,
+        link: url,
+        position: position.clone(),
+        active: true,
+        activated: false,
+        triggerCollision: false,
+        text: text,
+        id: portals.length
+    };
+
+    // Add to our portals array
+    portals.push(portalObject);
+
+    return portalObject;
 }
 
 /**
- * Updates the portal state and checks for player collision
+ * Updates all portals and checks for player collision
  * @param {THREE.Vector3} playerPosition The player's current position
- * @returns {Boolean} True if portal collision detected
+ * @returns {Array} Array of portal IDs that were collided with in this update
  */
-export function updatePortal(playerPosition) {
-    console.log("player position ", playerPosition)
-    // Skip if portal isn't active
-    if (!portalState.active || !portalState.instance) return false;
-    console.log("player position 2", playerPosition)
+export function updatePortals(playerPosition) {
+    if (!playerPosition) return [];
 
+    const collisions = [];
 
-    // Check if player has collided with the portal
-    let collision = null;
-    if (!triggerCollision) {
-        collision = checkPortalCollision(portalPosition, playerPosition);
-    }
+    // Check each portal for collision
+    portals.forEach(portal => {
+        if (!portal.active || portal.triggerCollision) return;
 
+        const collision = checkPortalCollision(portal.position, playerPosition);
 
-    console.log("collision ", collision)
-
-    // Handle collision if it's the first time
-    if (collision) {
-        triggerCollision = true;
-        const playerInfo = getPlayerInfo();
-        handlePortalEntry(playerInfo);
-    }
-
-    return collision;
-}
-
-/**
- * Returns the current position of the portal
- * @returns {THREE.Vector3} The portal's position
- */
-export function getPortalPosition() {
-    return portalPosition;
-}
-
-/**
- * Returns the current state of the portal
- * @returns {Object} Portal state object
- */
-export function getPortalState() {
-    return portalState;
-}
-
-/**
- * Initializes the Vibeverse portal in the game world
- * @param {THREE.Vector3} position The position to place the portal
- * @param {Object} options Additional options for portal placement
- * @returns {THREE.Group} The created portal instance
- */
-export function initializePortal(position, text, options = {}) {
-    // Remove any existing portal instance if it exists and is in the scene
-    if (portalState.instance) {
-        try {
-            scene.remove(portalState.instance);
-        } catch (e) {
-            console.error("Failed to remove existing portal:", e);
+        if (collision) {
+            portal.triggerCollision = true;
+            const playerInfo = getPlayerInfo();
+            handlePortalEntry(playerInfo, portal);
+            collisions.push(portal.id);
         }
-    }
+    });
 
-    // Create and place the new portal
-    const portal = placePortalInWorld(position, text, options);
-
-    // Update the portal state
-    portalState.active = true;
-    portalState.activated = false;
-    portalState.instance = portal;
-    portalPosition = position.clone(); // Update the position
-
-    return portal;
+    return collisions;
 }
 
 /**
- * Sets the activation state of the portal
- * @param {Boolean} status Whether the portal has been activated
+ * Get a specific portal by ID
+ * @param {Number} portalId The ID of the portal to retrieve
+ * @returns {Object} The portal object or null if not found
  */
-export function setPortalActivated(status = true) {
-    portalState.activated = status;
+export function getPortal(portalId) {
+    return portals.find(p => p.id === portalId) || null;
+}
 
-    // Additional portal activation logic can be added here
-    // such as visual effects or game state changes
-    if (status) {
-        console.log("Portal activated! Player has entered the Vibeverse.");
+/**
+ * Get all active portals
+ * @returns {Array} Array of all active portal objects
+ */
+export function getAllPortals() {
+    return [...portals];
+}
+
+/**
+ * Remove a portal from the scene and the tracking array
+ * @param {Number} portalId The ID of the portal to remove
+ * @returns {Boolean} True if removal was successful
+ */
+export function removePortal(portalId) {
+    const portalIndex = portals.findIndex(p => p.id === portalId);
+
+    if (portalIndex >= 0) {
+        const portal = portals[portalIndex];
+
+        // Remove from scene
+        if (portal.instance) {
+            scene.remove(portal.instance);
+        }
+
+        // Remove from tracking array
+        portals.splice(portalIndex, 1);
+        return true;
     }
+
+    return false;
 }
 
 /**
@@ -227,40 +206,42 @@ export function setPortalActivated(status = true) {
  * @param {Number} collisionRadius Optional custom collision radius
  * @returns {Boolean} True if collision detected, false otherwise
  */
-export function checkPortalCollision(portalPos, playerPos, collisionRadius = PORTAL_COLLISION_RADIUS) {
-    console.log("test here checkportal")
-    // Calculate horizontal distance only (x and z coordinates)
-    const dx = (portalPos.x) - playerPos.x;
-    const dz = (portalPos.z - 100) - playerPos.z;
+function checkPortalCollision(portalPos, playerPos, collisionRadius = PORTAL_COLLISION_RADIUS) {
+    if (!portalPos || !playerPos) return false;
+
+    // Calculate distance between player and portal (only on X-Z plane)
+    const dx = portalPos.x - playerPos.x;
+    const dz = portalPos.z - playerPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
 
-    // Collision occurs when distance is less than the collision radius
+    // Return true if within collision radius
     return distance < collisionRadius;
 }
 
 /**
  * Handles the player's entry into the portal, including URL generation and redirection
  * @param {Object} playerData The player data including username
+ * @param {Object} portal The portal object the player entered
  * @returns {String} The URL that would be navigated to
  */
-export function handlePortalEntry(playerData) {
-    console.log("in portal entry ");
-    // Get the player's username from game state or use default if not available
-    const username = playerData?.name || 'Captain';
+function handlePortalEntry(playerData, portal) {
+    if (!playerData) return null;
 
-    // Construct portal URL with required parameters
-    const baseUrl = 'http://portal.pieter.com';
+    const username = playerData.username || 'anonymous';
+    console.log(`Player ${username} entered portal to Vibeverse!`);
+
+    // For our demo, we'll just print info about which portal was entered
+    console.log(`Portal entered: ${portal.text} (ID: ${portal.id})`);
     const ref = 'tidefall.io';
 
-    // Build the URL with query parameters
-    let portalUrl = `${baseUrl}?ref=${encodeURIComponent(ref)}`;
+    // This would typically create a URL and redirect, but for this example
+    // we're just returning what the URL would be
+    //const baseUrl = 'https://vibeverse.io/portal';
+    //const portalUrl = `${baseUrl}?user=${encodeURIComponent(username)}&portal=${portal.id}`;
 
-    // In a real implementation, we would redirect the user to this URL
-    // However, for testing purposes, we'll just return the URL
-    console.log(`Portal activated! Redirecting to: ${portalUrl}`);
-
-    // For a real implementation, uncomment the following line:
+    let portalUrl = `${portal.link}?ref=${encodeURIComponent(ref)}`;
     window.location.href = portalUrl;
 
+    //console.log(`Would navigate to: ${portalUrl}`);
     return portalUrl;
 }

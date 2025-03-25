@@ -60,8 +60,12 @@ import { updateDragEffects, updateWaterDragEffects } from '../animations/monster
 import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updateEffectsSize } from '../utils/glbOutlineEffects.js';
 import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js';
 import { updateHarpoonTension } from '../abilities/harpoonTensionSystem.js';
-import { initializePortal, updatePortal, setPortalActivated } from '../portals/vibeverse.js'
+import { updatePortals, createPortal } from '../portals/vibeverse.js'
 
+// Define query parameters storage
+const urlParams = new URLSearchParams(window.location.search);
+const refParam = urlParams.get('ref');
+//console.log('Referral parameter:', refParam); // For debugging
 
 // Define these variables at the file level scope (outside any functions)
 // so they're accessible throughout the file
@@ -149,8 +153,18 @@ if (window.realisticSkyMesh) {
     window.realisticSkyMesh = null;
 }
 toggleSkySystem();
-initializePortal(new THREE.Vector3(500, 0, 0), "Vibeverse");
-setPortalActivated()
+//initializePortal(new THREE.Vector3(500, 0, 0), "Vibeverse");
+let portalBackUrl = "tidefall.io"
+if (refParam) {
+    portalBackUrl = refParam
+}
+const portal3 = createPortal(new THREE.Vector3(-500, 0, 0), "BACK", "https://" + portalBackUrl);
+const portal1 = createPortal(new THREE.Vector3(500, 0, 0), "Vibeverse", "https://fly.pieter.com");
+const portal2 = createPortal(new THREE.Vector3(500, 0, 300), "Metaverse", "https://metaverse-delta.vercel.app/");
+
+//const portal2 = createPortal(new THREE.Vector3(-300, 0, 200), "Island Portal");
+//const portal3 = createPortal(new THREE.Vector3(0, 0, 800), "Secret Portal");
+//setPortalActivated()
 
 // Toggle to enable realistic sky
 const skyEnabled = toggleSkySystem();
@@ -1171,7 +1185,7 @@ function animate() {
     // Update sail animation
     animateSail(deltaTime);
 
-    updatePortal(boat.position)
+    updatePortals(boat.position)
 
 
     abilityManager.update(deltaTime);
