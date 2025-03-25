@@ -45,15 +45,15 @@ function createVibeversePortal(options = {}) {
         const texture = textureLoader.load(options.textureUrl);
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(2, 2); // Much higher repeat values for smaller tiling pattern
+        texture.repeat.set(2, 2); // Repeat values for pattern
 
-        portalMaterial = new THREE.MeshStandardMaterial({
+        // Use MeshBasicMaterial which ignores lighting and is always fully bright
+        portalMaterial = new THREE.MeshBasicMaterial({
             map: texture,
             color: 0xffffff, // White color to show texture true colors
-            emissive: 0x555555, // Slight emissive for better visibility
-            emissiveIntensity: 0.4,
             transparent: false,
-            opacity: 1.0
+            opacity: 1.0,
+            side: THREE.DoubleSide // Make sure both sides are visible
         });
 
         console.log('Loading texture from:', options.textureUrl);
