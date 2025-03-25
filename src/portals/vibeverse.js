@@ -19,9 +19,10 @@ const portals = [];
 
 /**
  * Creates an arch-shaped portal mesh with glowing effect
+ * @param {Object} options Custom options for the portal
  * @returns {THREE.Group} Portal group containing the main mesh and glow effect
  */
-function createVibeversePortal() {
+function createVibeversePortal(options = {}) {
     // Create a group to hold all portal elements
     const portalGroup = new THREE.Group();
 
@@ -34,13 +35,38 @@ function createVibeversePortal() {
 
     // Left pillar
     const leftPillarGeometry = new THREE.BoxGeometry(thickness, height * 0.7, thickness);
-    const portalMaterial = new THREE.MeshStandardMaterial({
-        color: PORTAL_COLOR,
-        emissive: PORTAL_COLOR,
-        emissiveIntensity: 0.8,
-        transparent: true,
-        opacity: 0.8
-    });
+
+    // Create material - either textured or solid color
+    let portalMaterial;
+
+    if (options.useTexture && options.textureUrl) {
+        // Create textured material
+        const textureLoader = new THREE.TextureLoader();
+        const texture = textureLoader.load(options.textureUrl);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(2, 2); // Much higher repeat values for smaller tiling pattern
+
+        portalMaterial = new THREE.MeshStandardMaterial({
+            map: texture,
+            color: 0xffffff, // White color to show texture true colors
+            emissive: 0x555555, // Slight emissive for better visibility
+            emissiveIntensity: 0.4,
+            transparent: false,
+            opacity: 1.0
+        });
+
+        console.log('Loading texture from:', options.textureUrl);
+    } else {
+        // Create default solid color material
+        portalMaterial = new THREE.MeshStandardMaterial({
+            color: PORTAL_COLOR,
+            emissive: PORTAL_COLOR,
+            emissiveIntensity: 0.8,
+            transparent: true,
+            opacity: 0.8
+        });
+    }
 
     // Top arch - use half torus
     const archRadius = width / 2;
@@ -79,7 +105,17 @@ function createVibeversePortal() {
  * @returns {Object} The portal object with its properties and instance
  */
 export function createPortal(position, text, url, options = {}) {
-    const portal = createVibeversePortal();
+    // Check if this is a Metaverse portal (to use the image texture)
+    const portalOptions = {};
+
+    if (text === "Metaverse") {
+        // Use the provided image as a texture
+        // You'll need to provide the path to your image
+        portalOptions.useTexture = true;
+        portalOptions.textureUrl = './zuck.jpg'; // Replace with your actual image path
+    }
+
+    const portal = createVibeversePortal(portalOptions);
 
     // Set the portal position
     portal.position.copy(position);
