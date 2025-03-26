@@ -100,29 +100,52 @@ def init_firebase():
 
     return firebase_app, db
 
+# Call init_firebase and store results - needed for models
+firebase_app, db = init_firebase()
 
-init_firebase()
+# Load data from Firestore on startup (modified to run as a background task)
+def load_data_from_firestore_task():
+    """Loads data from Firestore in a background task."""
+    try:
+        logger.info("Starting background Firestore data load...")
+        # Load players
+        # This get_all() call is the likely source of the timeout
+        db_players = firestore_models.Player.get_all()
+        loaded_player_count = 0
+        for player_doc in db_players:
+            # Set all players to inactive on server start
+            # This update also adds latency. Consider if it's essential at startup.
+            if player_doc.get('active', False):
+                try:
+                    # Update Firestore document to inactive
+                    firestore_models.Player.update(player_doc['id'], active=False)
+                    # Update the dictionary we're about to cache
+                    player_doc['active'] = False
+                except Exception as update_err:
+                    # Log error if a single player update fails, but continue loading others
+                    logger.error(f"Failed to mark player {player_doc.get('id')} inactive during startup load: {update_err}")
 
-# Load data from Firestore on startup
-def load_data_from_firestore():
-    # Load players
-    db_players = firestore_models.Player.get_all()
-    for player in db_players:
-        # Set all players to inactive on server start
-        if player.get('active', False):
-            firestore_models.Player.update(player['id'], active=False)
-            player['active'] = False
-        players[player['id']] = player
-    
-    # Load islands
-    db_islands = firestore_models.Island.get_all()
-    for island in db_islands:
-        islands[island['id']] = island
-    
-    logger.info(f"Loaded {len(players)} players and {len(islands)} islands from Firestore")
+            # Add player data (with updated 'active' status if applicable) to the cache
+            players[player_doc['id']] = player_doc
+            loaded_player_count += 1
 
-# Call the function during app startup
-load_data_from_firestore()
+        # Load islands
+        db_islands = firestore_models.Island.get_all()
+        loaded_island_count = 0
+        for island_doc in db_islands:
+            islands[island_doc['id']] = island_doc
+            loaded_island_count += 1
+
+        logger.info(f"Background load complete: Loaded {loaded_player_count} players and {loaded_island_count} islands from Firestore")
+
+    except Exception as e:
+        # Log any exception during the background loading process
+        logger.error(f"Error during background Firestore data load: {e}", exc_info=True)
+
+# Start the background task *after* SocketIO is initialized
+# This allows the server to start without waiting for Firestore
+socketio.start_background_task(load_data_from_firestore_task)
+logger.info("Scheduled background task to load Firestore data.")
 
 # --- Discord Integration Helper ---
 def send_to_discord_bot(event_type, payload):
