@@ -32,12 +32,12 @@ export async function initializeFirebase() {
         // Firebase configuration embedded directly in code
         const firebaseConfig = {
             apiKey: process.env.FIREBASE_API_KEY,
-            authDomain: "theboatgame-db51b.firebaseapp.com",
-            projectId: "theboatgame-db51b",
-            storageBucket: "theboatgame-db51b.firebasestorage.app",
-            messagingSenderId: "162301964739",
-            appId: "1:162301964739:web:aca5082057d041921a8d76",
-            measurementId: "G-T7YK6HFWW7"
+            authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.FIREBASE_APP_ID,
+            measurementId: process.env.FIREBASE_MEASUREMENT_ID
         };
 
         // Initialize Firebase services

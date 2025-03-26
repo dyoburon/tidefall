@@ -19,8 +19,9 @@ const DEFAULT_MESSAGE_LIMIT = 50;
 let cannonHitCallback = null;
 
 // Network configuration
-//const SERVER_URL = 'http://localhost:5001';
-const SERVER_URL = 'https://boat-game-python.onrender.com';
+const SERVER_URL = process.env.NODE_ENV === 'production'
+    ? process.env.PRODUCTION_SERVER_URL
+    : process.env.DEVELOPMENT_SERVER_URL;
 
 // Network state
 export let socket;
