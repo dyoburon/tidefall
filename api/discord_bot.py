@@ -94,17 +94,17 @@ async def on_message(message):
     # Only process messages from the designated channel
     if message.channel.id == CHANNEL_ID:
         logger.info(f"Received message from Discord channel {CHANNEL_ID}: '{message.content}' by {message.author.display_name}")
-        send_to_game_server(message.author.display_name, message.content)
+        await send_to_game_server(message)
 
     # Allow processing commands if needed (optional)
     # await bot.process_commands(message)
 
-def send_to_game_server(author, content):
-    """Sends a message from Discord to the game server's API endpoint."""
+async def send_to_game_server(message):
+    """Sends a message from Discord to the game server's API endpoint and adds a reaction."""
     try:
         payload = {
-            'author': author,
-            'content': content
+            'author': message.author.display_name,
+            'content': message.content
         }
         headers = {
             'Content-Type': 'application/json',
@@ -112,12 +112,14 @@ def send_to_game_server(author, content):
         }
         response = requests.post(f"{GAME_SERVER_URL}/discord_message", json=payload, headers=headers, timeout=5)
         response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
-        logger.info(f"Sent message to game server: {author}: {content}")
-    except requests.exceptions.RequestException as e:
+        logger.info(f"Sent message to game server: {message.author.display_name}: {message.content}")
+        
+        # Add success reaction (rocket)
+        await message.add_reaction('🚀')
+    except (requests.exceptions.RequestException, Exception) as e:
         logger.error(f"Error sending message to game server: {e}")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred when sending to game server: {e}")
-
+        # Add failure reaction (red circle)
+        await message.add_reaction('🔴')
 
 # --- Main Execution ---
 def run_flask():
