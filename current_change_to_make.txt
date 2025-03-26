@@ -1,1 +1,1 @@
-so we want to no longer use socketio.run in production
+Radar Mode Switch: Toggle between different radar views (monster mode, fish mode, treasure mode).

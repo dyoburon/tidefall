@@ -30,11 +30,10 @@ export class ChatSystem {
         this.controlPanel = document.createElement('div');
         this.controlPanel.className = 'ship-control-panel';
         this.controlPanel.style.position = 'absolute';
-        this.controlPanel.style.bottom = isTouchDevice() ? '10px' : '20px';
-        this.controlPanel.style.right = isTouchDevice() ? '10px' : '20px';
-        this.controlPanel.style.width = isTouchDevice() ? '100px' : '200px';
-        //this.controlPanel.style.height = '100px';
-        this.controlPanel.style.backgroundColor = '#8B5A2B'; // Medium cedar wood
+        this.controlPanel.style.bottom = isTouchDevice() ? '20px' : '40px';
+        this.controlPanel.style.right = isTouchDevice() ? '20px' : '40px';
+        this.controlPanel.style.width = isTouchDevice() ? '200px' : '480px'; // Reduced from 680px
+        this.controlPanel.style.backgroundColor = '#3A2616';
         this.controlPanel.style.borderRadius = '8px';
         this.controlPanel.style.boxShadow = '0 0 15px rgba(0, 0, 0, 0.7), inset 0 0 10px rgba(0, 0, 0, 0.3)'; // Worn wood look
         this.controlPanel.style.border = '4px solid #A67C52'; // Lighter wood border
@@ -115,7 +114,7 @@ export class ChatSystem {
         // Content area
         const contentArea = document.createElement('div');
         contentArea.style.position = 'relative';
-        contentArea.style.height = '200px';
+        contentArea.style.height = isTouchDevice() ? '200px' : '420px'; // Reduced from 680px
         this.controlPanel.appendChild(contentArea);
 
         // Navigator's Map container (previously mini-map)
@@ -142,15 +141,15 @@ export class ChatSystem {
 
         // Check if on mobile device
         if (isTouchDevice()) {
-            // Mobile size (50% smaller)
-            radarScreen.style.width = '75px';
-            radarScreen.style.height = '75px';
-            // Also make the container smaller
-            contentArea.style.height = '100px'; // Half the original height
-        } else {
-            // Desktop size (original)
+            // Mobile size (unchanged)
             radarScreen.style.width = '150px';
             radarScreen.style.height = '150px';
+            // Keep container smaller for mobile
+            contentArea.style.height = '100px';
+        } else {
+            // Desktop size 
+            radarScreen.style.width = '300px'; // Reduced from 400px
+            radarScreen.style.height = '300px'; // Reduced from 400px
         }
 
         radarScreen.style.borderRadius = '50%';
@@ -280,10 +279,10 @@ export class ChatSystem {
         this.messagesArea.style.padding = isTouchDevice() ? '2px 3px' : '5px 8px';
         this.messagesArea.style.overflowY = 'auto';
         this.messagesArea.style.color = '#8B4513'; // Dark brown text
-        this.messagesArea.style.fontSize = isTouchDevice() ? '7px' : '12px';
+        this.messagesArea.style.fontSize = isTouchDevice() ? '18px' : '31px'; // Increased by 30% from 14px/24px
         this.messagesArea.style.fontFamily = 'serif';
-        this.messagesArea.style.height = isTouchDevice() ? '70px' : '140px';
-        this.messagesArea.style.lineHeight = isTouchDevice() ? '10px' : '20px';
+        this.messagesArea.style.height = isTouchDevice() ? '280px' : '680px'; // Reduced from 680px
+        this.messagesArea.style.lineHeight = isTouchDevice() ? '26px' : '52px'; // Increased by 30% from 20px/40px
         this.chatContainer.appendChild(this.messagesArea);
 
         // Input area (quill and ink design)
@@ -493,8 +492,8 @@ export class ChatSystem {
         messageEl.style.marginBottom = isTouchDevice() ? '2px' : '5px';
         messageEl.style.wordBreak = 'break-word';
         messageEl.style.fontFamily = 'serif';
-        messageEl.style.fontSize = isTouchDevice() ? '7px' : '12px';
-        messageEl.style.lineHeight = isTouchDevice() ? '9px' : '20px';
+        messageEl.style.fontSize = isTouchDevice() ? '9px' : '16px'; // Increased by 30% from 7px/12px
+        messageEl.style.lineHeight = isTouchDevice() ? '12px' : '26px'; // Increased by 30% from 9px/20px
 
         // Format timestamp
         let timeStr = '';
@@ -506,7 +505,7 @@ export class ChatSystem {
             // Sanitize the string message to prevent XSS
             const sanitizedMessage = this.sanitizeText(message);
             messageEl.innerHTML = `
-                <span style="color: #8B4513; font-size: ${isTouchDevice() ? '6px' : '10px'}; font-style: italic;">${timeStr}</span>
+                <span style="color: #8B4513; font-size: ${isTouchDevice() ? '8px' : '13px'}; font-style: italic;">${timeStr}</span>
                 <span style="color: #3D1C00;">${sanitizedMessage}</span>
             `;
         } else if (message && typeof message === 'object') {
@@ -588,7 +587,7 @@ export class ChatSystem {
 
             // Create message HTML with quill writing style
             messageEl.innerHTML = `
-                <span style="color: #8B4513; font-size: ${isTouchDevice() ? '6px' : '10px'}; font-style: italic;">${timeStr}</span>
+                <span style="color: #8B4513; font-size: ${isTouchDevice() ? '8px' : '13px'}; font-style: italic;">${timeStr}</span>
                 <span style="font-weight: bold;"> ${formattedSenderName}: </span>
                 <span style="color: #3D1C00;">${messageContent}</span>
             `;
@@ -676,29 +675,29 @@ export class ChatSystem {
 
             // Update all the size-dependent properties
             // You could re-render the entire UI or just update specific properties
-            this.controlPanel.style.width = isMobile ? '100px' : '200px';
-            this.controlPanel.style.bottom = isMobile ? '10px' : '20px';
-            this.controlPanel.style.right = isMobile ? '10px' : '20px';
+            this.controlPanel.style.width = isMobile ? '200px' : '480px'; // Reduced from 680px
+            this.controlPanel.style.bottom = isMobile ? '20px' : '40px';
+            this.controlPanel.style.right = isMobile ? '20px' : '40px';
 
             // ... update other properties as needed
 
             // Specifically update the radar screen size
             const radarScreen = this.radarScreen;
             if (radarScreen) {
-                radarScreen.style.width = isMobile ? '75px' : '150px';
-                radarScreen.style.height = isMobile ? '75px' : '150px';
+                radarScreen.style.width = isMobile ? '150px' : '300px'; // Reduced from 510px
+                radarScreen.style.height = isMobile ? '150px' : '300px'; // Reduced from 510px
             }
 
             // Update content area height
             const contentArea = this.controlPanel.querySelector('[style*="position: relative"]');
             if (contentArea) {
-                contentArea.style.height = isMobile ? '100px' : '200px';
+                contentArea.style.height = isMobile ? '200px' : '420px'; // Reduced from 680px
             }
 
             // Update messages area
             if (this.messagesArea) {
-                this.messagesArea.style.height = isMobile ? '70px' : '140px';
-                this.messagesArea.style.fontSize = isTouchDevice() ? '7px' : '12px';
+                this.messagesArea.style.fontSize = isTouchDevice() ? '18px' : '31px'; // Increased by 30%
+                this.messagesArea.style.lineHeight = isTouchDevice() ? '26px' : '52px'; // Increased by 30%
             }
 
             // ... update other dynamic elements
@@ -1058,4 +1057,4 @@ export function initChat() {
 export function initMiniMap() {
     const miniMap = new MiniMap();
     return miniMap;
-} 
+}
