@@ -25,6 +25,15 @@ planning_template.json
         change_to_make: @current_change_to_make.txt
         files: [@files]
 
+
+        Follow instructions from @planning_template.json. We are implementing "Make a custom change to existing files" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
+
+        This is the planning step, do not implement any code.
+        
+        Here are the defined variables
+        change_to_make: @current_change_to_make
+        files: @harpoonshot, @cannon_handler.py, @network.js, @playerManager.js
+
 iterate_template.json
 
     Follow instructions from @iterate_template.json. We are implementing "Iterate plan with changes" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
@@ -42,6 +51,13 @@ execute_template.json
     current_full_plan: @
     step_to_implement: <num>
     context_files: <list of files>
+
+
+    Follow instructions from @execute.template.json. We are implementing "plan_execution" follow the instructions for this json object. The detailed instructions for this are in the "instructions" field.
+
+    current_full_plan: @current_full_plan
+    step_to_implement: all steps 1.1-1.4
+    context_files: @app.py, @cannon_handler, @player_handler
 
 debug_template.json
     
