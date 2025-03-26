@@ -1,3 +1,4 @@
+import eventlet
 import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory
@@ -29,6 +30,9 @@ DISCORD_SHARED_SECRET = os.environ.get("DISCORD_SHARED_SECRET", "default_secret_
 # Configure logging based on environment
 env = os.environ.get('FLASK_ENV', 'development')
 log_level = logging.DEBUG if env == 'development' else logging.INFO
+
+
+eventlet.monkey_patch()
 
 logging.basicConfig(
     level=log_level,
