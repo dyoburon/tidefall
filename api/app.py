@@ -264,6 +264,7 @@ def handle_player_join(data):
                  send_to_discord_bot('player_join', {'name': players[player_doc_id].get('name', 'Unknown')})
             # --- End Discord notification ---
 
+
         else:
             logger.warning(f"Firebase token verification failed. No data will be stored.")
             emit('auth_error', {'message': 'Authentication failed'})
