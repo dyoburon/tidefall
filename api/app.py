@@ -47,6 +47,7 @@ werkzeug_logger.setLevel(logging.ERROR)  # Changed from INFO to ERROR to hide po
 firebase_logger = logging.getLogger('firebase_admin')
 firebase_logger.setLevel(logging.WARNING)  # Changed from DEBUG to WARNING
 
+
 # Initialize Flask app and Socket.IO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ship_game_secret_key')
