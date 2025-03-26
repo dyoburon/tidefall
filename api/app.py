@@ -833,5 +833,5 @@ def handle_discord_message():
 if __name__ == '__main__':
     # Run the Socket.IO server with debug and reloader enabled
     
-    # socketio.run(app, host='0.0.0.0') 
-    socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=False) 
+    socketio.run(app, host='0.0.0.0') 
+    # socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=False) 
