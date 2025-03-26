@@ -14,9 +14,17 @@ from collections import defaultdict
 import mimetypes
 import cannon_handler  # Import the cannon handler module
 import player_handler  # Import the player handler module
+import requests # <-- Add requests for HTTP calls
+import threading # <-- Add threading for non-blocking HTTP calls
 
 # Load environment variables from .env file
 load_dotenv()
+
+# --- Discord Integration Configuration ---
+DISCORD_BOT_URL = os.environ.get("DISCORD_BOT_URL", "http://127.0.0.1:5002") # URL of your discord_bot.py Flask API
+DISCORD_SHARED_SECRET = os.environ.get("DISCORD_SHARED_SECRET", "default_secret_key") # Secret key for API security
+# --- End Discord Integration Configuration ---
+
 
 # Configure logging
 logging.basicConfig(
@@ -109,6 +117,37 @@ def load_data_from_firestore():
 # Call the function during app startup
 load_data_from_firestore()
 
+# --- Discord Integration Helper ---
+def send_to_discord_bot(event_type, payload):
+    """Sends an event to the Discord bot's API endpoint in a background thread."""
+    if not DISCORD_BOT_URL:
+        # logger.warning("DISCORD_BOT_URL not set. Skipping Discord notification.")
+        return # Silently fail if not configured
+
+    def task():
+        try:
+            url = f"{DISCORD_BOT_URL}/game_event"
+            headers = {
+                'Content-Type': 'application/json',
+                'X-Secret-Key': DISCORD_SHARED_SECRET # Include shared secret
+            }
+            data = {
+                'type': event_type,
+                'payload': payload
+            }
+            response = requests.post(url, json=data, headers=headers, timeout=5)
+            response.raise_for_status()
+            logger.info(f"Sent '{event_type}' event to Discord bot.")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to send event to Discord bot: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error sending event to Discord bot: {e}")
+
+    # Run the request in a separate thread to avoid blocking the main game loop
+    thread = threading.Thread(target=task, daemon=True)
+    thread.start()
+# --- End Discord Integration Helper ---
+
 
 # Socket.IO event handlers
 @socketio.on('connect')
@@ -143,13 +182,14 @@ def handle_player_join(data):
     # Get the Firebase token and UID from the request
     firebase_token = data.get('firebaseToken')
     claimed_firebase_uid = data.get('player_id')
+    player_doc_id = None # Variable to store the docid for notification
+
     # ONLY proceed with database storage if Firebase authentication is provided and valid
     if firebase_token and claimed_firebase_uid:
         verified_uid = auth.verify_firebase_token(firebase_token)
         
         if verified_uid and verified_uid == claimed_firebase_uid:
             #logger.info(f"Authentication successful for Firebase user: {verified_uid}")
-            # Use the Firebase UID directly without the prefix
             player_id = verified_uid
             
             # Store player_id directly on request for simplicity
@@ -160,6 +200,7 @@ def handle_player_join(data):
             
             # Now proceed with database operations
             docid = "firebase_" + player_id
+            player_doc_id = docid # Store for later use
 
             socket_to_user_map[request.sid] = docid
 
@@ -208,6 +249,12 @@ def handle_player_join(data):
 
             # Broadcast to all clients that a new player joined
             emit('player_joined', players[docid], broadcast=True)
+
+            # --- Send notification to Discord ---
+            if player_doc_id and player_doc_id in players:
+                 send_to_discord_bot('player_join', {'name': players[player_doc_id].get('name', 'Unknown')})
+            # --- End Discord notification ---
+
         else:
             logger.warning(f"Firebase token verification failed. No data will be stored.")
             emit('auth_error', {'message': 'Authentication failed'})
@@ -479,7 +526,9 @@ def handle_chat_message(data):
     try:
         # Send as JSON to ensure proper serialization
         emit('new_message', message_obj, broadcast=True)
-        #print(f"CHAT DEBUG: Broadcast complete")
+        # --- Send chat message to Discord ---
+        send_to_discord_bot('chat', message_obj)
+        # --- End Discord chat sending ---
     except Exception as e:
         #print(f"CHAT DEBUG: ERROR BROADCASTING MESSAGE: {str(e)}")
         logger.error(f"CHAT DEBUG: Error broadcasting message: {str(e)}")
@@ -742,6 +791,44 @@ def handle_get_inventory(data):
         emit('inventory_data', inventory)
     else:
         emit('inventory_data', {'error': 'Inventory not found'})
+
+# --- Discord Integration Endpoint ---
+@app.route('/discord_message', methods=['POST'])
+def handle_discord_message():
+    """Receives messages from the Discord bot."""
+    # Security check
+    auth_secret = request.headers.get('X-Secret-Key')
+    if auth_secret != DISCORD_SHARED_SECRET:
+        logger.warning("Received unauthorized request to /discord_message")
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.json
+    author = data.get('author')
+    content = data.get('content')
+
+    if not author or not content:
+        logger.warning("Received invalid data on /discord_message")
+        return jsonify({"error": "Invalid data"}), 400
+
+    # Format message for in-game chat
+    # Using a distinct name format to indicate it's from Discord
+    sender_name = f"[Discord] {author}"
+    message_obj = {
+        'content': content,
+        'player_id': 'discord_bot', # Use a special ID for bot messages
+        'sender_name': sender_name,
+        'timestamp': datetime.now().isoformat()
+    }
+
+    # Broadcast the message to all connected game clients
+    try:
+        socketio.emit('new_message', message_obj)
+        logger.info(f"Broadcasted Discord message from '{author}' to game clients.")
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logger.error(f"Error broadcasting Discord message to game clients: {e}")
+        return jsonify({"error": "Failed to broadcast message"}), 500
+# --- End Discord Integration Endpoint ---
 
 if __name__ == '__main__':
     # Run the Socket.IO server with debug and reloader enabled
