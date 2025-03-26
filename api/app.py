@@ -15,7 +15,9 @@ from collections import defaultdict
 import mimetypes
 import cannon_handler  # Import the cannon handler module
 import player_handler  # Import the player handler module
+import harpoon_handler # <-- Import the new harpoon handler
 import requests # <-- Add requests for HTTP calls
+import projectile_manager # <-- Import the new manager
 
 # Load environment variables from .env file
 load_dotenv()
@@ -62,10 +64,14 @@ socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLO
 players = {}
 islands = {}
 
-# Initialize cannon handler with Socket.IO and players reference
+# --- Initialize Handlers and Managers ---
+# Initialize the projectile manager FIRST, as handlers might register callbacks
+projectile_manager.init_manager(socketio)
+
+# Initialize specific handlers (they might register collision checkers now)
 cannon_handler.init_socketio(socketio, players)
 player_handler.init_handler(socketio, players)
-
+harpoon_handler.init_socketio(socketio, players) # This will now register its checker
 
 # Add this near your other global variables
 last_db_update = defaultdict(float)  # Track last database update time for each player
