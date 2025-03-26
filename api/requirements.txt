@@ -9,3 +9,4 @@ psycopg2-binary>=2.9.0
 eventlet==0.33.3 
 discord.py>=2.3.2
 requests>=2.31.0
+gunicorn>=23.0.1
