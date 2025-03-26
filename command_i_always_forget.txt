@@ -1,0 +1,2 @@
+lsof -i :5001
+kill <PID>

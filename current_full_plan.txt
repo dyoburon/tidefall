@@ -1,32 +1,32 @@
-Step 1: Create Portal Structure and Visual Components
-File: /Users/dylanburton/Desktop/game/src/portals/vibeverse.js (new file)
-Create a createVibeversePortal function that will:
-Generate a circular green portal mesh (as shown in the image)
-Set up portal animation effects (glow, rotation)
-Create a placePortalInWorld function to position the portal in a designated location
-Step 2: Implement Reusable Portal Collision Logic
-File: /Users/dylanburton/Desktop/game/src/portals/vibeverse.js
-Create a generic checkPortalCollision function that:
-Takes portal position and player/boat position as parameters
-Calculates distance and determines if a collision occurred
-Returns boolean indicating collision status
-Export this function so it can be reused with other portals
-Create a handlePortalEntry function that will:
-Generate the portal URL with the required parameters
-Handle the redirection to "http://portal.pieter.com" with:
-ref=tidefall.io
-username parameter from player data
-No other parameters for now as specified
-Step 3: Integrate Portal with Game State
-File: /Users/dylanburton/Desktop/game/src/core/gameState.js
-Add portal object to the exported objects
-Import the Vibeverse portal module
-Add a function to initialize the portal in the game world
-Add a portal activation state to track when a player has entered the portal
-Step 4: Connect Portal to the Main Game Loop
-File: /Users/dylanburton/Desktop/game/src/main.js
-Import the portal collision detection function from vibeverse.js
-Get the boat position from gameState
-Add portal collision check to the update cycle using boat position
-Ensure portal visual effects are updated each frame
-Handle transition/redirection when a player enters the portal
+Step 1: Separate MiniMap into its own Module
+File: src/ui/miniMap.js (New File)
+
+Extract the MiniMap class from chat.js to this new dedicated file
+Enhance the class with the radar mode functionality:
+Add currentRadarMode property to track active mode (monster/fish/treasure)
+Add new marker collections for fish and treasure
+Create a setRadarMode(mode) method to handle switching between modes
+Implement visualization methods for each mode
+Export the MiniMap class and an initialization function
+Step 2: Update Chat.js to Focus on Chat Functionality
+File: src/ui/chat.js
+
+Remove the MiniMap class and related code
+Keep the UI container creation for the map display
+Update imports to reference the new miniMap.js file
+Modify initChat() to no longer handle minimap initialization
+Step 3: Create Integration Module for Chat and MiniMap
+File: src/ui/navigation.js (New File)
+
+Create a module that handles the integration of chat UI and minimap
+Implement methods to connect the radar container (from chat UI) with the minimap functionality
+Add the radar mode toggle UI controls here
+Provide methods for the game to update entity data (monsters, fish, treasure)
+Export an initialization function that sets everything up
+Step 4: Update UI.js to Use the New Structure
+File: src/ui/ui.js
+
+Update imports to reference the new file structure
+Modify the GameUI constructor to initialize chat and minimap separately
+Connect the game data sources to the appropriate radar modes
+Ensure the radar mode switch is accessible from the main UI
