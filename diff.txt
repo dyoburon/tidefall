@@ -18,6 +18,7 @@ CANNON_COOLDOWN = 0.5  # Seconds between cannon shots
 CANNON_BLAST_RADIUS = 5  # Units radius for hit detection
 CANNON_BLAST_RADIUS = 8  # Units radius for hit detection
 
+
 # Data structure to track active cannon projectiles
 cannons = {}  # Dictionary to store active cannon projectiles
 @ -32,6 +34,9 @@ def init_socketio(socketio_instance, players_reference):
