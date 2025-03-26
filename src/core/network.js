@@ -19,7 +19,7 @@ const DEFAULT_MESSAGE_LIMIT = 50;
 let cannonHitCallback = null;
 
 // Network configuration
-const SERVER_URL = process.env.NODE_ENV === 'production'
+const SERVER_URL = process.env.NODE_ENV_FIREBASE === 'production'
     ? process.env.PRODUCTION_SERVER_URL
     : process.env.DEVELOPMENT_SERVER_URL;
 
