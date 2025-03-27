@@ -18,6 +18,7 @@ import player_handler  # Import the player handler module
 import harpoon_handler # <-- Import the new harpoon handler
 import requests # <-- Add requests for HTTP calls
 import projectile_manager # <-- Import the new manager
+import threading # <-- Add threading for non-blocking HTTP calls
 
 # Load environment variables from .env file
 load_dotenv()
@@ -148,8 +149,6 @@ def send_to_discord_bot(event_type, payload):
                 'type': event_type,
                 'payload': payload
             }
-            # Use requests directly within the task; Eventlet's monkey-patching
-            # should make this non-blocking.
             response = requests.post(url, json=data, headers=headers, timeout=5)
             response.raise_for_status()
             logger.info(f"Sent '{event_type}' event to Discord bot.")
@@ -158,9 +157,9 @@ def send_to_discord_bot(event_type, payload):
         except Exception as e:
             logger.error(f"Unexpected error sending event to Discord bot: {e}")
 
-    # Use socketio.start_background_task instead of threading.Thread
-    # This ensures the task runs as an Eventlet green thread.
-    socketio.start_background_task(task)
+    # Run the request in a separate thread to avoid blocking the main game loop
+    thread = threading.Thread(target=task, daemon=True)
+    thread.start()
 # --- End Discord Integration Helper ---
 
 
