@@ -118,6 +118,7 @@ load_data_from_firestore()
 # --- Discord Integration Helper ---
 def send_to_discord_bot(event_type, payload):
     """Sends an event to the Discord bot's API endpoint in a background thread."""
+    #print(f"FLASK_ENV_RUN: {os.environ.get('FLASK_ENV_RUN', 'development')}")
     if not DISCORD_BOT_URL:
         # logger.warning("DISCORD_BOT_URL not set. Skipping Discord notification.")
         return # Silently fail if not configured
@@ -513,9 +514,13 @@ def handle_chat_message(data):
     final_name = player_name or 'Unknown Sailor'
     #print(f"CHAT DEBUG: FINAL NAME FOR CHAT: {final_name}")
     
+    # --- Sanitize the message content ---
+    sanitized_content = sanitize_player_name(content) # Reuse existing sanitizer for now
+    # -------------------------------------
+    
     # Send message object with more info instead of just content
     message_obj = {
-        'content': content,
+        'content': sanitized_content, # Use sanitized content
         'player_id': player_id,
         'sender_name': final_name,
         'timestamp': datetime.now().isoformat()
@@ -529,7 +534,11 @@ def handle_chat_message(data):
         # Send as JSON to ensure proper serialization
         emit('new_message', message_obj, broadcast=True)
         # --- Send chat message to Discord ---
-        send_to_discord_bot('chat', message_obj)
+        # Consider if the Discord bot needs sanitized or raw content.
+        # If Discord also displays HTML, send sanitized_content there too.
+        discord_payload = message_obj.copy()
+        # discord_payload['content'] = content # Send raw content if Discord handles it safely
+        send_to_discord_bot('chat', discord_payload)
         # --- End Discord chat sending ---
     except Exception as e:
         #print(f"CHAT DEBUG: ERROR BROADCASTING MESSAGE: {str(e)}")
@@ -565,7 +574,7 @@ def handle_update_player_color(data):
     firestore_models.Player.update(player_id, color=color)
     logger.info(f"Updated player {player_id} color to {color}")
     
-    # Broadcast to all other clients
+    # Broadcast to all other clients@
     emit('player_updated', {
         'id': player_id,
         'color': color
@@ -812,11 +821,15 @@ def handle_discord_message():
         logger.warning("Received invalid data on /discord_message")
         return jsonify({"error": "Invalid data"}), 400
 
+    # --- Sanitize content received from Discord ---
+    sanitized_content = sanitize_player_name(content) # Reuse existing sanitizer
+    # --------------------------------------------
+
     # Format message for in-game chat
     # Using a distinct name format to indicate it's from Discord
     sender_name = f"[Discord] {author}"
     message_obj = {
-        'content': content,
+        'content': sanitized_content, # Use sanitized content
         'player_id': 'discord_bot', # Use a special ID for bot messages
         'sender_name': sender_name,
         'timestamp': datetime.now().isoformat()
@@ -844,6 +857,6 @@ if __name__ == '__main__':
     harpoon_handler.init_socketio(socketio, players) # This will now register its checker
     
     if env == 'development':
-        socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=False) 
+        socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=True) 
     else:
         socketio.run(app, host='0.0.0.0') 
