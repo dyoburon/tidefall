@@ -11,7 +11,6 @@ import {
     activeHarpoons,
     attachHarpoonToIsland
 } from './harpoonDamageSystem.js';
-import { fireHarpoon as networkFireHarpoon } from '../network/harpoonManager.js';
 import { initDragEffects, cleanupDragEffects } from '../animations/monsterDragEffects.js';
 import AimingSystem from './aimingSystem.js';
 import { checkAllIslandCollisions, islandColliders, activeIslands } from '../world/islands.js';
