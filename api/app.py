@@ -159,6 +159,9 @@ def send_to_discord_bot(event_type, payload):
     if not DISCORD_BOT_URL:
         # logger.warning("DISCORD_BOT_URL not set. Skipping Discord notification.")
         return # Silently fail if not configured
+    
+    if os.environ.get('FLASK_ENV_RUN', 'development') == 'development':
+        return # Silently fail if in development mode
 
     def task():
         try:
