@@ -5,7 +5,7 @@ Handles player health, death, and respawn mechanics
 
 import logging
 from flask_socketio import emit
-import firestore_models
+from . import firestore_models
 
 # Configure logging
 logger = logging.getLogger(__name__)

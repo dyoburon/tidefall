@@ -8,8 +8,10 @@ import time
 import math
 import logging
 from flask_socketio import emit
-import player_handler
-import projectile_manager # <-- Import the projectile manager
+from . import player_handler
+from . import projectile_manager # <-- Import the projectile manager
+
+logger = logging.getLogger(__name__)
 
 # Assuming a simulations module exists with calculate_distance
 try:

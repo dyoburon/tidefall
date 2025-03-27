@@ -3,10 +3,10 @@ from datetime import datetime
 import time
 
 # Simple absolute imports
-from models.player import Player
-from models.island import Island 
-from models.message import Message
-from models.inventory import Inventory
+from .models.player import Player
+from .models.island import Island 
+from .models.message import Message
+from .models.inventory import Inventory
 
 # This will be initialized in app.py
 db = None
@@ -25,33 +25,33 @@ def init_firestore(firestore_client):
     global db
     db = firestore_client
     
-    # Import the models at the module level
-    import models.player
-    import models.island
-    import models.message
-    import models.inventory
+    # Use relative imports since firestore_models.py is in the same package (api)
+    # as the 'models' subdirectory.
+    from .models import player, island, message, inventory
     
     # Set the global db variable in each model module
-    models.player.db = db
-    models.island.db = db
-    models.message.db = db
-    models.inventory.db = db
+    # Now refer to the imported modules directly (player, island, etc.)
+    player.db = db
+    island.db = db
+    message.db = db
+    inventory.db = db
     
     # Make serialize_timestamp available in each model module
-    models.player.serialize_timestamp = serialize_timestamp
-    models.island.serialize_timestamp = serialize_timestamp  
-    models.message.serialize_timestamp = serialize_timestamp
-    models.inventory.serialize_timestamp = serialize_timestamp
+    player.serialize_timestamp = serialize_timestamp
+    island.serialize_timestamp = serialize_timestamp  
+    message.serialize_timestamp = serialize_timestamp
+    inventory.serialize_timestamp = serialize_timestamp
     
     # Handle cross-model dependencies
-    models.message.Player = models.player.Player
+    # Refer to the imported modules directly
+    message.Player = player.Player
     
     # Also expose Player, Island, Message and Inventory from their modules
     global Player, Island, Message, Inventory
-    Player = models.player.Player
-    Island = models.island.Island
-    Message = models.message.Message
-    Inventory = models.inventory.Inventory
+    Player = player.Player
+    Island = island.Island
+    Message = message.Message
+    Inventory = inventory.Inventory
 
 # ======= Player getters =======
 def get_player(player_id):

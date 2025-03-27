@@ -10,16 +10,16 @@ import logging
 import time
 from datetime import datetime
 import firebase_admin
-from firebase import auth
+from .firebase import auth
 from firebase_admin import credentials, firestore, auth as firebase_auth
-import firestore_models  # Import our new Firestore models
+from . import firestore_models  # Import our new Firestore models
 from collections import defaultdict
 import mimetypes
-import cannon_handler  # Import the cannon handler module
-import player_handler  # Import the player handler module
-import harpoon_handler # <-- Import the new harpoon handler
+from . import cannon_handler  # Import the cannon handler module
+from . import player_handler  # Import the player handler module
+from . import harpoon_handler # <-- Import the new harpoon handler
 import requests # <-- Add requests for HTTP calls
-import projectile_manager # <-- Import the new manager
+from . import projectile_manager # <-- Import the new manager
 import sys # Import sys for stdout redirection
 import httpx # <-- ADD
 import asyncio # <-- ADD
@@ -71,8 +71,8 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ship_game_secret_key')
 # Set up Socket.IO with appropriate async mode for production compatibility
 # Use 'asgi' for Uvicorn. Keep existing CORS settings. Remove ping settings for now unless needed later.
 socketio = SocketIO(app,
-                    cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'),
-                    async_mode='asgi') # <-- CHANGE 'eventlet' to 'asgi'
+                    async_mode='asgi',
+                    cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'))
 
 # Keep a session cache for quick access
 players = {}
@@ -914,18 +914,22 @@ if __name__ == '__main__':
 
     if env == 'development':
         # Run the Socket.IO server with debug and reloader enabled for development
+        # This uses socketio.run, which handles the server setup correctly.
+        logger.info(f"Starting development server on http://0.0.0.0:{port}")
         socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False)
     else:
-        # In production, this app will be run using Gunicorn with Eventlet workers
-        # Command: gunicorn --worker-class eventlet -w 1 app:app
-        # The WSGI server will use the Flask app directly, not socketio.run
-        print(f"Running in production mode - use Gunicorn to serve this application")
-        print(f"Example command: gunicorn --worker-class eventlet -w 1 -b 0.0.0.0:{port} app:app")
-        
-        # For direct execution in production mode without Gunicorn, we can still run with
-        # socketio but with production-appropriate settings
-        # socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
+        # In production, this app should be run using an ASGI server like Uvicorn or Gunicorn with Uvicorn workers.
+        # The server needs to target the 'socketio' object, NOT the 'app' object.
+        logger.info(f"Running in production mode. Use an ASGI server like Uvicorn.")
+        logger.info(f"Example Uvicorn command: uvicorn api.app:socketio --host 0.0.0.0 --port {port} --workers 1")
+        # You would typically run the Uvicorn command from your terminal, not here.
+        # If you absolutely needed to run programmatically (less common for production):
+        # import uvicorn
+        # uvicorn.run(socketio, host='0.0.0.0', port=port)
 
-# For WSGI servers (Gunicorn) - this is the WSGI application to run
-# The Socket.IO instance works as a WSGI application
-# application = socketio.wsgi_app
+# Remove the incorrect WSGI application line if it exists:
+# application = socketio.wsgi_app # <-- REMOVE THIS LINE if present
+
+# For ASGI servers like Uvicorn/Gunicorn that look for a default 'application' object,
+# you can optionally assign socketio to it, but targeting 'api.app:socketio' is clearer.
+# application = socketio

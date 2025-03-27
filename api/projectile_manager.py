@@ -8,7 +8,7 @@ and delegates collision checks via callbacks.
 import time
 import math
 import logging
-from simulations import simulate_projectile # Assuming this exists
+from .simulations import simulate_projectile # Assuming this exists
 
 # Configure logging
 logger = logging.getLogger(__name__)

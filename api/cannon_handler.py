@@ -7,8 +7,8 @@ import time
 import math
 import logging
 from flask_socketio import emit
-from simulations import simulate_cannonball, check_collision, calculate_trajectory_points
-import player_handler
+from .simulations import simulate_cannonball, check_collision, calculate_trajectory_points
+from . import player_handler
 
 # Configure logging
 logger = logging.getLogger(__name__)

@@ -67,3 +67,6 @@ build/
 api/firebasekey.json
 .parcel-cache/
 assets/firebasekey.json
+
+firebasekey.json
+.venv
