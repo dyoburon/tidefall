@@ -1,6 +1,4 @@
 import eventlet
-eventlet.monkey_patch(select=True, socket=True, thread=False, time=True) # Excluded os=True and ssl=True
-
 import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory
