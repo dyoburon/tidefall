@@ -67,7 +67,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ship_game_secret_key')
 
 # Set up Socket.IO with appropriate async mode for production compatibility
-socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'), async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'), async_mode='eventlet', ping_timeout=20, ping_interval=60)
 
 # Keep a session cache for quick access
 players = {}
