@@ -902,4 +902,4 @@ if __name__ == '__main__':
 
 # For WSGI servers (Gunicorn) - this is the WSGI application to run
 # The Socket.IO instance works as a WSGI application
-# application = socketio.wsgi_app
+application = socketio.wsgi_app
