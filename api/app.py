@@ -28,12 +28,9 @@ DISCORD_SHARED_SECRET = os.environ.get("DISCORD_SHARED_SECRET", "default_secret_
 # --- End Discord Integration Configuration ---
 
 
-# Configure logging based on environment
-env = os.environ.get('FLASK_ENV', 'development')
-log_level = logging.DEBUG if env == 'development' else logging.INFO
-
+# Configure logging
 logging.basicConfig(
-    level=log_level,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler()  # Ensure logs go to console/terminal
@@ -54,8 +51,8 @@ firebase_logger.setLevel(logging.WARNING)  # Changed from DEBUG to WARNING
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ship_game_secret_key')
 
-# Set up Socket.IO with appropriate async mode for production compatibility
-socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'), async_mode='eventlet')
+# Set up Socket.IO
+socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'))
 
 # Keep a session cache for quick access
 players = {}
@@ -842,24 +839,7 @@ def handle_discord_message():
 # --- End Discord Integration Endpoint ---
 
 if __name__ == '__main__':
-    # Get environment setting with development as default
-    env = os.environ.get('FLASK_ENV', 'development')
-    port = int(os.environ.get('PORT', 5001))
+    # Run the Socket.IO server with debug and reloader enabled
     
-    if env == 'development':
-        # Run the Socket.IO server with debug and reloader enabled for development
-        socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=True)
-    else:
-        # In production, this app will be run using Gunicorn with Eventlet workers
-        # Command: gunicorn --worker-class eventlet -w 1 app:app
-        # The WSGI server will use the Flask app directly, not socketio.run
-        print(f"Running in production mode - use Gunicorn to serve this application")
-        print(f"Example command: gunicorn --worker-class eventlet -w 1 -b 0.0.0.0:{port} app:app")
-        
-        # For direct execution in production mode without Gunicorn, we can still run with
-        # socketio but with production-appropriate settings
-        # socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
-
-# For WSGI servers (Gunicorn) - this is the WSGI application to run
-# The Socket.IO instance works as a WSGI application
-application = socketio.wsgi_app
+    socketio.run(app, host='0.0.0.0') 
+    # socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=False) 

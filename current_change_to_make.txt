@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 We're going to add a new file to interact with the server.
 
 Here are the new endpoints
@@ -57,3 +58,10 @@ so we want to no longer use socketio.run in production
 =======
 So we're going to add a Harpoon PVP functionality right now. The Harpoon works with the monsters so you can reel in the monsters. This is going to be a large task. We're going to start with some simple stuff first. So we're gonna need to, actually you try to plan But the first plan, let's just only do the reeling in part of the harpoon. And we're gonna integrate it with our current files. For the just we're just going to do the reeling in part of the harpoon to start so not the whole three cases. 
 >>>>>>> parent of 0f9e734 (update)
+=======
+so i want to create some discord bot so what i want to do for the discord bot i will attach the the current Discord bot for tidefall:
+
+Notify when player join
+The chats should send to channel
+The chats in the discord should send to the chats in the game
+>>>>>>> parent of f846d10 (update)
