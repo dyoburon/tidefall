@@ -1,6 +1,6 @@
 import eventlet
-# Only patch specific modules, excluding those that Firebase uses
-eventlet.monkey_patch(os=True, select=True, socket=True, thread=False, time=True)
+eventlet.monkey_patch()
+
 
 import os
 from dotenv import load_dotenv
@@ -21,17 +21,6 @@ import player_handler  # Import the player handler module
 import harpoon_handler # <-- Import the new harpoon handler
 import requests # <-- Add requests for HTTP calls
 import projectile_manager # <-- Import the new manager
-import sys # Import sys for stdout redirection
-
-# Configure logging to show logs even when running as WSGI
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(stream=sys.stdout)  # Force output to stdout for WSGI
-    ]
-)
-logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -43,7 +32,7 @@ DISCORD_SHARED_SECRET = os.environ.get("DISCORD_SHARED_SECRET", "default_secret_
 
 
 # Configure logging based on environment
-env = os.environ.get('FLASK_ENV_RUN', 'development')
+env = os.environ.get('FLASK_ENV', 'development')
 log_level = logging.DEBUG if env == 'development' else logging.INFO
 
 logging.basicConfig(
@@ -53,6 +42,7 @@ logging.basicConfig(
         logging.StreamHandler()  # Ensure logs go to console/terminal
     ]
 )
+logger = logging.getLogger(__name__)
 
 # Change Werkzeug logger level to ERROR to hide HTTP request logs
 werkzeug_logger = logging.getLogger('werkzeug')
@@ -881,8 +871,9 @@ if __name__ == '__main__':
     harpoon_handler.init_socketio(socketio, players)
 
     if env == 'development':
+        print("in development mode")
         # Run the Socket.IO server with debug and reloader enabled for development
-        socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False)
+        socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
     else:
         # In production, this app will be run using Gunicorn with Eventlet workers
         # Command: gunicorn --worker-class eventlet -w 1 app:app
