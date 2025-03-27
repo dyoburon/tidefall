@@ -1,4 +1,7 @@
 import eventlet
+# Only patch specific modules, excluding those that Firebase uses
+eventlet.monkey_patch(os=True, select=True, socket=True, thread=False, time=True)
+
 import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory
