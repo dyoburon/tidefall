@@ -1,6 +1,5 @@
 import logging
 from firebase_admin import auth as firebase_auth
-from eventlet import tpool
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -18,26 +17,24 @@ def init_auth(firebase_application):
 socket_to_user_map = {}
 
 def verify_firebase_token(token):
-    """Verifies the Firebase ID token using tpool to avoid blocking."""
-    if not firebase_app:
-        logger.error("Firebase app not initialized before verifying token.")
-        return None
-    if not token:
-        logger.warning("No token provided for verification.")
-        return None
-
+    """Verify Firebase token and return the UID if valid"""
     try:
-        # --- Use tpool.execute to run the blocking call in a native thread ---
-        # The first argument is the function to call, subsequent arguments are passed to it.
-        decoded_token = tpool.execute(firebase_auth.verify_id_token, token)
-        # --------------------------------------------------------------------
-        logger.debug(f"Token successfully verified for UID: {decoded_token.get('uid')}")
-        return decoded_token.get('uid')
+        if not token:
+            logger.warning("No token provided for verification")
+            return None
+            
+        logger.info("Attempting to verify Firebase token")
+        
+        # Verify the token
+        decoded_token = firebase_auth.verify_id_token(token)
+        
+        # Get user UID from the token
+        uid = decoded_token['uid']
+        logger.info(f"Successfully verified Firebase token for user: {uid}")
+        return uid
     except Exception as e:
-        # Log the specific exception from Firebase/Google Auth if possible
-        logger.error(f"Token verification failed: {e}")
-        # Log the full traceback for detailed debugging
-        logger.error("Token verification exception details:", exc_info=True)
+       # logger.error(f"Error verifying Firebase token: {e}")
+        logger.exception("Token verification exception details:")  # This logs the full stack trace
         return None
 
 
