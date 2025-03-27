@@ -7,6 +7,8 @@ import { loadGLBModel, unloadGLBModel } from '../utils/glbLoader.js';
 import { showDamageEffect } from '../effects/playerDamageEffects.js';
 import { resetCameraPosition, reconnectControlsToModel } from '../controls/cameraControls.js';
 import { addOtherPlayerToScene, removeOtherPlayerFromScene, updatePlayerInAllPlayers, getOtherPlayers } from '../network/playerManager.js';
+import { setupHarpoonSocketEvents } from '../network/harpoonManager.js';
+
 //import CannonShot from '../abilities/cannonshot.js'; // Import the CannonShot class
 
 // Global initialization for chat and callbacks
@@ -328,6 +330,8 @@ export async function initializeNetwork(
 // Set up Socket.IO event handlers
 function setupSocketEvents() {
     // Skip connect handler as we'll handle it in initializeNetwork
+
+    setupHarpoonSocketEvents(socket);
 
     socket.on('disconnect', () => {
 

@@ -1,1 +1,51 @@
-So we're going to add a Harpoon PVP functionality right now. The Harpoon works with the monsters so you can reel in the monsters. This is going to be a large task. We're going to start with some simple stuff first. So we're gonna need to, actually you try to plan But the first plan, let's just only do the reeling in part of the harpoon. And we're gonna integrate it with our current files. For the just we're just going to do the reeling in part of the harpoon to start so not the whole three cases. 
+We're going to add a new file to interact with the server.
+
+Here are the new endpoints
+
+1. Client Emits (Sends to Server):
+Event Name: 'harpoon_fire'
+Purpose: To tell the server the current player wants to fire a harpoon.
+Data to Send:
+{
+player_id: string, // The ID of the player firing (e.g., "firebase_...")
+position: { x: number, y: number, z: number }, // The starting position of the harpoon (e.g., player's position + offset)
+direction: { x: number, y: number, z: number } // The normalized direction vector the harpoon should travel
+}
+2. Client Listens For (Receives from Server):
+Event Name: 'harpoon_fired_broadcast'
+Purpose: Notifies your client when another player fires a harpoon. Use this to create the visual for their harpoon.
+Data Received:
+{
+harpoon_id: string, // Unique ID for this harpoon projectile
+owner_id: string, // ID of the player who fired it
+position: { x: number, y: number, z: number }, // Initial position
+direction: { x: number, y: number, z: number }, // Initial direction
+speed: number // Speed of the harpoon (useful for client-side prediction if desired)
+}
+Event Name: 'projectile_update'
+Purpose: Provides periodic updates for the position of all active projectiles (including harpoons). Use this to move the harpoon visuals.
+Data Received: An array, where each element represents a projectile. You'll look for elements with type === 'harpoon'.
+[
+{
+id: string, // The harpoon_id
+type: 'harpoon',
+position: { x: number, y: number, z: number },
+// ... potentially other projectile types ...
+},
+// ...
+]
+Event Name: 'harpoon_hit_broadcast'
+Purpose: Notifies your client when any harpoon hits any player. Use this to trigger visual/audio effects for the impact.
+Data Received:
+{
+harpoon_id: string, // ID of the harpoon that hit
+owner_id: string, // ID of the player who fired it
+hit_player_id: string, // ID of the player who was hit
+hit_position: { x: number, y: number, z: number } // Position where the collision occurred
+}
+Event Name: 'projectile_removed'
+Purpose: Tells your client to remove the visual representation of a specific harpoon (because it hit something or its lifetime expired).
+Data Received:
+{
+projectile_id: string // The ID of the harpoon (or other projectile) to remove
+}

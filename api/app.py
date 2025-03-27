@@ -1,4 +1,7 @@
 import eventlet
+eventlet.monkey_patch()
+
+
 import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory
@@ -32,9 +35,6 @@ DISCORD_SHARED_SECRET = os.environ.get("DISCORD_SHARED_SECRET", "default_secret_
 env = os.environ.get('FLASK_ENV', 'development')
 log_level = logging.DEBUG if env == 'development' else logging.INFO
 
-
-eventlet.monkey_patch()
-
 logging.basicConfig(
     level=log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -63,15 +63,6 @@ socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLO
 # Keep a session cache for quick access
 players = {}
 islands = {}
-
-# --- Initialize Handlers and Managers ---
-# Initialize the projectile manager FIRST, as handlers might register callbacks
-projectile_manager.init_manager(socketio)
-
-# Initialize specific handlers (they might register collision checkers now)
-cannon_handler.init_socketio(socketio, players)
-player_handler.init_handler(socketio, players)
-harpoon_handler.init_socketio(socketio, players) # This will now register its checker
 
 # Add this near your other global variables
 last_db_update = defaultdict(float)  # Track last database update time for each player
@@ -109,26 +100,24 @@ def init_firebase():
 # Call init_firebase and store results - needed for models
 firebase_app, db = init_firebase()
 
-# Load data from Firestore on startup (modified to run as a background task)
-def load_data_from_firestore_task():
-    """Loads data from Firestore in a background task."""
+# --- Synchronous Data Loading ---
+def load_initial_data_from_firestore():
+    """Loads initial data synchronously from Firestore on startup."""
     try:
-        logger.info("Starting background Firestore data load...")
+        logger.info("Starting synchronous Firestore data load...")
         # Load players
-        # This get_all() call is the likely source of the timeout
         db_players = firestore_models.Player.get_all()
         loaded_player_count = 0
         for player_doc in db_players:
             # Set all players to inactive on server start
-            # This update also adds latency. Consider if it's essential at startup.
             if player_doc.get('active', False):
                 try:
                     # Update Firestore document to inactive
                     firestore_models.Player.update(player_doc['id'], active=False)
                     # Update the dictionary we're about to cache
                     player_doc['active'] = False
+                    logger.debug(f"Marked player {player_doc.get('id')} as inactive during startup.")
                 except Exception as update_err:
-                    # Log error if a single player update fails, but continue loading others
                     logger.error(f"Failed to mark player {player_doc.get('id')} inactive during startup load: {update_err}")
 
             # Add player data (with updated 'active' status if applicable) to the cache
@@ -142,16 +131,17 @@ def load_data_from_firestore_task():
             islands[island_doc['id']] = island_doc
             loaded_island_count += 1
 
-        logger.info(f"Background load complete: Loaded {loaded_player_count} players and {loaded_island_count} islands from Firestore")
+        logger.info(f"Synchronous load complete: Loaded {loaded_player_count} players and {loaded_island_count} islands from Firestore.")
 
     except Exception as e:
-        # Log any exception during the background loading process
-        logger.error(f"Error during background Firestore data load: {e}", exc_info=True)
+        # Log any exception during the synchronous loading process
+        logger.error(f"Error during synchronous Firestore data load: {e}", exc_info=True)
+        # Depending on severity, you might want to exit or handle this differently
+        # raise e # Optionally re-raise to halt startup on critical load failure
 
-# Start the background task *after* SocketIO is initialized
-# This allows the server to start without waiting for Firestore
-socketio.start_background_task(load_data_from_firestore_task)
-logger.info("Scheduled background task to load Firestore data.")
+# --- Call the synchronous loading function ---
+load_initial_data_from_firestore()
+logger.info("Initial Firestore data loaded synchronously.")
 
 # --- Discord Integration Helper ---
 def send_to_discord_bot(event_type, payload):
@@ -871,12 +861,19 @@ def handle_discord_message():
 
 if __name__ == '__main__':
     # Get environment setting with development as default
-    env = os.environ.get('FLASK_ENV', 'development')
+    env = os.environ.get('FLASK_ENV_RUN', 'development')
     port = int(os.environ.get('PORT', 5001))
     
+    # Initialize Handlers and Managers
+    projectile_manager.init_manager(socketio)
+    cannon_handler.init_socketio(socketio, players)
+    player_handler.init_handler(socketio, players)
+    harpoon_handler.init_socketio(socketio, players)
+
     if env == 'development':
+        print("in development mode")
         # Run the Socket.IO server with debug and reloader enabled for development
-        socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=True)
+        socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
     else:
         # In production, this app will be run using Gunicorn with Eventlet workers
         # Command: gunicorn --worker-class eventlet -w 1 app:app
