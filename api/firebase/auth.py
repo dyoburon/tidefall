@@ -1,7 +1,6 @@
 import logging
 from firebase_admin import auth as firebase_auth
-import asyncio
-import time
+from eventlet import tpool
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -18,8 +17,8 @@ def init_auth(firebase_application):
 # Socket to user mapping (moved from app.py)
 socket_to_user_map = {}
 
-async def verify_firebase_token(token):
-    """Verifies the Firebase ID token asynchronously using asyncio.to_thread."""
+def verify_firebase_token(token):
+    """Verifies the Firebase ID token using tpool to avoid blocking."""
     if not firebase_app:
         logger.error("Firebase app not initialized before verifying token.")
         return None
@@ -28,24 +27,19 @@ async def verify_firebase_token(token):
         return None
 
     try:
-        start_time = time.time()
-        logger.info(f"Starting token verification via asyncio.to_thread for token: {token[:10]}...")
-
-        # --- Use asyncio.to_thread to run the blocking call ---
-        # Pass the function and its arguments
-        decoded_token = await asyncio.to_thread(firebase_auth.verify_id_token, token)
-        # -----------------------------------------------------
-
-        end_time = time.time()
-        duration = end_time - start_time
-        logger.info(f"Token verification via asyncio.to_thread completed in {duration:.4f} seconds.")
-
+        # --- Use tpool.execute to run the blocking call in a native thread ---
+        # The first argument is the function to call, subsequent arguments are passed to it.
+        decoded_token = tpool.execute(firebase_auth.verify_id_token, token)
+        # --------------------------------------------------------------------
         logger.debug(f"Token successfully verified for UID: {decoded_token.get('uid')}")
         return decoded_token.get('uid')
     except Exception as e:
+        # Log the specific exception from Firebase/Google Auth if possible
         logger.error(f"Token verification failed: {e}")
+        # Log the full traceback for detailed debugging
         logger.error("Token verification exception details:", exc_info=True)
         return None
+
 
 def register_socket_user(socket_id, user_id):
     """Associate a socket ID with a user ID"""

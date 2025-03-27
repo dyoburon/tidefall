@@ -8,7 +8,5 @@ flask-sqlalchemy>=3.0.0
 psycopg2-binary>=2.9.0
 discord.py>=2.3.2
 requests>=2.31.0
-# gunicorn # <-- REMOVE or comment out
-# eventlet # <-- REMOVE or comment out
-uvicorn>=0.34.0 # <-- ADD
-httpx>=0.28.1 # <-- ADD 
+gunicorn>=23.0.0
+eventlet>=0.36.1

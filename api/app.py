@@ -1,5 +1,5 @@
-# import eventlet # <-- REMOVE
-# eventlet.monkey_patch(select=True, socket=True, thread=False, time=True) # <-- REMOVE
+import eventlet
+eventlet.monkey_patch(select=True, socket=True, thread=False, time=True) # Excluded os=True and ssl=True
 
 import os
 from dotenv import load_dotenv
@@ -21,8 +21,6 @@ import harpoon_handler # <-- Import the new harpoon handler
 import requests # <-- Add requests for HTTP calls
 import projectile_manager # <-- Import the new manager
 import sys # Import sys for stdout redirection
-import httpx # <-- ADD
-import asyncio # <-- ADD
 
 # Configure logging to show logs even when running as WSGI
 logging.basicConfig(
@@ -69,10 +67,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ship_game_secret_key')
 
 # Set up Socket.IO with appropriate async mode for production compatibility
-# Use 'asgi' for Uvicorn. Keep existing CORS settings. Remove ping settings for now unless needed later.
-socketio = SocketIO(app,
-                    cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'),
-                    async_mode='asgi') # <-- CHANGE 'eventlet' to 'asgi'
+socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'), async_mode='eventlet', ping_timeout=20, ping_interval=60)
 
 # Keep a session cache for quick access
 players = {}
@@ -114,32 +109,52 @@ def init_firebase():
 # Call init_firebase and store results - needed for models
 firebase_app, db = init_firebase()
 
-# --- Discord Integration Helper ---
-# Modify the inner task to be async and use httpx
-async def send_to_discord_bot_task(event_type, payload):
-    """Async task to send event to Discord bot using httpx."""
-    try:
-        url = f"{DISCORD_BOT_URL}/game_event"
-        headers = {
-            'Content-Type': 'application/json',
-            'X-Secret-Key': DISCORD_SHARED_SECRET
-        }
-        data = {
-            'type': event_type,
-            'payload': payload
-        }
-        # Use httpx.AsyncClient for non-blocking HTTP POST
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.post(url, json=data, headers=headers)
-            response.raise_for_status() # Raise exception for 4xx/5xx status codes
-        logger.info(f"Sent '{event_type}' event to Discord bot via httpx.")
-    except httpx.RequestError as e:
-        logger.error(f"Failed to send event to Discord bot (httpx request error): {e}")
-    except Exception as e:
-        logger.error(f"Unexpected error sending event to Discord bot: {e}")
+# --- Asynchronous Data Loading ---
+def load_initial_data_from_firestore():
+    """Loads initial data asynchronously from Firestore in a background task."""
+    def task():
+        try:
+            logger.info("Starting asynchronous Firestore data load...")
+            # Load players
+            db_players = firestore_models.Player.get_all()
+            loaded_player_count = 0
+            for player_doc in db_players:
+                # Set all players to inactive on server start
+                if player_doc.get('active', False):
+                    try:
+                        # Update Firestore document to inactive
+                        firestore_models.Player.update(player_doc['id'], active=False)
+                        # Update the dictionary we're about to cache
+                        player_doc['active'] = False
+                        logger.debug(f"Marked player {player_doc.get('id')} as inactive during startup.")
+                    except Exception as update_err:
+                        logger.error(f"Failed to mark player {player_doc.get('id')} inactive during startup load: {update_err}")
 
+                # Add player data (with updated 'active' status if applicable) to the cache
+                players[player_doc['id']] = player_doc
+                loaded_player_count += 1
+
+            # Load islands
+            db_islands = firestore_models.Island.get_all()
+            loaded_island_count = 0
+            for island_doc in db_islands:
+                islands[island_doc['id']] = island_doc
+                loaded_island_count += 1
+
+            logger.info(f"Asynchronous load complete: Loaded {loaded_player_count} players and {loaded_island_count} islands from Firestore.")
+
+        except Exception as e:
+            # Log any exception during the asynchronous loading process
+            logger.error(f"Error during asynchronous Firestore data load: {e}", exc_info=True)
+            # Depending on severity, you might want to handle this differently
+
+    # Start the actual loading process in a background task
+    socketio.start_background_task(task)
+    logger.info("Initiated asynchronous Firestore data loading.")
+
+# --- Discord Integration Helper ---
 def send_to_discord_bot(event_type, payload):
-    """Sends an event to the Discord bot's API endpoint in a background task."""
+    """Sends an event to the Discord bot's API endpoint in a background thread."""
     if not DISCORD_BOT_URL:
         # logger.warning("DISCORD_BOT_URL not set. Skipping Discord notification.")
         return # Silently fail if not configured
@@ -147,8 +162,30 @@ def send_to_discord_bot(event_type, payload):
     if os.environ.get('FLASK_ENV_RUN', 'development') == 'development':
         return # Silently fail if in development mode
 
-    # Start the async task using socketio's background task manager
-    socketio.start_background_task(send_to_discord_bot_task, event_type, payload)
+    def task():
+        try:
+            url = f"{DISCORD_BOT_URL}/game_event"
+            headers = {
+                'Content-Type': 'application/json',
+                'X-Secret-Key': DISCORD_SHARED_SECRET # Include shared secret
+            }
+            data = {
+                'type': event_type,
+                'payload': payload
+            }
+            # Use requests directly within the task; Eventlet's monkey-patching
+            # should make this non-blocking.
+            response = requests.post(url, json=data, headers=headers, timeout=5)
+            response.raise_for_status()
+            logger.info(f"Sent '{event_type}' event to Discord bot.")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to send event to Discord bot: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error sending event to Discord bot: {e}")
+
+    # Use socketio.start_background_task instead of threading.Thread
+    # This ensures the task runs as an Eventlet green thread.
+    socketio.start_background_task(task)
 # --- End Discord Integration Helper ---
 
 
@@ -181,7 +218,7 @@ def handle_disconnect():
             logger.error(f"Player {player_id} marked as inactive after disconnect")
 
 @socketio.on('player_join')
-async def handle_player_join(data): # <-- Add async
+def handle_player_join(data):
     # Get the Firebase token and UID from the request
     firebase_token = data.get('firebaseToken')
     claimed_firebase_uid = data.get('player_id')
@@ -189,9 +226,8 @@ async def handle_player_join(data): # <-- Add async
 
     # ONLY proceed with database storage if Firebase authentication is provided and valid
     if firebase_token and claimed_firebase_uid:
-        # Await the async verification function
-        verified_uid = await auth.verify_firebase_token(firebase_token) # <-- Add await
-
+        verified_uid = auth.verify_firebase_token(firebase_token)
+        
         if verified_uid and verified_uid == claimed_firebase_uid:
             #logger.info(f"Authentication successful for Firebase user: {verified_uid}")
             player_id = verified_uid
@@ -208,11 +244,8 @@ async def handle_player_join(data): # <-- Add async
 
             socket_to_user_map[request.sid] = docid
 
-            # --- Blocking Firestore Call ---
             existing_player = firestore_models.Player.get(docid)
-            # --- Consider wrapping above line in asyncio.to_thread if needed ---
-            # existing_player = await asyncio.to_thread(firestore_models.Player.get, docid)
-
+            
             if existing_player:
                 # Update the existing player in database
                 player_data = {
@@ -221,10 +254,8 @@ async def handle_player_join(data): # <-- Add async
                     'health': 100,  # Reset health when player rejoins
                 }
                 
-                # --- Blocking Firestore Call ---
+                # Update in Firestore
                 firestore_models.Player.update(docid, **player_data)
-                # --- Consider wrapping above line in asyncio.to_thread if needed ---
-                # await asyncio.to_thread(firestore_models.Player.update, docid, **player_data)
                 
                 # Update cache
                 players[docid] = {**existing_player, **player_data}
@@ -245,10 +276,8 @@ async def handle_player_join(data): # <-- Add async
                     'firebase_uid': verified_uid
                 }
                 
-                # --- Blocking Firestore Call ---
+                # Create player in Firestore and cache the result
                 player = firestore_models.Player.create(docid, **player_data)
-                # --- Consider wrapping above line in asyncio.to_thread if needed ---
-                # player = await asyncio.to_thread(firestore_models.Player.create, docid, **player_data)
                 players[docid] = player
 
 
@@ -841,62 +870,6 @@ def handle_discord_message():
         logger.error(f"Error broadcasting Discord message to game clients: {e}")
         return jsonify({"error": "Failed to broadcast message"}), 500
 # --- End Discord Integration Endpoint ---
-
-# --- Asynchronous Data Loading ---
-# Modify the inner task to be async and use asyncio.to_thread for blocking calls
-async def load_initial_data_task():
-    """Async task to load initial data using asyncio.to_thread for blocking calls."""
-    try:
-        logger.info("Starting asynchronous Firestore data load task...")
-
-        # Load players using asyncio.to_thread
-        logger.debug("Loading players from Firestore...")
-        db_players = await asyncio.to_thread(firestore_models.Player.get_all)
-        logger.debug(f"Found {len(db_players)} player documents.")
-        loaded_player_count = 0
-        for player_doc in db_players:
-            player_id = player_doc.get('id')
-            if not player_id:
-                logger.warning("Skipping player document with missing ID.")
-                continue
-
-            # Set all players to inactive on server start
-            if player_doc.get('active', False):
-                try:
-                    # Update Firestore document to inactive using asyncio.to_thread
-                    await asyncio.to_thread(firestore_models.Player.update, player_id, active=False)
-                    player_doc['active'] = False # Update the dictionary we're about to cache
-                    logger.debug(f"Marked player {player_id} as inactive during startup.")
-                except Exception as update_err:
-                    logger.error(f"Failed to mark player {player_id} inactive during startup load: {update_err}")
-
-            players[player_id] = player_doc # Add player data to cache
-            loaded_player_count += 1
-
-        # Load islands using asyncio.to_thread
-        logger.debug("Loading islands from Firestore...")
-        db_islands = await asyncio.to_thread(firestore_models.Island.get_all)
-        logger.debug(f"Found {len(db_islands)} island documents.")
-        loaded_island_count = 0
-        for island_doc in db_islands:
-             island_id = island_doc.get('id')
-             if not island_id:
-                 logger.warning("Skipping island document with missing ID.")
-                 continue
-             islands[island_id] = island_doc
-             loaded_island_count += 1
-
-        logger.info(f"Asynchronous load task complete: Loaded {loaded_player_count} players and {loaded_island_count} islands.")
-
-    except Exception as e:
-        logger.error(f"Error during asynchronous Firestore data load task: {e}", exc_info=True)
-
-def load_initial_data_from_firestore():
-    """Initiates the asynchronous loading of initial data from Firestore."""
-    # Start the async task. SocketIO under ASGI should handle this correctly.
-    socketio.start_background_task(load_initial_data_task)
-    logger.info("Initiated asynchronous Firestore data loading task.")
-# --- End Asynchronous Data Loading ---
 
 if __name__ == '__main__':
     # Get environment setting with development as default
