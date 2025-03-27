@@ -27,8 +27,8 @@ export const SHIP_MODELS = {
         category: 'Pirate',
         size: 'Medium',
         path: '/mediumpirate.glb',
-        scale: 20.0,
-        position: [0, 7, 0],
+        scale: 25.0,
+        position: [0, 7.5, 0],
         rotation: [0, 0, 0],
         // Gameplay attributes
         speed: 0.9,         // Balanced speed
