@@ -11,7 +11,7 @@ export const SHIP_MODELS = {
         path: '/massivepirate.glb',
         scale: 40.0,
         position: [0, 14, 0],
-        rotation: [0, Math.PI, 0],  // Change to 0 rotation (no rotation)
+        rotation: [0, 0, 0],
         // Gameplay attributes
         speed: 0.7,         // Slower but powerful
         turnRate: 0.6,      // Slower turning
@@ -29,7 +29,7 @@ export const SHIP_MODELS = {
         path: '/mediumpirate.glb',
         scale: 20.0,
         position: [0, 7, 0],
-        rotation: [0, Math.PI, 0],  // Change to 0 rotation (no rotation)
+        rotation: [0, 0, 0],
         // Gameplay attributes
         speed: 0.9,         // Balanced speed
         turnRate: 0.8,      // Balanced turning
@@ -47,7 +47,7 @@ export const SHIP_MODELS = {
         path: '/smallpirate.glb',
         scale: 24.0,
         position: [0, 8, 0],
-        rotation: [0, 0, 0],  // Change to 0 rotation (no rotation)
+        rotation: [0, 0, 0],
         // Gameplay attributes
         speed: 1.2,         // Fast speed
         turnRate: 1.2,      // Quick turning
@@ -65,7 +65,7 @@ export const SHIP_MODELS = {
         path: '/massivecolonial.glb',
         scale: 40.0,
         position: [0, 14, 0],
-        rotation: [0, Math.PI, 0],  // Change to 0 rotation (no rotation)
+        rotation: [0, 0, 0],
         // Gameplay attributes
         speed: 0.6,         // Very slow
         turnRate: 0.5,      // Very slow turning
@@ -83,7 +83,7 @@ export const SHIP_MODELS = {
         path: '/mediumcolonial.glb',
         scale: 20.0,
         position: [0, 7, 0],
-        rotation: [0, 0, 0],  // Change to 0 rotation (no rotation)
+        rotation: [0, 0, 0],
         // Gameplay attributes
         speed: 0.85,        // Slightly slower than pirate equivalent
         turnRate: 0.75,     // Slightly slower turning
@@ -101,7 +101,7 @@ export const SHIP_MODELS = {
         path: '/smallcolonial.glb',
         scale: 24.0,
         position: [0, 8, 0],
-        rotation: [0, 0, 0],  // Change to 0 rotation (no rotation)
+        rotation: [0, 0, 0],
         // Gameplay attributes
         speed: 1.15,        // Fast but not as fast as pirate equivalent
         turnRate: 1.1,      // Quick turning but not as quick as pirate
@@ -164,7 +164,51 @@ export function loadShipModel(targetGroup) {
     };
 
     // Use the generic GLB loader
-    loadGLBModel(targetGroup, config);
+    loadGLBModel(targetGroup, config, (success) => {
+        if (success) {
+            // Traverse the loaded model to adjust materials
+            targetGroup.traverse(child => {
+                if (child.isMesh && child.material) {
+                    // Handle both single materials and arrays
+                    const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+                    materials.forEach(material => {
+                        // Clone the material to avoid modifying shared materials
+                        const newMaterial = material.clone();
+
+                        // Directly set a much brighter color (forced approach)
+                        if (newMaterial.map) {
+                            // If there's a texture, we can't just change the color.
+                            // Instead, we'll create a bright emissive glow
+                            newMaterial.emissive = new THREE.Color(0.8, 0.8, 0.8);
+                            newMaterial.emissiveIntensity = 0.7;
+                            newMaterial.emissiveMap = newMaterial.map;
+                        } else if (newMaterial.color) {
+                            // For materials without textures, maximize brightness
+                            const baseColor = newMaterial.color.clone();
+                            // Amplify each RGB channel while preserving some of the original color
+                            newMaterial.color.setRGB(
+                                Math.min(baseColor.r * 3, 1.0),
+                                Math.min(baseColor.g * 3, 1.0),
+                                Math.min(baseColor.b * 3, 1.0)
+                            );
+                        }
+
+                        // Apply the modified material
+                        if (Array.isArray(child.material)) {
+                            // Replace in the array at the same index
+                            child.material[materials.indexOf(material)] = newMaterial;
+                        } else {
+                            child.material = newMaterial;
+                        }
+                    });
+
+                    console.log(`Enhanced visibility for mesh: ${child.name || 'unnamed'}`);
+                }
+            });
+            console.log('Applied enhanced brightness to ship for mobile visibility');
+        }
+    });
 }
 
 /**
@@ -270,4 +314,4 @@ export function getShipName() {
 
 export function getShipCannonCount() {
     return getShipAttribute('cannonCount');
-} 
+}
