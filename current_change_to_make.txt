@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 We're going to add a new file to interact with the server.
 
 Here are the new endpoints
@@ -49,3 +50,6 @@ Data Received:
 {
 projectile_id: string // The ID of the harpoon (or other projectile) to remove
 }
+=======
+so we want to no longer use socketio.run in production
+>>>>>>> parent of 18ec5ce (Merge branch 'newradar')

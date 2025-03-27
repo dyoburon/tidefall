@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Step 1.1: Setup Harpoon Handler Structure & Initialization
 Task: Create the basic file structure and initialize the handler within the main application.
 File: api/harpoon_handler.py
@@ -83,3 +84,37 @@ If shooter_sid: emit('harpoon_hit_confirmed', {'harpoon_id': harpoon['id'], 'hit
 Emit Notification to Target:
 Look up target's SID: target_sid = player_handler.get_player_sid(hit_player_id).
 If target_sid: emit('player_harpooned', {'harpoon_id': harpoon['id'], 'reeled_by_id': harpoon['owner']}, room=target_sid). (Using player_harpooned as the event name for clarity in this phase).
+=======
+Step 1: Create Portal Structure and Visual Components
+File: /Users/dylanburton/Desktop/game/src/portals/vibeverse.js (new file)
+Create a createVibeversePortal function that will:
+Generate a circular green portal mesh (as shown in the image)
+Set up portal animation effects (glow, rotation)
+Create a placePortalInWorld function to position the portal in a designated location
+Step 2: Implement Reusable Portal Collision Logic
+File: /Users/dylanburton/Desktop/game/src/portals/vibeverse.js
+Create a generic checkPortalCollision function that:
+Takes portal position and player/boat position as parameters
+Calculates distance and determines if a collision occurred
+Returns boolean indicating collision status
+Export this function so it can be reused with other portals
+Create a handlePortalEntry function that will:
+Generate the portal URL with the required parameters
+Handle the redirection to "http://portal.pieter.com" with:
+ref=tidefall.io
+username parameter from player data
+No other parameters for now as specified
+Step 3: Integrate Portal with Game State
+File: /Users/dylanburton/Desktop/game/src/core/gameState.js
+Add portal object to the exported objects
+Import the Vibeverse portal module
+Add a function to initialize the portal in the game world
+Add a portal activation state to track when a player has entered the portal
+Step 4: Connect Portal to the Main Game Loop
+File: /Users/dylanburton/Desktop/game/src/main.js
+Import the portal collision detection function from vibeverse.js
+Get the boat position from gameState
+Add portal collision check to the update cycle using boat position
+Ensure portal visual effects are updated each frame
+Handle transition/redirection when a player enters the portal
+>>>>>>> parent of 18ec5ce (Merge branch 'newradar')
