@@ -110,48 +110,48 @@ def init_firebase():
 # Call init_firebase and store results - needed for models
 firebase_app, db = init_firebase()
 
-# --- Synchronous Data Loading ---
+# --- Asynchronous Data Loading ---
 def load_initial_data_from_firestore():
-    """Loads initial data synchronously from Firestore on startup."""
-    try:
-        logger.info("Starting synchronous Firestore data load...")
-        # Load players
-        db_players = firestore_models.Player.get_all()
-        loaded_player_count = 0
-        for player_doc in db_players:
-            # Set all players to inactive on server start
-            if player_doc.get('active', False):
-                try:
-                    # Update Firestore document to inactive
-                    firestore_models.Player.update(player_doc['id'], active=False)
-                    # Update the dictionary we're about to cache
-                    player_doc['active'] = False
-                    logger.debug(f"Marked player {player_doc.get('id')} as inactive during startup.")
-                except Exception as update_err:
-                    logger.error(f"Failed to mark player {player_doc.get('id')} inactive during startup load: {update_err}")
+    """Loads initial data asynchronously from Firestore in a background task."""
+    def task():
+        try:
+            logger.info("Starting asynchronous Firestore data load...")
+            # Load players
+            db_players = firestore_models.Player.get_all()
+            loaded_player_count = 0
+            for player_doc in db_players:
+                # Set all players to inactive on server start
+                if player_doc.get('active', False):
+                    try:
+                        # Update Firestore document to inactive
+                        firestore_models.Player.update(player_doc['id'], active=False)
+                        # Update the dictionary we're about to cache
+                        player_doc['active'] = False
+                        logger.debug(f"Marked player {player_doc.get('id')} as inactive during startup.")
+                    except Exception as update_err:
+                        logger.error(f"Failed to mark player {player_doc.get('id')} inactive during startup load: {update_err}")
 
-            # Add player data (with updated 'active' status if applicable) to the cache
-            players[player_doc['id']] = player_doc
-            loaded_player_count += 1
+                # Add player data (with updated 'active' status if applicable) to the cache
+                players[player_doc['id']] = player_doc
+                loaded_player_count += 1
 
-        # Load islands
-        db_islands = firestore_models.Island.get_all()
-        loaded_island_count = 0
-        for island_doc in db_islands:
-            islands[island_doc['id']] = island_doc
-            loaded_island_count += 1
+            # Load islands
+            db_islands = firestore_models.Island.get_all()
+            loaded_island_count = 0
+            for island_doc in db_islands:
+                islands[island_doc['id']] = island_doc
+                loaded_island_count += 1
 
-        logger.info(f"Synchronous load complete: Loaded {loaded_player_count} players and {loaded_island_count} islands from Firestore.")
+            logger.info(f"Asynchronous load complete: Loaded {loaded_player_count} players and {loaded_island_count} islands from Firestore.")
 
-    except Exception as e:
-        # Log any exception during the synchronous loading process
-        logger.error(f"Error during synchronous Firestore data load: {e}", exc_info=True)
-        # Depending on severity, you might want to exit or handle this differently
-        # raise e # Optionally re-raise to halt startup on critical load failure
+        except Exception as e:
+            # Log any exception during the asynchronous loading process
+            logger.error(f"Error during asynchronous Firestore data load: {e}", exc_info=True)
+            # Depending on severity, you might want to handle this differently
 
-# --- Call the synchronous loading function ---
-load_initial_data_from_firestore()
-logger.info("Initial Firestore data loaded synchronously.")
+    # Start the actual loading process in a background task
+    socketio.start_background_task(task)
+    logger.info("Initiated asynchronous Firestore data loading.")
 
 # --- Discord Integration Helper ---
 def send_to_discord_bot(event_type, payload):
@@ -879,6 +879,9 @@ if __name__ == '__main__':
     cannon_handler.init_socketio(socketio, players)
     player_handler.init_handler(socketio, players)
     harpoon_handler.init_socketio(socketio, players)
+
+    # Start loading data asynchronously after everything else is set up
+    load_initial_data_from_firestore()
 
     if env == 'development':
         # Run the Socket.IO server with debug and reloader enabled for development
