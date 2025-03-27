@@ -58,15 +58,6 @@ socketio = SocketIO(app, cors_allowed_origins=os.environ.get('SOCKETIO_CORS_ALLO
 players = {}
 islands = {}
 
-# --- Initialize Handlers and Managers ---
-# Initialize the projectile manager FIRST, as handlers might register callbacks
-projectile_manager.init_manager(socketio)
-
-# Initialize specific handlers (they might register collision checkers now)
-cannon_handler.init_socketio(socketio, players)
-player_handler.init_handler(socketio, players)
-harpoon_handler.init_socketio(socketio, players) # This will now register its checker
-
 # Add this near your other global variables
 last_db_update = defaultdict(float)  # Track last database update time for each player
 DB_UPDATE_INTERVAL = 2  # seconds between database updates
@@ -130,6 +121,9 @@ def send_to_discord_bot(event_type, payload):
     if not DISCORD_BOT_URL:
         # logger.warning("DISCORD_BOT_URL not set. Skipping Discord notification.")
         return # Silently fail if not configured
+
+    if os.environ.get('FLASK_ENV_RUN', 'development') == 'development':
+        return # Silently fail if in development mode
 
     def task():
         try:
@@ -840,6 +834,16 @@ def handle_discord_message():
 
 if __name__ == '__main__':
     # Run the Socket.IO server with debug and reloader enabled
+    env = os.environ.get('FLASK_ENV_RUN', 'development')
+    port = int(os.environ.get('PORT', 5001))
+    projectile_manager.init_manager(socketio)
+
+    # Initialize specific handlers (they might register collision checkers now)
+    cannon_handler.init_socketio(socketio, players)
+    player_handler.init_handler(socketio, players)
+    harpoon_handler.init_socketio(socketio, players) # This will now register its checker
     
-    socketio.run(app, host='0.0.0.0') 
-    # socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=False) 
+    if env == 'development':
+        socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=False) 
+    else:
+        socketio.run(app, host='0.0.0.0') 
