@@ -857,6 +857,6 @@ if __name__ == '__main__':
     harpoon_handler.init_socketio(socketio, players) # This will now register its checker
     
     if env == 'development':
-        socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=True) 
+        socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=False) 
     else:
         socketio.run(app, host='0.0.0.0') 

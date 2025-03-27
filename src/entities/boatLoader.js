@@ -131,22 +131,35 @@ for (const [type, ship] of Object.entries(SHIP_MODELS)) {
 /**
  * Loads a ship model based on the selected type in localStorage
  * @param {THREE.Group} targetGroup - The group to add the loaded model to
+ * @param {Object} options - Optional parameters to customize ship loading
+ * @param {Function} onComplete - Optional callback when model loading completes
  */
-export function loadShipModel(targetGroup) {
-    // Reset loading state for boat model
-    resetModelLoadingState('playerBoat');
+export function loadShipModel(targetGroup, options = {}, onComplete) {
+    // Extract custom options or use defaults
+    const {
+        customModelId,
+        shipType: forcedShipType,
+        isOtherPlayer = false
+    } = options;
 
-    // Get the current ship type and its configuration
-    const shipType = getShipType();
+    // Use provided model ID or default to 'playerBoat'
+    const modelId = customModelId || 'playerBoat';
+
+    // Reset loading state for boat model
+    resetModelLoadingState(modelId);
+
+    // Get the ship type - either forced (for other players) or from user selection
+    const shipType = forcedShipType || getShipType();
     const shipConfig = SHIP_MODELS[shipType];
 
     // Create configuration for the generic loader
     const config = {
-        modelId: 'playerBoat',
+        modelId: modelId,
         modelUrl: shipConfig.path,
         scaleValue: shipConfig.scale,
         position: shipConfig.position,
-        rotation: shipConfig.rotation,
+        // For other players, we generally want to rotate the ship model 180 degrees
+        rotation: isOtherPlayer ? [0, Math.PI, 0] : shipConfig.rotation,
         animationSetup: (model) => {
             // Only set up sail animations if appropriate
             if (model.name.includes('sail')) {
@@ -159,8 +172,9 @@ export function loadShipModel(targetGroup) {
             modelUrl: SHIP_MODELS[DEFAULT_SHIP_TYPE].path,
             scaleValue: SHIP_MODELS[DEFAULT_SHIP_TYPE].scale,
             position: SHIP_MODELS[DEFAULT_SHIP_TYPE].position,
-            rotation: SHIP_MODELS[DEFAULT_SHIP_TYPE].rotation
-        }
+            rotation: isOtherPlayer ? [0, Math.PI, 0] : SHIP_MODELS[DEFAULT_SHIP_TYPE].rotation
+        },
+        isFromBoatLoader: true  // Add this flag to prevent infinite recursion
     };
 
     // Use the generic GLB loader
@@ -207,6 +221,11 @@ export function loadShipModel(targetGroup) {
                 }
             });
             console.log('Applied enhanced brightness to ship for mobile visibility');
+        }
+
+        // Call onComplete callback if provided
+        if (onComplete && typeof onComplete === 'function') {
+            onComplete(success);
         }
     });
 }

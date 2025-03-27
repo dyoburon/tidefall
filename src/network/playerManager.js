@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { loadGLBModel, unloadGLBModel } from '../utils/glbLoader.js';
+import { unloadGLBModel } from '../utils/glbLoader.js';
 import { scene } from '../core/gameState.js';
+import { loadShipModel, SHIP_MODELS, DEFAULT_SHIP_TYPE } from '../entities/boatLoader.js';
 
 let otherPlayers = new Map(); // Map to store other players' meshes
 
@@ -33,19 +34,14 @@ export function addOtherPlayerToScene(playerData) {
         modelId: modelId
     });
 
-    // Configuration for the Medium Pirate model
-    const modelConfig = {
-        modelId: modelId,
-        modelUrl: '/mediumpirate.glb',  // Path to Medium Pirate GLB
-        scaleValue: 20.0,               // Scale from boatLoader.js
-        position: [0, 7, 0],            // Position from boatLoader.js
-        rotation: [0, Math.PI, 0]       // Rotation from boatLoader.js
-    };
-
-    // Load the model and wait for completion before adding to scene
-    loadGLBModel(playerGroup, modelConfig, (success) => {
+    // Use loadShipModel with custom parameters for other players
+    // We provide the target group and the unique modelId
+    loadShipModel(playerGroup, {
+        customModelId: modelId,      // Pass a custom model ID for tracking
+        shipType: 'mediumpirate',    // Default to medium pirate ship
+        isOtherPlayer: true          // Flag to indicate this is another player
+    }, (success) => {
         if (!success) {
-
             // Still continue with adding a basic representation
         }
 
