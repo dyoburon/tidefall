@@ -6,7 +6,7 @@ python-engineio==4.5.1
 firebase-admin>=6.0.0
 flask-sqlalchemy>=3.0.0
 psycopg2-binary>=2.9.0
+eventlet==0.33.3 
 discord.py>=2.3.2
 requests>=2.31.0
 gunicorn>=23.0.0
-eventlet>=0.39.1
