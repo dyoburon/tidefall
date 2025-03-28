@@ -35,7 +35,7 @@ export function createFloatingText({
     color = DEFAULT_COLOR,
     size = DEFAULT_FONT_SIZE,
     duration = DEFAULT_DURATION,
-    dissapear = DEFAULT_DISAPPEAR,
+    disappear = DEFAULT_DISAPPEAR,
     riseFactor = DEFAULT_RISE_FACTOR,
     fadeOut = true,
     onComplete
@@ -131,7 +131,7 @@ export function createFloatingText({
         if (now < endTime) {
             requestAnimationFrame(animate);
         } else {
-            if (dissapear) {
+            if (disappear) {
                 // Cleanup
                 scene.remove(sprite);
                 sprite.material.dispose();

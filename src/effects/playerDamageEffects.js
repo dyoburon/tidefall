@@ -146,14 +146,12 @@ export function showDamageNumber(position, amount) {
         text: damageText,
         position: offsetPosition,
         color: 0xff0000, // Brighter red
-        size: 2.5 * DAMAGE_NUMBER_SCALE, // Larger size
-        duration: 2.0, // Longer duration
-        disappear: true,
-        riseFactor: 3.0, // Slower rise
+        size: 70 * DAMAGE_NUMBER_SCALE, // Larger size
+        duration: 1.0, // Longer duration
+        disappear: false,
+        riseFactor: 5.0, // Slower rise
         fadeOut: true
     });
-
-    console.log("Floating text object created:", textObj ? "success" : "failed");
 }
 
 /**
