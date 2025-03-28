@@ -60,7 +60,8 @@ import { updateDragEffects, updateWaterDragEffects } from '../animations/monster
 import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updateEffectsSize } from '../utils/glbOutlineEffects.js';
 import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js';
 import { updateHarpoonTension } from '../abilities/harpoonTensionSystem.js';
-import { updatePortals, createPortal } from '../portals/vibeverse.js'
+import { updatePortals, createPortal } from '../portals/vibeverse.js';
+//import { updateChatBubblePositions } from '../effects/chatBubbleEffect.js';
 
 // Define query parameters storage
 const urlParams = new URLSearchParams(window.location.search);
@@ -157,11 +158,11 @@ toggleSkySystem();
 let portalBackUrl = "tidefall.io"
 if (refParam) {
     portalBackUrl = refParam
-    const portal3 = createPortal(new THREE.Vector3(-500, 0, 0), "BACK", "https://" + portalBackUrl);
+    //const portal3 = createPortal(new THREE.Vector3(-500, 0, 0), "BACK", "https://" + portalBackUrl);
 }
-const portal1 = createPortal(new THREE.Vector3(500, 0, 0), "Vibeverse", "https://portal.pieter.com");
-const portal4 = createPortal(new THREE.Vector3(500, 0, 600), "Jetski", "https://jetski.cemilsevim.com/");
-const portal2 = createPortal(new THREE.Vector3(500, 0, 300), "Metaverse", "https://metaverse-delta.vercel.app/", { useTexture: true, textureUrl: './zuck.jpg' });
+//const portal1 = createPortal(new THREE.Vector3(500, 0, 0), "Vibeverse", "https://portal.pieter.com");
+//const portal4 = createPortal(new THREE.Vector3(500, 0, 600), "Jetski", "https://jetski.cemilsevim.com/");
+//const portal2 = createPortal(new THREE.Vector3(500, 0, 300), "Metaverse", "https://metaverse-delta.vercel.app/", { useTexture: true, textureUrl: './zuck.jpg' });
 
 //const portal2 = createPortal(new THREE.Vector3(-300, 0, 200), "Island Portal");
 //const portal3 = createPortal(new THREE.Vector3(0, 0, 800), "Secret Portal");
@@ -448,6 +449,7 @@ export function showLoginScreen(onComplete) {
     profileContainer.appendChild(boatSelectionContainer);
 
     // Define boat options with stats
+    /*
     const boatOptions = [
         {
             id: 'pirate-small',
@@ -527,7 +529,24 @@ export function showLoginScreen(onComplete) {
             },
             description: 'A massive man-of-war with unmatched firepower. Slow but nearly unstoppable in battle.'
         }
+    ];*/
+    const boatOptions = [
+        {
+            id: 'pirate-medium',
+            name: 'Medium Pirate Ship',
+            category: 'Pirate',
+            size: 'Medium',
+            stats: {
+                speed: 65,
+                damage: 70,
+                health: 75,
+                maneuverability: 65
+            },
+            description: 'A balanced brigantine with a good mix of speed and firepower. Perfect for versatile captains.'
+        }
     ];
+
+
 
     // Track selected boat
     let selectedBoatId = 'pirate-medium'; // Default selected boat
@@ -1188,9 +1207,7 @@ function animate() {
 
     updatePortals(boat.position)
 
-
     abilityManager.update(deltaTime);
-
 
     updateDragEffects(deltaTime);
 
@@ -1198,14 +1215,15 @@ function animate() {
 
     updateHarpoonTension(); // New call to update tension system
 
-
     applyWindInfluence();
 
     updateDirectKnockback(deltaTime);
 
+    // --- Update Chat Bubble Positions ---
+    //updateChatBubblePositions();
+    // ------------------------------------
 
     //water2.update(deltaTime);
-
 
     // Request next frame first
     requestAnimationFrame(animate);
@@ -1420,7 +1438,7 @@ const cliffScene = spawnCoastalCliffScene(scene, startPosition);
 // Create a global command to show MOTD for testing
 window.showMOTD = function () {
 
-    forceShowMessageOfDay();
+    //forceShowMessageOfDay();
 };
 
 
