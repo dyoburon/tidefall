@@ -9,9 +9,11 @@ import math
 import logging
 from flask_socketio import emit
 import player_handler
-import projectile_manager # <-- Import the projectile manager
+# import projectile_manager # <-- Import the projectile manager
 
 # Assuming a simulations module exists with calculate_distance
+
+'''
 try:
     from simulations import calculate_distance
 except ImportError:
@@ -41,7 +43,7 @@ except ImportError:
                 'z': initial_position['z'] + initial_velocity['z'] * time_elapsed
             }
     logger.warning("Simulations module not found, using basic implementations.")
-
+'''
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -73,7 +75,7 @@ def init_socketio(socketio_instance, players_reference):
     socketio.on_event('harpoon_fire', handle_harpoon_fire)
 
     # Register the collision check function with the Projectile Manager
-    projectile_manager.register_collision_checker(PROJECTILE_TYPE_HARPOON, _harpoon_collision_check_callback)
+    #projectile_manager.register_collision_checker(PROJECTILE_TYPE_HARPOON, _harpoon_collision_check_callback)
 
     # Removed: start_harpoon_update_loop(socketio_instance) - Loop is now centralized
 
@@ -124,6 +126,7 @@ def handle_harpoon_fire(data):
 
         # --- Add Projectile via Manager ---
         player_harpoon_cooldowns[player_id] = current_time
+        '''
         harpoon_id = projectile_manager.add_projectile(
             owner_id=player_id,
             projectile_type=PROJECTILE_TYPE_HARPOON,
@@ -134,6 +137,7 @@ def handle_harpoon_fire(data):
             gravity=0.0 # Harpoons fly straight
             # Add any harpoon-specific kwargs here if needed later
         )
+        '''
 
         if not harpoon_id:
             logger.error(f"Failed to add harpoon projectile for player {player_id}.")
@@ -152,6 +156,9 @@ def handle_harpoon_fire(data):
             'direction': normalized_direction,
             'speed': HARPOON_SPEED # Send speed so clients can simulate if needed
         }
+
+        print("emit_data_broadcast")
+        logger.error("emit_data_broadcast")
         socketio.emit('harpoon_fired_broadcast', emit_data_broadcast, broadcast=True, include_self=False)
 
         # 2. (Optional) Confirm back to the firing player

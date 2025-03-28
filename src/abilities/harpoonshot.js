@@ -11,6 +11,7 @@ import {
     activeHarpoons,
     attachHarpoonToIsland
 } from './harpoonDamageSystem.js';
+import { fireHarpoon as networkFireHarpoon } from '../network/harpoonManager.js';
 import { initDragEffects, cleanupDragEffects } from '../animations/monsterDragEffects.js';
 import AimingSystem from './aimingSystem.js';
 import { checkAllIslandCollisions, islandColliders, activeIslands } from '../world/islands.js';
@@ -187,6 +188,8 @@ class HarpoonShot {
 
         // Generate a unique ID for this harpoon instance
         this.harpoonId = `harpoon-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+        networkFireHarpoon(this.harpoonId, position, direction, targetPosition);
 
         // Register with the harpoon damage system
         registerHarpoonProjectile(this.harpoonId, {

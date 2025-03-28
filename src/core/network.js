@@ -1,13 +1,12 @@
 import * as THREE from 'three';
 import { getAuth } from 'firebase/auth';
 import { showLoginScreen } from './main';
-import { setPlayerStateFromDb, getPlayerStateFromDb, updateBoatReference } from './gameState';
+import { setPlayerStateFromDb } from './gameState';
 import { setupAllPlayersTracking } from './main';
-import { loadGLBModel, unloadGLBModel } from '../utils/glbLoader.js';
 import { showDamageEffect } from '../effects/playerDamageEffects.js';
-import { resetCameraPosition, reconnectControlsToModel } from '../controls/cameraControls.js';
-import { addOtherPlayerToScene, removeOtherPlayerFromScene, updatePlayerInAllPlayers, getOtherPlayers } from '../network/playerManager.js';
-//import CannonShot from '../abilities/cannonshot.js'; // Import the CannonShot class
+import { addOtherPlayerToScene, removeOtherPlayerFromScene, updatePlayerInAllPlayers, getOtherPlayers, updatePlayerNameLabel } from '../network/playerManager.js';
+import { setupHarpoonSocketEvents } from '../network/harpoonManager.js';
+
 
 // Global initialization for chat and callbacks
 let chatMessageCallback = null;
@@ -226,7 +225,6 @@ export function onAllPlayers(callback) {
 
     if (socket) {
         socket.on('all_players', (players) => {
-
             // Add player stats if available
             players.forEach(player => {
                 // Try to get stored stats for this player from cache
@@ -235,6 +233,13 @@ export function onAllPlayers(callback) {
                     if (storedPlayer.data && storedPlayer.data.stats) {
                         player.stats = storedPlayer.data.stats;
                     }
+                }
+            });
+
+
+            players.forEach(playerData => {
+                if (playerData.id !== playerId) {
+                    addOtherPlayerToScene(playerData);
                 }
             });
 
@@ -329,6 +334,9 @@ export async function initializeNetwork(
 function setupSocketEvents() {
     // Skip connect handler as we'll handle it in initializeNetwork
 
+    setupHarpoonSocketEvents(socket);
+
+
     socket.on('disconnect', () => {
 
         isConnected = false;
@@ -340,7 +348,6 @@ function setupSocketEvents() {
     });
 
     socket.on('connection_response', (data) => {
-
 
         // Important: The server will now send back the Firebase UID as the player ID
         // if authentication was successful
@@ -358,8 +365,6 @@ function setupSocketEvents() {
         setupAllPlayersTracking();
 
         // Update local player information after loading
-        updateOtherPlayerInfo(data);
-
         getPlayerInventory((inventory) => {
             if (inventory) {
                 // Check if player has a specific item
@@ -386,20 +391,19 @@ function setupSocketEvents() {
 
     // Handle receiving all current players
     socket.on('all_players', (players) => {
-
-
         // Add each player to the scene (except ourselves)
-        players.forEach(playerData => {
+        /*players.forEach(playerData => {
             if (playerData.id !== playerId) {
                 addOtherPlayerToScene(playerData);
             }
-        });
+        });*/
     });
 
     // Player events
     socket.on('player_joined', (data) => {
 
         if (data.id !== playerId) {
+            console.log("new player joined", data)
             addOtherPlayerToScene(data);
         }
     });
@@ -411,6 +415,7 @@ function setupSocketEvents() {
     });
 
     socket.on('player_updated', (data) => {
+        console.log("player_updated", data)
         if (data.id !== playerId) {
             updateOtherPlayerInfo(data);
         }
@@ -662,21 +667,25 @@ export function updatePlayerPosition() {
 
 // Set the player's name
 export function setPlayerName(name) {
-
-
-
+    console.log("in here", name)
     // Safety check - don't allow empty names
     if (!name || name.trim() === '') {
-
         return;
     }
 
     playerName = name;
-
+    console.log("in here", name)
 
     if (isConnected && socket) {
-
+        console.log("in here to test")
+        // Send update to server
         socket.emit('update_player_name', { name: playerName, player_id: firebaseDocId });
+
+        // Update the player's own name sprite
+        // updatePlayerNameLabel(playerId, playerName);
+
+        // Force an update to other clients
+        // updatePlayerPosition();
     } else {
 
     }
@@ -712,15 +721,15 @@ function updateOtherPlayerPosition(playerData) {
     const player = otherPlayers.get(playerData.id);
     if (!player) {
         // Add the player if they don't exist yet
-        addOtherPlayerToScene(playerData);
+        //addOtherPlayerToScene(playerData);
         return;
     }
 
     // Check if mode has changed
     if (player.data.mode !== playerData.mode) {
         // Remove old mesh and create a new one with the correct mode
-        removeOtherPlayerFromScene(playerData.id);
-        addOtherPlayerToScene(playerData);
+        //removeOtherPlayerFromScene(playerData.id);
+        //addOtherPlayerToScene(playerData);
         return;
     }
 
@@ -772,26 +781,16 @@ function updateOtherPlayerPosition(playerData) {
 // Update another player's information (like name)
 function updateOtherPlayerInfo(playerData) {
     const player = otherPlayers.get(playerData.id);
+    console.log("updating player info 2", player)
     if (!player) return;
 
+    console.log("updating player info", playerData)
     // Update name if provided
-    if (playerData.name && player.data.name !== playerData.name) {
-        player.data.name = playerData.name;
-
-        // Update name sprite
-        const nameCanvas = document.createElement('canvas');
-        const nameContext = nameCanvas.getContext('2d');
-        nameCanvas.width = 256;
-        nameCanvas.height = 64;
-        nameContext.font = '24px Arial';
-        nameContext.fillStyle = 'white';
-        nameContext.textAlign = 'center';
-        nameContext.fillText(playerData.name, 128, 32);
-
-        const nameTexture = new THREE.CanvasTexture(nameCanvas);
-        player.nameSprite.material.map = nameTexture;
-        player.nameSprite.material.needsUpdate = true;
-    }
+    //if (playerData.name && player.data.name !== playerData.name) {
+    // console.log("updating player name", playerData.name)
+    // Use our new function to update the name label
+    updatePlayerNameLabel(playerData.id, playerData.name);
+    //}
 
     // Update color if provided
     if (playerData.color && player.data.mode === 'boat') {

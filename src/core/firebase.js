@@ -11,14 +11,14 @@ import {
     setPersistence,
     browserLocalPersistence
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+// import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 // Firebase state variables
 let app;
 let auth;
-let db;
+// let db;
 let currentUser = null;
-let userProfile = null;
+// let userProfile = null;
 let isInitialized = false;
 
 /**
@@ -47,18 +47,15 @@ export async function initializeFirebase() {
         // Set persistence to LOCAL (persists indefinitely)
         await setPersistence(auth, browserLocalPersistence);
 
-
-        db = getFirestore(app);
+        // db = getFirestore(app);
 
         // Set up auth state listener
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
-
-                loadUserProfile(user.uid);
+                // loadUserProfile(user.uid);
             } else {
-
-                userProfile = null;
+                // userProfile = null;
             }
         });
 
@@ -66,7 +63,6 @@ export async function initializeFirebase() {
 
         return true;
     } catch (error) {
-
         return false;
     }
 }
@@ -75,63 +71,25 @@ export async function initializeFirebase() {
  * Load user profile data from Firestore
  * @param {string} uid - User ID
  */
+/*
 async function loadUserProfile(uid) {
+    if (!db) return;
     try {
-        const userDoc = await getDoc(doc(db, "players", "firebase_" + uid));
-        if (userDoc.exists()) {
-
-            userProfile = userDoc.data();
-
-            // Dispatch event for other systems to react to
-            window.dispatchEvent(new CustomEvent('userProfileLoaded', {
-                detail: { profile: userProfile }
-            }));
-
-            return userProfile;
+        const docRef = doc(db, 'users', uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            userProfile = docSnap.data();
         } else {
-            // Don't create a profile if it doesn't exist
-
+            console.log("No such user profile document!");
             userProfile = null;
-            return null;
         }
     } catch (error) {
-
-        return null;
+        console.error("Error loading user profile:", error);
+        userProfile = null;
     }
 }
+*/
 
-/**
- * Update user stats in Firestore
- * @param {Object} stats - Stats to update
- */
-export async function updateUserStats(stats) {
-    if (!currentUser || !userProfile) return;
-
-    try {
-        await updateDoc(doc(db, "players", currentUser.uid), stats);
-        // Update local profile
-        userProfile = { ...userProfile, ...stats };
-
-    } catch (error) {
-
-    }
-}
-
-/**
- * Get current user profile
- * @returns {Object|null} User profile or null if not logged in
- */
-export function getUserProfile() {
-    return userProfile;
-}
-
-/**
- * Check if user is already signed in from a previous session
- * @returns {boolean} True if user is already signed in
- */
-export function isUserSignedIn() {
-    return !!currentUser;
-}
 
 /**
  * Show Firebase authentication popup
@@ -139,13 +97,11 @@ export function isUserSignedIn() {
  */
 export function showAuthPopup(onSuccess) {
     if (!isInitialized) {
-
         return;
     }
 
     // Check if user is already signed in
     if (currentUser) {
-
         if (onSuccess && typeof onSuccess === 'function') {
             onSuccess(currentUser);
         }
@@ -348,31 +304,6 @@ export function showAuthPopup(onSuccess) {
  */
 export function signOutUser() {
     if (auth) signOut(auth);
-}
-
-/**
- * Get hex color from user profile or generate one
- * @returns {string} Hex color code
- */
-export function getUserColor() {
-    if (userProfile && userProfile.color) {
-        return userProfile.color;
-    }
-    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-}
-
-/**
- * Get username from user profile or generate one
- * @returns {string} Username
- */
-export function getUsername() {
-    if (userProfile && userProfile.displayName) {
-        return userProfile.displayName;
-    }
-    if (currentUser && currentUser.displayName) {
-        return currentUser.displayName;
-    }
-    return `Sailor ${Math.floor(Math.random() * 1000)}`;
 }
 
 /**

@@ -9,11 +9,17 @@ export function addOtherPlayerToScene(playerData) {
     let otherPlayers = getOtherPlayers()
     // Skip if this player is already in the scene
     if (otherPlayers.has(playerData.id)) {
+        console.log("we are here in this thing", otherPlayers)
         // If the player exists but position is different, update it
         const existingPlayer = otherPlayers.get(playerData.id);
         if (existingPlayer && existingPlayer.mesh) {
             // Update position if needed
             updateOtherPlayerPosition(playerData);
+
+            // If player name was undefined before but now is defined, update it
+            // if (!existingPlayer.data.name && playerData.name) {
+            // updatePlayerNameLabel(playerData.id, playerData.name);
+            // }
         }
         return;
     }
@@ -22,7 +28,7 @@ export function addOtherPlayerToScene(playerData) {
     const playerGroup = new THREE.Group();
 
     // Create a unique model ID for this player
-    const modelId = `player_${playerData.id}`;
+    const modelId = `${playerData.id}`;
 
     // Keep track of the player with a temporary placeholder
     // but don't add to scene yet, wait for model loading
@@ -50,22 +56,10 @@ export function addOtherPlayerToScene(playerData) {
             return;
         }
 
-        // Add player name label
-        const nameCanvas = document.createElement('canvas');
-        const nameContext = nameCanvas.getContext('2d');
-        nameCanvas.width = 256;
-        nameCanvas.height = 64;
-        nameContext.font = '24px Arial';
-        nameContext.fillStyle = 'white';
-        nameContext.textAlign = 'center';
-        nameContext.fillText(playerData.name, 128, 32);
-
-        const nameTexture = new THREE.CanvasTexture(nameCanvas);
-        const nameMaterial = new THREE.SpriteMaterial({ map: nameTexture });
-        const nameSprite = new THREE.Sprite(nameMaterial);
-        nameSprite.position.y = 20;  // Adjusted higher to appear above the model
-        nameSprite.scale.set(50, 12.5, 1);
-        playerGroup.add(nameSprite);
+        // Only create name label if we have a valid name
+        //if (playerData.name) {
+        //    addPlayerNameLabel(playerData.id, playerData.name);
+        //}
 
         // Add a vertical, thin light that follows the player (adjusted for new model)
         const lightHeight = 10000; // Adjust the height of the light
@@ -98,6 +92,8 @@ export function addOtherPlayerToScene(playerData) {
         );
         playerGroup.rotation.y = playerData.rotation;
 
+        addPlayerNameLabel(playerData.id, playerData.name);
+
         // Add to scene - do this only after model is loaded
         scene.add(playerGroup);
 
@@ -105,11 +101,64 @@ export function addOtherPlayerToScene(playerData) {
         otherPlayers.set(playerData.id, {
             mesh: playerGroup,
             data: playerData,
-            nameSprite: nameSprite,
+            nameSprite: otherPlayers.get(playerData.id).nameSprite, // Keep existing nameSprite reference
             loaded: true,
             modelId: modelId
         });
     });
+}
+
+// Helper function to add a name label to a player
+function addPlayerNameLabel(playerId, playerName) {
+    const otherPlayers = getOtherPlayers();
+    const playerData = otherPlayers.get(playerId);
+    if (!playerData || !playerData.mesh) return;
+
+    // Create the name label if it doesn't exist
+    const nameCanvas = document.createElement('canvas');
+    const nameContext = nameCanvas.getContext('2d');
+    nameCanvas.width = 256;
+    nameCanvas.height = 64;
+    nameContext.font = '24px Arial';
+    nameContext.fillStyle = 'white';
+    nameContext.textAlign = 'center';
+    nameContext.fillText(playerName || 'Unknown', 128, 32);
+
+    const nameTexture = new THREE.CanvasTexture(nameCanvas);
+    const nameMaterial = new THREE.SpriteMaterial({ map: nameTexture });
+    const nameSprite = new THREE.Sprite(nameMaterial);
+    nameSprite.position.y = 20;  // Adjusted higher to appear above the model
+    nameSprite.scale.set(50, 12.5, 1);
+    playerData.mesh.add(nameSprite);
+
+    // Update player data with the name sprite
+    otherPlayers.set(playerId, {
+        ...playerData,
+        nameSprite: nameSprite
+    });
+}
+
+// Function to update an existing player's name label
+export function updatePlayerNameLabel(playerId, newName) {
+    const otherPlayers = getOtherPlayers();
+    const playerData = otherPlayers.get(playerId);
+    if (!playerData || !playerData.mesh) return;
+
+    // If there's an existing nameSprite, remove and dispose it
+    if (playerData.nameSprite) {
+        if (playerData.nameSprite.material && playerData.nameSprite.material.map) {
+            playerData.nameSprite.material.map.dispose();
+            playerData.nameSprite.material.dispose();
+        }
+        playerData.mesh.remove(playerData.nameSprite);
+    }
+
+    // Add a new name label with the updated name
+    addPlayerNameLabel(playerId, newName);
+
+    // Also update the stored player data
+    playerData.data.name = newName;
+    otherPlayers.set(playerId, playerData);
 }
 
 export function updatePlayerInAllPlayers(playerData) {
