@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # --- Profanity Filter Setup ---
 profanity.load_censor_words() # Load the default word list
 # Optional: Add custom words if needed
-# profanity.add_censor_words(['some_custom_bad_word'])
+profanity.add_censor_words(['hitler'])
 
 # --- Discord Bot Setup ---
 intents = discord.Intents.default()
