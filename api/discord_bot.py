@@ -7,6 +7,7 @@ import requests
 from flask import Flask, request, jsonify
 import threading
 import logging
+from better_profanity import profanity
 
 # --- Configuration ---
 load_dotenv() # Load environment variables from .env
@@ -20,6 +21,11 @@ SHARED_SECRET = os.environ.get("DISCORD_SHARED_SECRET", "default_secret_key") # 
 # --- Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# --- Profanity Filter Setup ---
+profanity.load_censor_words() # Load the default word list
+# Optional: Add custom words if needed
+# profanity.add_censor_words(['some_custom_bad_word'])
 
 # --- Discord Bot Setup ---
 intents = discord.Intents.default()
@@ -53,21 +59,30 @@ def handle_game_event():
         logger.warning("Received invalid data on /game_event")
         return jsonify({"error": "Invalid data"}), 400
 
-    # Sanitize content coming *from* the game before sending to Discord
+    # Censor and Sanitize content coming *from* the game before sending to Discord
     message_to_send = ""
     if message_type == 'chat':
         sender_name = payload.get('sender_name', 'Unknown')
         content = payload.get('content', '')
-        # Sanitize both sender name and content separately before combining
-        safe_sender = discord.utils.escape_markdown(discord.utils.escape_mentions(sender_name))
-        safe_content = discord.utils.escape_markdown(discord.utils.escape_mentions(content))
+
+        # Censor first
+        censored_sender = profanity.censor(sender_name)
+        censored_content = profanity.censor(content)
+
+        # Then sanitize for Discord formatting
+        safe_sender = discord.utils.escape_markdown(discord.utils.escape_mentions(censored_sender))
+        safe_content = discord.utils.escape_markdown(discord.utils.escape_mentions(censored_content))
         message_to_send = f"**{safe_sender}**: {safe_content}"
     elif message_type == 'player_join':
         player_name = payload.get('name', 'Someone')
-        # Sanitize player name
-        safe_player_name = discord.utils.escape_markdown(discord.utils.escape_mentions(player_name))
+
+        # Censor first
+        censored_player_name = profanity.censor(player_name)
+
+        # Then sanitize for Discord formatting
+        safe_player_name = discord.utils.escape_markdown(discord.utils.escape_mentions(censored_player_name))
         message_to_send = f":arrow_right: *Player **{safe_player_name}** has joined the game.*"
-    # Add more event types here if needed (remember to sanitize!)
+    # Add more event types here if needed (remember to censor and sanitize!)
 
     if message_to_send:
         # Use asyncio.run_coroutine_threadsafe for thread safety with discord.py
@@ -105,37 +120,43 @@ async def on_message(message):
     # Only process messages from the designated channel
     if message.channel.id == CHANNEL_ID:
         logger.info(f"Received message from Discord channel {CHANNEL_ID}: '{message.content}' by {message.author.display_name}")
-        await send_to_game_server(message)
+        # Censor the message content *before* sending to the game server
+        censored_content = profanity.censor(message.content)
+        # Pass the original message object but provide the censored content separately for sending
+        await send_to_game_server(message, censored_content)
 
     # Allow processing commands if needed (optional)
     # await bot.process_commands(message)
 
-async def send_to_game_server(message):
-    """Sends a sanitized message from Discord to the game server's API endpoint and adds a reaction."""
+async def send_to_game_server(message, content_to_send):
+    """Sends a censored and sanitized message from Discord to the game server."""
     try:
-        # Sanitize content: escape Markdown and mentions
-        sanitized_content = discord.utils.escape_markdown(message.content)
+        # Sanitize content further for Discord specifics (mentions, markdown)
+        # Although censoring might remove some markdown/mentions, apply escapes just in case
+        # CENSORING HAPPENS *BEFORE* this function is called now.
+        sanitized_content = discord.utils.escape_markdown(content_to_send) # Use content_to_send
         sanitized_content = discord.utils.escape_mentions(sanitized_content)
 
+        # Censor the author's display name as well
+        censored_author = profanity.censor(message.author.display_name)
+
         payload = {
-            'author': message.author.display_name, # Display name is generally safe
-            'content': sanitized_content
+            'author': censored_author, # Send censored author name
+            'content': sanitized_content # Send censored & sanitized content
         }
         headers = {
             'Content-Type': 'application/json',
-            'X-Secret-Key': SHARED_SECRET # Include shared secret for security
+            'X-Secret-Key': SHARED_SECRET
         }
-        # Use the sanitized content in the request
         response = requests.post(f"{GAME_SERVER_URL}/discord_message", json=payload, headers=headers, timeout=5)
-        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
-        logger.info(f"Sent sanitized message to game server: {message.author.display_name}: {sanitized_content}")
+        response.raise_for_status()
+        # Log the original content for debugging/context if needed, but be mindful of privacy
+        logger.info(f"Sent censored message to game server from {message.author.display_name}") # Avoid logging the raw message if sensitive
 
-        # Add success reaction (rocket)
         await message.add_reaction('🚀')
     except (requests.exceptions.RequestException, Exception) as e:
         logger.error(f"Error sending message to game server: {e}")
-        # Add failure reaction (red circle)
-        try: # Add reaction failure handling
+        try:
             await message.add_reaction('🔴')
         except discord.HTTPException as reaction_error:
              logger.error(f"Failed to add error reaction: {reaction_error}")
