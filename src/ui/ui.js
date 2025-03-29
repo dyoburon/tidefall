@@ -11,7 +11,7 @@ import playerList from './playerList.js';
 import { initGameTerminal } from './gameTerminal.js';
 import AbilitiesBar from './abilitiesBar.js'; // Import the new AbilitiesBar component
 import { isTouchDevice } from '../controls/touchControls.js';
-import { updateChatBubblePositions, showLocalChatBubble, initChatBubbleSystem } from '../effects/chatBubbleEffect.js'; // Import chat bubble functions
+//import { updateChatBubblePositions, showLocalChatBubble, initChatBubbleSystem } from '../effects/chatBubbleEffect.js'; // Import chat bubble functions
 import { signOutUser } from '../core/firebase.js';
 
 // Create a UI class to manage all interface elements
@@ -89,7 +89,7 @@ class GameUI {
             onMessageSent: (message) => {
                 // Show a chat bubble above the local player's boat when sending a message
                 if (window.playerBoat && window.scene) {
-                    showLocalChatBubble(message, window.playerBoat, window.scene);
+                    //showLocalChatBubble(message, window.playerBoat, window.scene);
                 }
             }
         });
@@ -106,7 +106,7 @@ class GameUI {
 
         // Initialize chat bubble system
         if (window.scene) {
-            initChatBubbleSystem(window.scene);
+            //initChatBubbleSystem(window.scene);
         }
 
         // Connect the fire button to the fireCannons function
@@ -648,7 +648,7 @@ class GameUI {
         // Update frame-dependent UI elements here
 
         // Update chat bubble positions every frame
-        updateChatBubblePositions();
+        //updateChatBubblePositions();
 
         // Update speed
         if (data.speed !== undefined) {
