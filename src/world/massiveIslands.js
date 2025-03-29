@@ -104,6 +104,7 @@ function createMassiveIslandMesh(island, random) {
     const innerRadius = BASE_RADIUS * 0.3; // Smaller inner radius for longer cave (was 0.4)
     const caveWidth = BASE_RADIUS * 0.25; // Slightly narrower but taller cave entrance (was 0.3)
 
+
     // Dramatically increase base height for vertical emphasis
     const baseHeight = (50 + random() * 30) * VERTICAL_SCALE;
 
