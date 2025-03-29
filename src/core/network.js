@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { getAuth } from 'firebase/auth';
 import { showLoginScreen } from './main';
 import { setPlayerStateFromDb } from './gameState';
-import { setupAllPlayersTracking } from './main';
 import { showDamageEffect } from '../effects/playerDamageEffects.js';
 import { addOtherPlayerToScene, removeOtherPlayerFromScene, updatePlayerInAllPlayers, getOtherPlayers, updatePlayerNameLabel } from '../network/playerManager.js';
 import { setupHarpoonSocketEvents } from '../network/harpoonManager.js';
