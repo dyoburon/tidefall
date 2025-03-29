@@ -1582,6 +1582,7 @@ const collisionResponseSystem = initCollisionResponse();
 export function setupAllPlayersTracking() {
 
 
+    /*
     // Register for all_players updates
     Network.onAllPlayers((players) => {
         // Update our gameState variable
@@ -1606,6 +1607,7 @@ export function setupAllPlayersTracking() {
         const currentPlayers = getAllPlayers();
 
     }, 10000);
+    */
 }
 
 

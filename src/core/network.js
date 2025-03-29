@@ -6,6 +6,7 @@ import { setupAllPlayersTracking } from './main';
 import { showDamageEffect } from '../effects/playerDamageEffects.js';
 import { addOtherPlayerToScene, removeOtherPlayerFromScene, updatePlayerInAllPlayers, getOtherPlayers, updatePlayerNameLabel } from '../network/playerManager.js';
 import { setupHarpoonSocketEvents } from '../network/harpoonManager.js';
+//import { showChatBubble } from '../effects/chatBubbleEffect.js';
 
 
 // Global initialization for chat and callbacks
@@ -145,7 +146,7 @@ export const respawnManager = {
 
         // Instead of creating a new boat, just teleport and reset the existing one
         if (this.boat) {
-            console.log('Teleporting boat to respawn point');
+
 
             // Reset position
             this.boat.position.copy(spawnPosition);
@@ -160,9 +161,9 @@ export const respawnManager = {
             // Update server with new position
             updatePlayerPosition();
 
-            console.log('Boat respawned at:', spawnPosition);
+
         } else {
-            console.error('Could not respawn boat: boat reference is null');
+
         }
     },
 
@@ -236,12 +237,7 @@ export function onAllPlayers(callback) {
                 }
             });
 
-
-            players.forEach(playerData => {
-                if (playerData.id !== playerId) {
-                    addOtherPlayerToScene(playerData);
-                }
-            });
+            addOtherPlayersToSceneIfNotPresent(players);
 
             // Call the registered callback
             if (allPlayersCallback) {
@@ -249,6 +245,21 @@ export function onAllPlayers(callback) {
             }
         });
     }
+}
+
+function addOtherPlayersToSceneIfNotPresent(players) {
+    players.forEach(playerData => {
+
+
+        if (playerId && playerData.id !== playerId) {
+            const existingPlayers = getOtherPlayers();
+
+            // Only add if this player is not already in the scene
+            if (!existingPlayers.has(playerData.id)) {
+                addOtherPlayerToScene(playerData);
+            }
+        }
+    });
 }
 
 // Request the player list from the server
@@ -278,6 +289,9 @@ export async function initializeNetwork(
     color,
     userId = null // Firebase UID
 ) {
+
+    firebaseDocId = "firebase_" + userId;
+    playerId = firebaseDocId;
     sceneRef = scene;
     playerStateRef = playerState;
     boatRef = boat;
@@ -327,7 +341,7 @@ export async function initializeNetwork(
         });
     });
 
-    firebaseDocId = "firebase_" + userId;
+    socket.emit('get_all_players');
 }
 
 // Set up Socket.IO event handlers
@@ -347,11 +361,34 @@ function setupSocketEvents() {
         });
     });
 
+    socket.on('all_players', (players) => {
+        // Add player stats if available
+        players.forEach(player => {
+            // Try to get stored stats for this player from cache
+            if (otherPlayers.has(player.id)) {
+                const storedPlayer = otherPlayers.get(player.id);
+                if (storedPlayer.data && storedPlayer.data.stats) {
+                    player.stats = storedPlayer.data.stats;
+                }
+            }
+        });
+
+        addOtherPlayersToSceneIfNotPresent(players);
+
+        // Call the registered callback
+        if (allPlayersCallback) {
+            allPlayersCallback(players);
+        }
+    });
+
     socket.on('connection_response', (data) => {
+
+
 
         // Important: The server will now send back the Firebase UID as the player ID
         // if authentication was successful
         playerId = data.id;
+
 
         // This may be different from the socket ID now - it could be the Firebase UID
 
@@ -362,7 +399,7 @@ function setupSocketEvents() {
 
         setPlayerStateFromDb(data);
 
-        setupAllPlayersTracking();
+        //setupAllPlayersTracking();
 
         // Update local player information after loading
         getPlayerInventory((inventory) => {
@@ -389,21 +426,13 @@ function setupSocketEvents() {
         socket.emit('get_all_players');
     });
 
-    // Handle receiving all current players
-    socket.on('all_players', (players) => {
-        // Add each player to the scene (except ourselves)
-        /*players.forEach(playerData => {
-            if (playerData.id !== playerId) {
-                addOtherPlayerToScene(playerData);
-            }
-        });*/
-    });
-
     // Player events
     socket.on('player_joined', (data) => {
 
-        if (data.id !== playerId) {
-            console.log("new player joined", data)
+
+
+        if (playerId && data.id !== playerId) {
+
             addOtherPlayerToScene(data);
         }
     });
@@ -415,14 +444,13 @@ function setupSocketEvents() {
     });
 
     socket.on('player_updated', (data) => {
-        console.log("player_updated", data)
+
         if (data.id !== playerId) {
             updateOtherPlayerInfo(data);
         }
     });
 
     socket.on('player_disconnected', (data) => {
-
         removeOtherPlayerFromScene(data.id);
     });
 
@@ -507,8 +535,6 @@ function setupSocketEvents() {
             data.timestamp = Date.now();
         }
 
-
-
         // Add to message history
         messageHistory.push(data);
 
@@ -546,7 +572,7 @@ function setupSocketEvents() {
     });
 
     socket.on('cannon_hit', (data) => {
-        console.log("we are in cannon hit from server")
+
         // When this player is hit by a cannon, this event is received
         // Data contains: {id, damage, hitPosition}
 
@@ -563,7 +589,7 @@ function setupSocketEvents() {
 
     // Also handle server-side determined cannon hits
     socket.on('server_cannon_hit', (data) => {
-        console.log("we are in cannon hit from server")
+
 
         // Server-side hit detection event
         // Data contains: {shooter_id, hit_player_id, damage, hit_position}
@@ -591,7 +617,7 @@ function setupSocketEvents() {
 
     // Listen for player defeated events
     socket.on('player_defeated', (data) => {
-        console.log('Player defeated:', data);
+
 
         // Check if this is the local player
         if (data.player_id === firebaseDocId) {
@@ -622,15 +648,15 @@ function setupSocketEvents() {
 
     // Listen for player respawn events
     socket.on('player_respawned', (data) => {
-        console.log('Player respawned:', data);
+
 
         // Check if this is the local player
         if (data.player_id === firebaseDocId) {
-            console.log("firing event for player respawned")
+
             // End respawn process for local player
             respawnManager.completeRespawn();
         } else {
-            console.log("in the respawn else")
+
             // Reload the player's GLB model
             respawnManager.reloadPlayerGLB(data.player_id);
         }
@@ -667,17 +693,17 @@ export function updatePlayerPosition() {
 
 // Set the player's name
 export function setPlayerName(name) {
-    console.log("in here", name)
+
     // Safety check - don't allow empty names
     if (!name || name.trim() === '') {
         return;
     }
 
     playerName = name;
-    console.log("in here", name)
+
 
     if (isConnected && socket) {
-        console.log("in here to test")
+
         // Send update to server
         socket.emit('update_player_name', { name: playerName, player_id: firebaseDocId });
 
@@ -781,13 +807,13 @@ function updateOtherPlayerPosition(playerData) {
 // Update another player's information (like name)
 function updateOtherPlayerInfo(playerData) {
     const player = otherPlayers.get(playerData.id);
-    console.log("updating player info 2", player)
+
     if (!player) return;
 
-    console.log("updating player info", playerData)
+
     // Update name if provided
     //if (playerData.name && player.data.name !== playerData.name) {
-    // console.log("updating player name", playerData.name)
+    // 
     // Use our new function to update the name label
     updatePlayerNameLabel(playerData.id, playerData.name);
     //}
@@ -1168,6 +1194,6 @@ function endRespawnProcess() {
     // Make sure playerState has the updated boat reference
     if (playerStateRef && respawnManager.boat) {
         playerStateRef.boat = respawnManager.boat;
-        console.log('Player state updated with new boat reference');
+
     }
 }

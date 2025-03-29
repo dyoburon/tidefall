@@ -11,6 +11,8 @@ import playerList from './playerList.js';
 import { initGameTerminal } from './gameTerminal.js';
 import AbilitiesBar from './abilitiesBar.js'; // Import the new AbilitiesBar component
 import { isTouchDevice } from '../controls/touchControls.js';
+import { updateChatBubblePositions, showLocalChatBubble, initChatBubbleSystem } from '../effects/chatBubbleEffect.js'; // Import chat bubble functions
+import { signOutUser } from '../core/firebase.js';
 
 // Create a UI class to manage all interface elements
 class GameUI {
@@ -83,7 +85,14 @@ class GameUI {
         // this.abilitiesBar.enableKeyboardShortcuts();
 
         // Initialize the chat system
-        this.chat = initChat();
+        this.chat = initChat({
+            onMessageSent: (message) => {
+                // Show a chat bubble above the local player's boat when sending a message
+                if (window.playerBoat && window.scene) {
+                    showLocalChatBubble(message, window.playerBoat, window.scene);
+                }
+            }
+        });
 
         // Initialize the mini map and connect it to the chat system
         this.miniMap = initMiniMap();
@@ -94,6 +103,11 @@ class GameUI {
 
         // Initialize game terminal
         this.terminal = initGameTerminal();
+
+        // Initialize chat bubble system
+        if (window.scene) {
+            initChatBubbleSystem(window.scene);
+        }
 
         // Connect the fire button to the fireCannons function
         //this.elements.cannon.fireButton.addEventListener('click', fireCannons);
@@ -176,86 +190,6 @@ class GameUI {
         this.container.appendChild(element);
         return element;
     }
-
-    /*createCompass() {
-        const compassContainer = document.createElement('div');
-        compassContainer.style.width = '80px';
-        compassContainer.style.height = '80px';
-        compassContainer.style.borderRadius = '50%';
-        compassContainer.style.border = '3px solid #B8860B';
-        compassContainer.style.position = 'relative';
-        compassContainer.style.marginTop = '10px';
-        compassContainer.style.marginBottom = '15px';
-        compassContainer.style.backgroundColor = '#D2B48C';
-        compassContainer.style.backgroundImage = 'radial-gradient(circle, #D2B48C 0%, #C19A6B 100%)';
-        compassContainer.style.display = 'flex';
-        compassContainer.style.justifyContent = 'center';
-        compassContainer.style.alignItems = 'center';
-        compassContainer.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.5)';
-
-        const directions = ['N', 'E', 'S', 'W'];
-        directions.forEach((dir, i) => {
-            const dirElement = document.createElement('div');
-            dirElement.textContent = dir;
-            dirElement.style.position = 'absolute';
-            dirElement.style.fontWeight = 'bold';
-            dirElement.style.color = '#8B4513';
-            dirElement.style.fontFamily = 'serif';
-
-            switch (dir) {
-                case 'N':
-                    dirElement.style.top = '5px';
-                    dirElement.style.left = '50%';
-                    dirElement.style.transform = 'translateX(-50%)';
-                    break;
-                case 'E':
-                    dirElement.style.right = '5px';
-                    dirElement.style.top = '50%';
-                    dirElement.style.transform = 'translateY(-50%)';
-                    break;
-                case 'S':
-                    dirElement.style.bottom = '5px';
-                    dirElement.style.left = '50%';
-                    dirElement.style.transform = 'translateX(-50%)';
-                    break;
-                case 'W':
-                    dirElement.style.left = '5px';
-                    dirElement.style.top = '50%';
-                    dirElement.style.transform = 'translateY(-50%)';
-                    break;
-            }
-
-            compassContainer.appendChild(dirElement);
-        });
-
-        const needle = document.createElement('div');
-        needle.style.width = '3px';
-        needle.style.height = '35px';
-        needle.style.backgroundColor = '#B22222';
-        needle.style.position = 'absolute';
-        needle.style.top = '50%';
-        needle.style.left = '50%';
-        needle.style.transformOrigin = 'bottom center';
-        needle.style.transform = 'translateX(-50%) translateY(-100%) rotate(0deg)';
-        needle.style.borderRadius = '50% 50% 0 0';
-
-        const needleBase = document.createElement('div');
-        needleBase.style.width = '10px';
-        needleBase.style.height = '10px';
-        needleBase.style.backgroundColor = '#B8860B';
-        needleBase.style.borderRadius = '50%';
-        needleBase.style.position = 'absolute';
-        needleBase.style.top = '50%';
-        needleBase.style.left = '50%';
-        needleBase.style.transform = 'translate(-50%, -50%)';
-        needleBase.style.boxShadow = 'inset 0 0 3px rgba(0, 0, 0, 0.5)';
-
-        compassContainer.appendChild(needle);
-        compassContainer.appendChild(needleBase);
-        this.container.appendChild(compassContainer);
-
-        return { container: compassContainer, needle: needle };
-    }*/
 
     createSpeedometer() {
         const speedContainer = document.createElement('div');
@@ -711,6 +645,11 @@ class GameUI {
     }
 
     update(data) {
+        // Update frame-dependent UI elements here
+
+        // Update chat bubble positions every frame
+        updateChatBubblePositions();
+
         // Update speed
         if (data.speed !== undefined) {
             // Update speedometer (max speed of 10 knots)
@@ -1358,6 +1297,55 @@ class GameUI {
         });
 
         terminalSection.appendChild(terminalButton);
+
+        // Add Logout Button Section
+        const logoutSection = document.createElement('div');
+        logoutSection.style.marginTop = '20px'; // Add some space above
+        logoutSection.style.paddingTop = '15px'; // Add padding above the button
+        logoutSection.style.borderTop = '1px solid #4477aa'; // Separator line
+        settingsPanel.appendChild(logoutSection);
+
+        const logoutButton = document.createElement('button');
+        logoutButton.textContent = 'Logout';
+        logoutButton.style.width = '100%';
+        logoutButton.style.padding = '10px 10px';
+        logoutButton.style.backgroundColor = '#c0392b'; // Red color for logout/danger
+        logoutButton.style.backgroundImage = 'linear-gradient(to bottom, #e74c3c, #c0392b)';
+        logoutButton.style.border = '1px solid #a02315';
+        logoutButton.style.borderRadius = '5px';
+        logoutButton.style.color = 'white';
+        logoutButton.style.fontWeight = 'bold';
+        logoutButton.style.cursor = 'pointer';
+        logoutButton.style.fontFamily = 'sans-serif'; // Use a standard font
+        logoutButton.style.fontSize = '14px';
+        logoutButton.style.textShadow = '0 1px 2px rgba(0,0,0,0.5)';
+        logoutButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)';
+        logoutButton.title = 'Log out and return to the login screen';
+
+        // Add hover effect
+        logoutButton.addEventListener('mouseover', () => {
+            logoutButton.style.backgroundImage = 'linear-gradient(to bottom, #ff5a4a, #d14031)';
+        });
+        logoutButton.addEventListener('mouseout', () => {
+            logoutButton.style.backgroundImage = 'linear-gradient(to bottom, #e74c3c, #c0392b)';
+        });
+
+        // Click handler for logout
+        logoutButton.addEventListener('click', () => {
+            // 1. Sign out the user via Firebase
+            signOutUser();
+
+            // 2. Reload the page to reset the state and show login
+            // Small delay to allow sign out to potentially complete network request
+            setTimeout(() => {
+                window.location.reload();
+            }, 100); // 100ms delay
+
+            // Optionally hide the panel immediately
+            this.settingsPanel.style.display = 'none';
+        });
+
+        logoutSection.appendChild(logoutButton);
 
         // Store references
         this.settingsButton = settingsButton;

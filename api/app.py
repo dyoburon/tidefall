@@ -247,10 +247,15 @@ def handle_player_join(data):
             
             auth_player_data = existing_player if existing_player else player_data
             
+            auth_player_data['id'] = docid  # Add ID if it's not already included
+
             emit('connection_response', auth_player_data)
 
             # Broadcast to all clients that a new player joined
             emit('player_joined', players[docid], broadcast=True)
+
+            active_players = [p for p in players.values() if p.get('active', False)]
+            emit('all_players', active_players)
 
             # --- Send notification to Discord ---
             if player_doc_id and player_doc_id in players:
