@@ -1579,6 +1579,38 @@ toggleFog(scene);
 const collisionResponseSystem = initCollisionResponse();
 
 
+export function setupAllPlayersTracking() {
+
+
+
+    // Register for all_players updates
+    Network.onAllPlayers((players) => {
+        // Update our gameState variable
+        updateAllPlayers(players);
+
+
+        // Debug output the first few players
+        if (players.length > 0) {
+
+        }
+    });
+
+    // Request initial player list
+    const requestSent = Network.getAllPlayers();
+
+
+    // Set up a periodic refresh every 10 seconds
+    setInterval(() => {
+        Network.getAllPlayers();
+
+        // Print the current players from gameState
+        const currentPlayers = getAllPlayers();
+
+    }, 10000);
+
+}
+
+
 // Add this to an appropriate key handler
 document.addEventListener('keydown', (e) => {
     // Open terminal with backtick/tilde key (common in games)
