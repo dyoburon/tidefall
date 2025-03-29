@@ -53,14 +53,25 @@ def handle_game_event():
         logger.warning("Received invalid data on /game_event")
         return jsonify({"error": "Invalid data"}), 400
 
-    # Use asyncio.run_coroutine_threadsafe for thread safety with discord.py
+    # Sanitize content coming *from* the game before sending to Discord
+    message_to_send = ""
     if message_type == 'chat':
-        message = f"**{payload.get('sender_name', 'Unknown')}**: {payload.get('content', '')}"
-        asyncio.run_coroutine_threadsafe(send_to_discord_channel(message), bot.loop)
+        sender_name = payload.get('sender_name', 'Unknown')
+        content = payload.get('content', '')
+        # Sanitize both sender name and content separately before combining
+        safe_sender = discord.utils.escape_markdown(discord.utils.escape_mentions(sender_name))
+        safe_content = discord.utils.escape_markdown(discord.utils.escape_mentions(content))
+        message_to_send = f"**{safe_sender}**: {safe_content}"
     elif message_type == 'player_join':
-        message = f":arrow_right: *Player **{payload.get('name', 'Someone')}** has joined the game.*"
-        asyncio.run_coroutine_threadsafe(send_to_discord_channel(message), bot.loop)
-    # Add more event types here if needed
+        player_name = payload.get('name', 'Someone')
+        # Sanitize player name
+        safe_player_name = discord.utils.escape_markdown(discord.utils.escape_mentions(player_name))
+        message_to_send = f":arrow_right: *Player **{safe_player_name}** has joined the game.*"
+    # Add more event types here if needed (remember to sanitize!)
+
+    if message_to_send:
+        # Use asyncio.run_coroutine_threadsafe for thread safety with discord.py
+        asyncio.run_coroutine_threadsafe(send_to_discord_channel(message_to_send), bot.loop)
 
     return jsonify({"status": "success"}), 200
 
@@ -100,26 +111,34 @@ async def on_message(message):
     # await bot.process_commands(message)
 
 async def send_to_game_server(message):
-    """Sends a message from Discord to the game server's API endpoint and adds a reaction."""
+    """Sends a sanitized message from Discord to the game server's API endpoint and adds a reaction."""
     try:
+        # Sanitize content: escape Markdown and mentions
+        sanitized_content = discord.utils.escape_markdown(message.content)
+        sanitized_content = discord.utils.escape_mentions(sanitized_content)
+
         payload = {
-            'author': message.author.display_name,
-            'content': message.content
+            'author': message.author.display_name, # Display name is generally safe
+            'content': sanitized_content
         }
         headers = {
             'Content-Type': 'application/json',
             'X-Secret-Key': SHARED_SECRET # Include shared secret for security
         }
+        # Use the sanitized content in the request
         response = requests.post(f"{GAME_SERVER_URL}/discord_message", json=payload, headers=headers, timeout=5)
         response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
-        logger.info(f"Sent message to game server: {message.author.display_name}: {message.content}")
-        
+        logger.info(f"Sent sanitized message to game server: {message.author.display_name}: {sanitized_content}")
+
         # Add success reaction (rocket)
         await message.add_reaction('🚀')
     except (requests.exceptions.RequestException, Exception) as e:
         logger.error(f"Error sending message to game server: {e}")
         # Add failure reaction (red circle)
-        await message.add_reaction('🔴')
+        try: # Add reaction failure handling
+            await message.add_reaction('🔴')
+        except discord.HTTPException as reaction_error:
+             logger.error(f"Failed to add error reaction: {reaction_error}")
 
 # --- Main Execution ---
 def run_flask():
