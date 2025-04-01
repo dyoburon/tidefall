@@ -61,6 +61,7 @@ import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updat
 import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js';
 import { updateHarpoonTension } from '../abilities/harpoonTensionSystem.js';
 import { updatePortals, createPortal } from '../portals/vibeverse.js';
+import { setupSpawnArea } from '../world/spawn.js';
 //import { updateChatBubblePositions } from '../effects/chatBubbleEffect.js';
 
 // Define query parameters storage
@@ -154,7 +155,12 @@ if (window.realisticSkyMesh) {
     window.realisticSkyMesh = null;
 }
 toggleSkySystem();
-//initializePortal(new THREE.Vector3(500, 0, 0), "Vibeverse");
+
+// Initialize curated spawn area instead of individual portals
+setupSpawnArea();
+
+// Comment out individual portal creation since they're now handled by spawn.js
+/*
 let portalBackUrl = "tidefall.io"
 if (refParam) {
     portalBackUrl = refParam
@@ -162,11 +168,7 @@ if (refParam) {
 }
 const portal1 = createPortal(new THREE.Vector3(500, 0, 0), "Vibeverse", "https://portal.pieter.com");
 const portal4 = createPortal(new THREE.Vector3(500, 0, 600), "Jetski", "https://jetski.cemilsevim.com/");
-//const portal2 = createPortal(new THREE.Vector3(500, 0, 300), "Metaverse", "https://metaverse-delta.vercel.app/", { useTexture: true, textureUrl: './zuck.jpg' });
-
-//const portal2 = createPortal(new THREE.Vector3(-300, 0, 200), "Island Portal");
-//const portal3 = createPortal(new THREE.Vector3(0, 0, 800), "Secret Portal");
-//setPortalActivated()
+*/
 
 // Toggle to enable realistic sky
 const skyEnabled = toggleSkySystem();
@@ -240,7 +242,9 @@ const waterMaterial = new THREE.ShaderMaterial({
 });
 
 
-spawnMassiveIsland(scene);
+// Comment out or remove the individual massive island spawn since it's handled by spawn.js
+// spawnMassiveIsland(scene);
+
 // Add this at the beginning of your script.js file
 let playerName = '';
 let playerColor = '#3498db'; // Default blue

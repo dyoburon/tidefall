@@ -131,7 +131,7 @@ class OpenBiome extends BiomeInterface {
 
             // Check if too close to player spawn at (0,0)
             const distanceToSpawn = Math.sqrt(posX * posX + posZ * posZ);
-            const minDistanceFromSpawn = 2000; // Keep huge islands at least 1000 units away from spawn
+            const minDistanceFromSpawn = 3000; // Increased from 2000 to 3000 to avoid conflicts with curated spawn
 
             if (distanceToSpawn >= minDistanceFromSpawn) {
                 // Make sure we don't spawn too close to other islands
