@@ -577,6 +577,22 @@ class NpcShip {
     }
 
     /**
+     * Get the visual world position of the ship
+     * @returns {THREE.Vector3} The world position of the ship's visual model
+     */
+    getShipWorldPosition() {
+        // If we have a loaded 3D model, use its position
+        if (this.shipGroup) {
+            const worldPos = new THREE.Vector3();
+            this.shipGroup.getWorldPosition(worldPos);
+            return worldPos;
+        }
+
+        // Otherwise fall back to the ship's logical position
+        return this.position.clone();
+    }
+
+    /**
      * Apply damage to the NPC ship
      * @param {number} amount - Amount of damage to apply
      * @param {string} source - Source of damage (e.g., 'player_cannon')
@@ -604,6 +620,7 @@ class NpcShip {
         // Show damage effect
         if (this.shipGroup) {
             import('../effects/playerDamageEffects.js').then(effects => {
+                // Use the shipGroup for visual effect placement
                 effects.showDamageEffect(this.shipGroup, amount, 'cannon');
             });
         }
@@ -656,11 +673,25 @@ class NpcShip {
      * @param {THREE.Vector3} position - Position of the explosion
      */
     createDestructionEffect(position) {
+        // Create multiple layers of explosion effects
+        this.createExplosionParticles(position);
+        this.createExplosionFlash(position);
+        this.createSmokeCloud(position);
+        this.createDebris(position);
+
+        // Play explosion sound
+    }
+
+    /**
+     * Create particle explosion effect
+     * @param {THREE.Vector3} position - Position of the explosion
+     */
+    createExplosionParticles(position) {
         // Create explosion particles
-        const particleCount = 30;
+        const particleCount = 50; // Increased count
         const particles = [];
 
-        // Create simple particle geometry
+        // Create particle geometry
         const particleGeometry = new THREE.SphereGeometry(0.3, 8, 8);
         const particleMaterial = new THREE.MeshBasicMaterial({
             color: 0xff5500,
@@ -674,17 +705,17 @@ class NpcShip {
             // Position around the explosion point
             particle.position.copy(position).add(
                 new THREE.Vector3(
-                    (Math.random() - 0.5) * 4,
-                    Math.random() * 2,
-                    (Math.random() - 0.5) * 4
+                    (Math.random() - 0.5) * 6, // Larger spread
+                    Math.random() * 4,         // Higher
+                    (Math.random() - 0.5) * 6  // Larger spread
                 )
             );
 
-            // Add random velocity
+            // More powerful explosion - higher velocity
             particle.userData.velocity = new THREE.Vector3(
-                (Math.random() - 0.5) * 8,
-                5 + Math.random() * 5,
-                (Math.random() - 0.5) * 8
+                (Math.random() - 0.5) * 12,  // Faster horizontal
+                5 + Math.random() * 10,      // Higher vertical
+                (Math.random() - 0.5) * 12   // Faster horizontal
             );
 
             // Add to scene
@@ -694,14 +725,21 @@ class NpcShip {
             // Set particle to expand over time
             particle.userData.scaleRate = 0.05 + Math.random() * 0.05;
             particle.userData.opacityDecay = 0.02 + Math.random() * 0.02;
+
+            // Randomize colors between orange and yellow
+            if (Math.random() > 0.5) {
+                particle.material.color.set(0xff7700); // More orange
+            } else {
+                particle.material.color.set(0xffaa00); // More yellow
+            }
         }
 
         // Animate explosion particles
         let elapsed = 0;
-        const duration = 2.0; // seconds
+        const duration = 2.5; // seconds
 
         function animateExplosion() {
-            elapsed += 0.016; // Approximately 60fps
+            elapsed += 0.6; // Approximately 60fps
 
             if (elapsed >= duration) {
                 // Remove particles when animation completes
@@ -718,7 +756,7 @@ class NpcShip {
             // Update each particle
             particles.forEach(particle => {
                 // Apply gravity
-                particle.userData.velocity.y -= 0.1;
+                particle.userData.velocity.y -= 0.2; // Stronger gravity
 
                 // Move based on velocity
                 particle.position.add(particle.userData.velocity.clone().multiplyScalar(0.016));
@@ -738,17 +776,244 @@ class NpcShip {
 
         // Start animation
         animateExplosion();
+    }
 
-        // Play explosion sound
-        try {
-            import('../audio/soundEffects.js').then(audio => {
-                if (audio.playExplosionSound) {
-                    audio.playExplosionSound();
+    /**
+     * Create central flash for explosion
+     * @param {THREE.Vector3} position - Position of the explosion
+     */
+    createExplosionFlash(position) {
+        // Create a bright flash at the center
+        const flashGeometry = new THREE.SphereGeometry(4, 16, 16);
+        const flashMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffff00,
+            transparent: true,
+            opacity: 1.0
+        });
+
+        const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+        flash.position.copy(position);
+        scene.add(flash);
+
+        // Animate the flash - quick expand and fade
+        const startTime = getTime();
+        const flashDuration = 0.4; // seconds
+
+        function animateFlash() {
+            const elapsed = (getTime() - startTime) / 1000;
+
+            if (elapsed >= flashDuration) {
+                scene.remove(flash);
+                flash.geometry.dispose();
+                flash.material.dispose();
+                return;
+            }
+
+            // Quickly expand then contract
+            const scale = 1 + 4 * Math.sin(Math.PI * elapsed / flashDuration);
+            flash.scale.set(scale, scale, scale);
+
+            // Fade out
+            flash.material.opacity = 1 - (elapsed / flashDuration);
+
+            requestAnimationFrame(animateFlash);
+        }
+
+        requestAnimationFrame(animateFlash);
+    }
+
+    /**
+     * Create smoke cloud after explosion
+     * @param {THREE.Vector3} position - Position of the explosion
+     */
+    createSmokeCloud(position) {
+        const smokeCount = 20;
+        const smokeClouds = [];
+
+        // Create dark smoke particles
+        const smokeGeometry = new THREE.SphereGeometry(2, 8, 8);
+        const smokeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x555555,
+            transparent: true,
+            opacity: 0.7
+        });
+
+        for (let i = 0; i < smokeCount; i++) {
+            const smoke = new THREE.Mesh(smokeGeometry, smokeMaterial.clone());
+
+            // Start at explosion center
+            smoke.position.copy(position).add(
+                new THREE.Vector3(
+                    (Math.random() - 0.5) * 3,
+                    Math.random() * 1,
+                    (Math.random() - 0.5) * 3
+                )
+            );
+
+            // Slower rising motion
+            smoke.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 1.5,
+                0.5 + Math.random() * 1.5,
+                (Math.random() - 0.5) * 1.5
+            );
+
+            // Randomize smoke color slightly
+            const darkness = 0.3 + Math.random() * 0.3;
+            smoke.material.color.setRGB(darkness, darkness, darkness);
+
+            scene.add(smoke);
+            smokeClouds.push(smoke);
+        }
+
+        // Animate smoke
+        let elapsed = 0;
+        const smokeDuration = 5.0; // seconds
+
+        function animateSmoke() {
+            elapsed += 0.6;
+
+            if (elapsed >= smokeDuration) {
+                smokeClouds.forEach(smoke => {
+                    if (smoke.parent) {
+                        scene.remove(smoke);
+                        smoke.geometry.dispose();
+                        smoke.material.dispose();
+                    }
+                });
+                return;
+            }
+
+            smokeClouds.forEach(smoke => {
+                // Slow rising motion
+                smoke.position.add(smoke.userData.velocity.clone().multiplyScalar(0.016));
+
+                // Expand smoke over time
+                if (elapsed < smokeDuration * 0.7) {
+                    smoke.scale.addScalar(0.01);
+                }
+
+                // Fade out gradually
+                smoke.material.opacity = 0.7 * (1 - (elapsed / smokeDuration));
+            });
+
+            requestAnimationFrame(animateSmoke);
+        }
+
+        requestAnimationFrame(animateSmoke);
+    }
+
+    /**
+     * Create ship debris from explosion
+     * @param {THREE.Vector3} position - Position of the explosion
+     */
+    createDebris(position) {
+        const debrisCount = 15;
+        const debrisPieces = [];
+
+        // Create various debris geometries
+        const debrisGeometries = [
+            new THREE.BoxGeometry(1, 0.5, 2),
+            new THREE.BoxGeometry(0.7, 0.7, 0.7),
+            new THREE.BoxGeometry(1.5, 0.3, 0.8)
+        ];
+
+        // Brown/wood colors for ship debris
+        const debrisColors = [0x8B4513, 0x704214, 0x5C3A17];
+
+        for (let i = 0; i < debrisCount; i++) {
+            // Randomly select geometry and color
+            const geometryIndex = Math.floor(Math.random() * debrisGeometries.length);
+            const colorIndex = Math.floor(Math.random() * debrisColors.length);
+
+            const debris = new THREE.Mesh(
+                debrisGeometries[geometryIndex],
+                new THREE.MeshBasicMaterial({
+                    color: debrisColors[colorIndex]
+                })
+            );
+
+            // Position around explosion center
+            debris.position.copy(position).add(
+                new THREE.Vector3(
+                    (Math.random() - 0.5) * 4,
+                    Math.random() * 2,
+                    (Math.random() - 0.5) * 4
+                )
+            );
+
+            // Add random rotation
+            debris.rotation.set(
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2
+            );
+
+            // Add physics
+            debris.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 10,
+                3 + Math.random() * 7,
+                (Math.random() - 0.5) * 10
+            );
+
+            // Add rotation velocity
+            debris.userData.rotationSpeed = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.2,
+                (Math.random() - 0.5) * 0.2,
+                (Math.random() - 0.5) * 0.2
+            );
+
+            scene.add(debris);
+            debrisPieces.push(debris);
+        }
+
+        // Animate debris
+        let elapsed = 0;
+        const debrisDuration = 3.0; // seconds
+
+        function animateDebris() {
+            elapsed += 0.6;
+
+            if (elapsed >= debrisDuration) {
+                debrisPieces.forEach(debris => {
+                    if (debris.parent) {
+                        scene.remove(debris);
+                        debris.geometry.dispose();
+                        debris.material.dispose();
+                    }
+                });
+                return;
+            }
+
+            debrisPieces.forEach(debris => {
+                // Apply gravity
+                debris.userData.velocity.y -= 0.3;
+
+                // Move based on velocity
+                debris.position.add(debris.userData.velocity.clone().multiplyScalar(0.016));
+
+                // Rotate debris
+                debris.rotation.x += debris.userData.rotationSpeed.x;
+                debris.rotation.y += debris.userData.rotationSpeed.y;
+                debris.rotation.z += debris.userData.rotationSpeed.z;
+
+                // If debris hits water, make it float
+                if (debris.position.y <= 0) {
+                    debris.position.y = 0;
+                    debris.userData.velocity.y = Math.abs(debris.userData.velocity.y) * 0.3;
+
+                    // Slow down horizontal movement in water
+                    debris.userData.velocity.x *= 0.95;
+                    debris.userData.velocity.z *= 0.95;
+
+                    // Slow down rotation in water
+                    debris.userData.rotationSpeed.multiplyScalar(0.95);
                 }
             });
-        } catch (error) {
-            console.error("Failed to play explosion sound:", error);
+
+            requestAnimationFrame(animateDebris);
         }
+
+        requestAnimationFrame(animateDebris);
     }
 }
 

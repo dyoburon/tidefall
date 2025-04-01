@@ -559,6 +559,337 @@ export class NpcCannonSystem {
         // checking cooldowns based on elapsed time from last fired time
         // But could be useful for other time-based effects in the future
     }
+
+    /**
+     * Create the impact effect when a cannonball hits
+     * @param {THREE.Vector3} position - Position of the impact
+     */
+    createImpactEffect(position) {
+        // Create multiple visual effects for a more dramatic impact
+        this.createImpactExplosion(position);
+        this.createSplinters(position);
+        this.createSmokeTrail(position);
+    }
+
+    /**
+     * Create the main explosion at impact point
+     * @param {THREE.Vector3} position - Position of the impact
+     */
+    createImpactExplosion(position) {
+        // Create impact particles
+        const particleCount = 25;
+        const particles = [];
+
+        // Create particle geometry
+        const particleGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+
+        for (let i = 0; i < particleCount; i++) {
+            // Create different colored particles for more interesting effect
+            let color;
+            const colorRoll = Math.random();
+
+            if (colorRoll < 0.4) {
+                color = 0xff5500; // Orange fire
+            } else if (colorRoll < 0.7) {
+                color = 0xff9500; // Yellow fire
+            } else if (colorRoll < 0.9) {
+                color = 0x555555; // Dark smoke
+            } else {
+                color = 0xeeeeee; // Bright spark
+            }
+
+            const particleMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.9
+            });
+
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+
+            // Position slightly randomized around impact point
+            particle.position.copy(position).add(
+                new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.5,
+                    (Math.random() - 0.5) * 0.5,
+                    (Math.random() - 0.5) * 0.5
+                )
+            );
+
+            // Add random velocity, higher upward component
+            particle.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 4,
+                1 + Math.random() * 3,
+                (Math.random() - 0.5) * 4
+            );
+
+            // Add to scene
+            scene.add(particle);
+            particles.push(particle);
+
+            // Set particle properties for animation
+            particle.userData.drag = 0.95 + Math.random() * 0.03;
+            particle.userData.gravity = 0.1 + Math.random() * 0.1;
+            particle.userData.opacityDecay = 0.03 + Math.random() * 0.03;
+        }
+
+        // Add a flash at impact point
+        const flashGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+        const flashMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffff80,
+            transparent: true,
+            opacity: 1
+        });
+
+        const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+        flash.position.copy(position);
+        scene.add(flash);
+
+        // Animate particles
+        let elapsed = 0;
+        const duration = 1.5; // seconds
+
+        function animateImpact() {
+            elapsed += 0.016; // Approximately 60fps
+
+            if (elapsed >= duration) {
+                // Remove particles when animation completes
+                particles.forEach(particle => {
+                    if (particle.parent) {
+                        scene.remove(particle);
+                        particle.geometry.dispose();
+                        particle.material.dispose();
+                    }
+                });
+
+                // Remove flash
+                if (flash.parent) {
+                    scene.remove(flash);
+                    flash.geometry.dispose();
+                    flash.material.dispose();
+                }
+                return;
+            }
+
+            // Quick flash fade
+            if (flash.parent) {
+                flash.material.opacity -= 0.1;
+                const scale = 1.0 + elapsed * 3;
+                flash.scale.set(scale, scale, scale);
+
+                if (flash.material.opacity <= 0 || elapsed > 0.3) {
+                    scene.remove(flash);
+                    flash.geometry.dispose();
+                    flash.material.dispose();
+                }
+            }
+
+            // Update each particle
+            particles.forEach(particle => {
+                // Apply gravity
+                particle.userData.velocity.y -= particle.userData.gravity;
+
+                // Apply drag
+                particle.userData.velocity.multiplyScalar(particle.userData.drag);
+
+                // Move based on velocity
+                particle.position.add(particle.userData.velocity.clone().multiplyScalar(0.016));
+
+                // Fade out
+                particle.material.opacity -= particle.userData.opacityDecay;
+                if (particle.material.opacity < 0) {
+                    particle.material.opacity = 0;
+                }
+            });
+
+            requestAnimationFrame(animateImpact);
+        }
+
+        // Start animation
+        animateImpact();
+    }
+
+    /**
+     * Create wood splinters at impact point
+     * @param {THREE.Vector3} position - Position of the impact
+     */
+    createSplinters(position) {
+        const splinterCount = 12;
+        const splinters = [];
+
+        // Create splinter geometries - wooden shards
+        const splinterGeometries = [
+            new THREE.BoxGeometry(0.1, 0.02, 0.4),
+            new THREE.BoxGeometry(0.08, 0.02, 0.3),
+            new THREE.BoxGeometry(0.12, 0.02, 0.2)
+        ];
+
+        // Wood colors for splinters
+        const woodColors = [0x8B4513, 0x704214, 0x5C3A17];
+
+        for (let i = 0; i < splinterCount; i++) {
+            // Randomly select geometry and color
+            const geometryIndex = Math.floor(Math.random() * splinterGeometries.length);
+            const colorIndex = Math.floor(Math.random() * woodColors.length);
+
+            const splinter = new THREE.Mesh(
+                splinterGeometries[geometryIndex],
+                new THREE.MeshBasicMaterial({
+                    color: woodColors[colorIndex]
+                })
+            );
+
+            // Position at impact point
+            splinter.position.copy(position);
+
+            // Random rotation
+            splinter.rotation.set(
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2
+            );
+
+            // Add physics - flying outward from impact
+            splinter.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 5,
+                1 + Math.random() * 2,
+                (Math.random() - 0.5) * 5
+            );
+
+            // Add rotation velocity
+            splinter.userData.rotationSpeed = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.3,
+                (Math.random() - 0.5) * 0.3,
+                (Math.random() - 0.5) * 0.3
+            );
+
+            scene.add(splinter);
+            splinters.push(splinter);
+        }
+
+        // Animate splinters
+        let elapsed = 0;
+        const splinterDuration = 2.0; // seconds
+
+        function animateSplinters() {
+            elapsed += 0.016;
+
+            if (elapsed >= splinterDuration) {
+                splinters.forEach(splinter => {
+                    if (splinter.parent) {
+                        scene.remove(splinter);
+                        splinter.geometry.dispose();
+                        splinter.material.dispose();
+                    }
+                });
+                return;
+            }
+
+            splinters.forEach(splinter => {
+                // Apply gravity
+                splinter.userData.velocity.y -= 0.15;
+
+                // Move based on velocity
+                splinter.position.add(splinter.userData.velocity.clone().multiplyScalar(0.016));
+
+                // Rotate splinter
+                splinter.rotation.x += splinter.userData.rotationSpeed.x;
+                splinter.rotation.y += splinter.userData.rotationSpeed.y;
+                splinter.rotation.z += splinter.userData.rotationSpeed.z;
+            });
+
+            requestAnimationFrame(animateSplinters);
+        }
+
+        requestAnimationFrame(animateSplinters);
+    }
+
+    /**
+     * Create a smoke trail effect at the impact point
+     * @param {THREE.Vector3} position - Position of the impact
+     */
+    createSmokeTrail(position) {
+        const smokeCount = 8;
+        const smokeParticles = [];
+
+        // Create smoke particles
+        const smokeGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+        const smokeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x888888,
+            transparent: true,
+            opacity: 0.6
+        });
+
+        for (let i = 0; i < smokeCount; i++) {
+            const smoke = new THREE.Mesh(smokeGeometry, smokeMaterial.clone());
+
+            // Start at impact point
+            smoke.position.copy(position);
+
+            // Add slight delay to each smoke particle
+            smoke.userData.delay = i * 0.05;
+            smoke.userData.active = false;
+
+            // Slow rising motion
+            smoke.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.5,
+                0.5 + Math.random() * 0.8,
+                (Math.random() - 0.5) * 0.5
+            );
+
+            smoke.scale.set(0.1, 0.1, 0.1); // Start small
+            smoke.userData.scaleRate = 0.02 + Math.random() * 0.02;
+            smoke.userData.opacityDecay = 0.01 + Math.random() * 0.01;
+
+            scene.add(smoke);
+            smokeParticles.push(smoke);
+        }
+
+        // Animate smoke
+        let elapsed = 0;
+        const smokeDuration = 3.0; // seconds
+
+        function animateSmoke() {
+            elapsed += 0.016;
+
+            if (elapsed >= smokeDuration) {
+                smokeParticles.forEach(smoke => {
+                    if (smoke.parent) {
+                        scene.remove(smoke);
+                        smoke.geometry.dispose();
+                        smoke.material.dispose();
+                    }
+                });
+                return;
+            }
+
+            smokeParticles.forEach(smoke => {
+                // Check if this smoke particle should be active yet
+                if (!smoke.userData.active && elapsed > smoke.userData.delay) {
+                    smoke.userData.active = true;
+                }
+
+                if (smoke.userData.active) {
+                    // Move smoke upward
+                    smoke.position.add(smoke.userData.velocity.clone().multiplyScalar(0.016));
+
+                    // Grow smoke
+                    if (smoke.scale.x < 2.0) {
+                        smoke.scale.addScalar(smoke.userData.scaleRate);
+                    }
+
+                    // Fade out gradually
+                    smoke.material.opacity -= smoke.userData.opacityDecay;
+                    if (smoke.material.opacity < 0) {
+                        smoke.material.opacity = 0;
+                    }
+                }
+            });
+
+            requestAnimationFrame(animateSmoke);
+        }
+
+        requestAnimationFrame(animateSmoke);
+    }
 }
 
 // Create singleton instance
