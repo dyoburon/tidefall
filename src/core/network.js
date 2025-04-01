@@ -6,6 +6,7 @@ import { setupAllPlayersTracking } from './main';
 import { showDamageEffect } from '../effects/playerDamageEffects.js';
 import { addOtherPlayerToScene, removeOtherPlayerFromScene, updatePlayerInAllPlayers, getOtherPlayers, updatePlayerNameLabel } from '../network/playerManager.js';
 import { setupHarpoonSocketEvents } from '../network/harpoonManager.js';
+import { isTouchDevice } from '../controls/touchControls.js';
 //import { showChatBubble } from '../effects/chatBubbleEffect.js';
 
 
@@ -83,29 +84,32 @@ export const respawnManager = {
             this.boat.visible = false;
         }
 
-        // Create or show respawn overlay
-        if (!this.respawnOverlayElement) {
-            this.respawnOverlayElement = document.createElement('div');
-            this.respawnOverlayElement.style.position = 'absolute';
-            this.respawnOverlayElement.style.top = '0';
-            this.respawnOverlayElement.style.left = '0';
-            this.respawnOverlayElement.style.width = '100%';
-            this.respawnOverlayElement.style.height = '100%';
-            this.respawnOverlayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
-            this.respawnOverlayElement.style.display = 'flex';
-            this.respawnOverlayElement.style.justifyContent = 'center';
-            this.respawnOverlayElement.style.alignItems = 'center';
-            this.respawnOverlayElement.style.fontSize = '32px';
-            this.respawnOverlayElement.style.color = 'white';
-            this.respawnOverlayElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
-            this.respawnOverlayElement.style.zIndex = '1000';
-            document.body.appendChild(this.respawnOverlayElement);
-        } else {
-            this.respawnOverlayElement.style.display = 'flex';
-        }
+        // Only create overlay for non-touch devices
+        if (!isTouchDevice()) {
+            // Create or show respawn overlay
+            if (!this.respawnOverlayElement) {
+                this.respawnOverlayElement = document.createElement('div');
+                this.respawnOverlayElement.style.position = 'absolute';
+                this.respawnOverlayElement.style.top = '0';
+                this.respawnOverlayElement.style.left = '0';
+                this.respawnOverlayElement.style.width = '100%';
+                this.respawnOverlayElement.style.height = '100%';
+                this.respawnOverlayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+                this.respawnOverlayElement.style.display = 'flex';
+                this.respawnOverlayElement.style.justifyContent = 'center';
+                this.respawnOverlayElement.style.alignItems = 'center';
+                this.respawnOverlayElement.style.fontSize = '32px';
+                this.respawnOverlayElement.style.color = 'white';
+                this.respawnOverlayElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
+                this.respawnOverlayElement.style.zIndex = '1000';
+                document.body.appendChild(this.respawnOverlayElement);
+            } else {
+                this.respawnOverlayElement.style.display = 'flex';
+            }
 
-        // Update respawn text
-        this.respawnOverlayElement.textContent = `You were defeated! Respawning in ${this.respawnCountdown}...`;
+            // Update respawn text
+            this.respawnOverlayElement.textContent = `You were defeated! Respawning in ${this.respawnCountdown}...`;
+        }
 
         // Start countdown
         this.countdownInterval = setInterval(() => {
@@ -113,11 +117,13 @@ export const respawnManager = {
 
             if (this.respawnCountdown <= 0) {
                 clearInterval(this.countdownInterval);
-                this.respawnOverlayElement.style.display = 'none';
+                if (this.respawnOverlayElement) {
+                    this.respawnOverlayElement.style.display = 'none';
+                }
 
-                // Trigger the actual respawn
-                //this.completeRespawn();
-            } else {
+                // Complete the respawn process
+                this.completeRespawn();
+            } else if (!isTouchDevice() && this.respawnOverlayElement) {
                 this.respawnOverlayElement.textContent = `You were defeated! Respawning in ${this.respawnCountdown}...`;
             }
         }, 1000);
@@ -132,8 +138,8 @@ export const respawnManager = {
      * Complete the respawn process
      */
     completeRespawn() {
-        // Hide respawn overlay if it exists
-        if (this.respawnOverlayElement) {
+        // Hide respawn overlay if it exists and we're not on a touch device
+        if (!isTouchDevice() && this.respawnOverlayElement) {
             this.respawnOverlayElement.style.display = 'none';
         }
 
@@ -146,24 +152,15 @@ export const respawnManager = {
 
         // Instead of creating a new boat, just teleport and reset the existing one
         if (this.boat) {
-
-
             // Reset position
             this.boat.position.copy(spawnPosition);
             this.boat.rotation.y = spawnRotation;
-
-            // Reset velocity
-            //boatVelocity.set(0, 0, 0);
 
             // Make boat visible again
             this.boat.visible = true;
 
             // Update server with new position
             updatePlayerPosition();
-
-
-        } else {
-
         }
     },
 
