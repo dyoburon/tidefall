@@ -90,10 +90,6 @@ export function initTouchControls() {
     movementJoystick = nipplejs.create(movementConfig);
     cameraJoystick = nipplejs.create(cameraConfig);
 
-    // Add visual labels to help users
-    addJoystickLabel(movementContainer, 'MOVE');
-    addJoystickLabel(cameraContainer, 'CAMERA');
-
     // Set up event listeners
     movementJoystick.on('move', handleMovementJoystickMove);
     movementJoystick.on('end', handleMovementJoystickEnd);
@@ -141,22 +137,6 @@ function createJoystickContainer(id, leftPos, bottomPos) {
     container.style.pointerEvents = 'auto'; // Restore pointer events
     container.style.touchAction = 'none'; // Prevent scrolling while using joystick
     return container;
-}
-
-// Add a label to a joystick container
-function addJoystickLabel(container, text) {
-    const label = document.createElement('div');
-    label.textContent = text;
-    label.style.position = 'absolute';
-    label.style.top = '-30px';
-    label.style.left = '50%';
-    label.style.transform = 'translateX(-50%)';
-    label.style.color = 'white';
-    label.style.fontFamily = 'Arial, sans-serif';
-    label.style.fontSize = '16px';
-    label.style.fontWeight = 'bold';
-    label.style.textShadow = '1px 1px 3px rgba(0,0,0,0.8)';
-    container.appendChild(label);
 }
 
 // Handle movement joystick (controls both forward/backward AND rotation)
