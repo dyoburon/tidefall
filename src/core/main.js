@@ -62,6 +62,7 @@ import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js'
 import { updateHarpoonTension } from '../abilities/harpoonTensionSystem.js';
 import { updatePortals, createPortal } from '../portals/vibeverse.js';
 import { setupSpawnArea } from '../world/spawn.js';
+import { updateNpcShips } from '../entities/npcShip.js';
 //import { updateChatBubblePositions } from '../effects/chatBubbleEffect.js';
 
 // Define query parameters storage
@@ -1036,7 +1037,7 @@ function animate() {
     const now = performance.now();
     const deltaTime = (now - (lastTime || now)) / 1000; // Convert to seconds
     lastTime = now;
-    updateTime(0.09);
+    updateTime(0.15);
 
     // Update time of day
     updateTimeOfDay(deltaTime);
@@ -1193,6 +1194,9 @@ function animate() {
 
     // Update sea monsters with delta time
     updateSeaMonsters(deltaTime);
+
+    // Update NPC ships
+    updateNpcShips(deltaTime);
 
     updateAllEntityChunks();
 
@@ -1627,3 +1631,38 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Initialize the spatial audio system after camera and scene are created
+
+// Add global test commands for NPC ships
+window.spawnTestNpcShip = function () {
+    // Create a ship at a random position near the player boat
+    const randomOffset = new THREE.Vector3(
+        (Math.random() - 0.5) * 200, // -100 to 100 X offset
+        0,                           // Keep at water level
+        (Math.random() - 0.5) * 200  // -100 to 100 Z offset
+    );
+
+    const position = boat.position.clone().add(randomOffset);
+    const shipTypes = ['smallpirate', 'mediumpirate', 'smallcolonial', 'mediumcolonial'];
+    const randomType = shipTypes[Math.floor(Math.random() * shipTypes.length)];
+
+    const { createDebugNpcShip } = require('../entities/npcShip.js');
+    createDebugNpcShip(position, randomType);
+    console.log(`Spawned test NPC ship of type ${randomType} near player`);
+};
+
+window.toggleNpcShipDebug = function () {
+    const newState = !window.npcDebugEnabled;
+    window.npcDebugEnabled = newState;
+
+    const { toggleNpcDebugVisuals } = require('../entities/npcShip.js');
+    toggleNpcDebugVisuals(newState);
+    console.log(`NPC ship debug visuals: ${newState ? 'ENABLED' : 'DISABLED'}`);
+};
+
+window.setNpcDebugLevel = function (level) {
+    const validLevel = Math.max(0, Math.min(2, level || 0));
+
+    const { setNpcDebugLevel } = require('../entities/npcShip.js');
+    setNpcDebugLevel(validLevel);
+    console.log(`Set NPC debug level to: ${validLevel} (0=none, 1=minimal, 2=verbose)`);
+};

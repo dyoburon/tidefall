@@ -18,7 +18,7 @@ export let playerData = {
 };
 
 export const boatVelocity = new THREE.Vector3(0, 0, 0);
-export const boatSpeed = 0.7; // Much slower speed (was 0.03)
+export const boatSpeed = 1.4; // Much slower speed (was 0.03)
 export const rotationSpeed = 0.03; // Slower turning (was 0.03)
 export const keys = { forward: false, backward: false, left: false, right: false };
 export const boat = createBoat(scene);
