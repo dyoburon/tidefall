@@ -132,7 +132,7 @@ export async function playSound(filename, options = {}) {
 }
 
 // Play a simple cartoon-style cannon sound
-export function playCannonSound(volume = 0.8) {
+export function playCannonSound(volume = 0.2) {
     const ctx = getAudioContext();
     if (!ctx) return;
 

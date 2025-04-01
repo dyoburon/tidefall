@@ -729,7 +729,7 @@ class NpcShip {
         });
 
         // 50% chance to play Wilhelm scream
-        if (Math.random() < 0.4) {
+        if (Math.random() < 0.7) {
             playSound('wilhelm.wav', {
                 volume: 0.1, // Increased volume significantly
                 spatial: false,
