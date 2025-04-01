@@ -66,7 +66,7 @@ class GameUI {
         //this.elements.wind = this.createUIElement('Wind: Calm (0 knots)');
         this.elements.playerCount = this.createUIElement('Players: 0');
         this.elements.connectionStatus = this.createUIElement('Status: Connecting...');
-        this.elements.speedometer = this.createSpeedometer();
+        //this.elements.speedometer = this.createSpeedometer();
         this.elements.fishing = this.createFishingUI();
         //this.elements.cannon = this.createCannonUI();
         this.elements.inventory = this.createInventory();
@@ -598,6 +598,7 @@ class GameUI {
         }
 
         // Update speed
+        /*
         if (data.speed !== undefined) {
             // Update speedometer (max speed of 10 knots)
             const speedPercent = Math.min(data.speed / 10 * 100, 100);
@@ -611,7 +612,7 @@ class GameUI {
             } else {
                 this.elements.speedometer.bar.style.backgroundColor = 'rgba(0, 255, 128, 0.7)';
             }
-        }
+        }*/
 
         // Update coordinates
         if (data.position) {
