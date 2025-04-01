@@ -36,6 +36,9 @@ const NPC_SHIP_CONFIG = {
 // Track all active NPC ships
 const activeNpcShips = [];
 
+// Export for debugging
+export { activeNpcShips };
+
 // Debug helpers for visualizing waypoints and states
 const debugHelpers = {
     waypointMaterial: new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true }),
@@ -74,7 +77,7 @@ class NpcShip {
         this.attackRange = options.attackRange || 80;
         this.aggroRange = options.aggroRange || 150;
         this.combatState = 'passive'; // 'passive' or 'aggressive'
-        this.lastCannonFired = 0;
+        this.cooldownTimer = 0; // Simple cooldown timer in seconds
 
         // Behavior state
         this.state = 'moving';  // 'moving' or 'idling'
@@ -292,6 +295,12 @@ class NpcShip {
 
         // Update current time
         this.lastUpdateTime = getTime();
+
+        // Update cooldown timer
+        if (this.cooldownTimer > 0) {
+            this.cooldownTimer -= dt;
+            if (this.cooldownTimer < 0) this.cooldownTimer = 0;
+        }
 
         // Remember previous state for debug visualization
         const previousState = this.state;
@@ -522,8 +531,7 @@ class NpcShip {
             }
 
             // Check if we can fire (not on cooldown)
-            const cooldownRemaining = npcCannonSystem.getRemainingCooldown(this);
-            if (cooldownRemaining <= 0) {
+            if (this.cooldownTimer <= 0) {
                 // Show debug info for firing
                 console.log(`Attempting to fire cannons at player from NPC ${this.id}`);
 
@@ -536,7 +544,7 @@ class NpcShip {
                     console.log(`NPC Ship ${this.id} failed to fire`);
                 }
             } else if (Math.random() < 0.05) { // Occasionally log cooldown status
-                console.log(`NPC Ship ${this.id} on cooldown: ${cooldownRemaining.toFixed(1)}s remaining`);
+                console.log(`NPC Ship ${this.id} on cooldown: ${this.cooldownTimer.toFixed(1)}s remaining`);
             }
         }
         // If player is within aggro range but outside attack range, pursue
@@ -605,8 +613,8 @@ export function updateNpcShips(deltaTime) {
         // Force combat enabled for testing
         if (!npcShip.combatEnabled) {
             npcShip.combatEnabled = true;
-            npcShip.attackRange = 600; // Match the cannon range
-            npcShip.aggroRange = 700;  // Slightly larger than attack range
+            npcShip.attackRange = 100; // Original attack range
+            npcShip.aggroRange = 150;  // Original aggro range
             console.log(`Forced combat enabled for NPC ship ${npcShip.id}`);
         }
 
@@ -723,7 +731,6 @@ export function debugNpcCombatStatus() {
 
     activeNpcShips.forEach(ship => {
         const distToPlayer = playerPos ? ship.position.distanceTo(playerPos) : "unknown";
-        const cooldownRemaining = npcCannonSystem.getRemainingCooldown(ship);
 
         console.log(`Ship ${ship.id} (${ship.shipType}):`);
         console.log(`  Position: (${ship.position.x.toFixed(0)}, ${ship.position.z.toFixed(0)})`);
@@ -733,7 +740,7 @@ export function debugNpcCombatStatus() {
         console.log(`  Aggro range: ${ship.aggroRange}`);
         console.log(`  Distance to player: ${typeof distToPlayer === 'number' ? distToPlayer.toFixed(0) : distToPlayer}`);
         console.log(`  Can attack player: ${ship.combatEnabled && typeof distToPlayer === 'number' && distToPlayer < ship.attackRange}`);
-        console.log(`  Cooldown: ${cooldownRemaining > 0 ? cooldownRemaining.toFixed(1) + 's remaining' : 'ready to fire'}`);
+        console.log(`  Cooldown: ${ship.cooldownTimer > 0 ? ship.cooldownTimer.toFixed(1) + 's remaining' : 'ready to fire'}`);
         console.log('---');
     });
 }
@@ -832,7 +839,7 @@ export function testNpcFire() {
 
     // Spawn at a distance that will test the range
     const spawnPos = new THREE.Vector3(
-        playerPos.x + 300, // Half the attack range for better testing
+        playerPos.x + 100, // Use original distance for testing
         0,
         playerPos.z
     );
@@ -845,22 +852,22 @@ export function testNpcFire() {
         moveSpeed: 0, // Don't move
         patrolRadius: 0,
         combatEnabled: true,
-        attackRange: 600, // Match the cannon range
-        aggroRange: 700  // Slightly more than attack range
+        attackRange: 100, // Original attack range
+        aggroRange: 150  // Original aggro range
     });
+
+    // Reset cooldown to ensure it can fire immediately
+    ship.cooldownTimer = 0;
 
     // Wait a moment for the model to load
     setTimeout(() => {
         console.log("TEST: Forcing test NPC ship to fire");
         if (npcCannonSystem) {
-            // Clear any cooldown for this test ship
-            npcCannonSystem.lastFiredTimes.delete(ship.id);
-
             const result = npcCannonSystem.fireAtTarget(ship, playerPos);
             console.log("Cannon fire result:", result);
 
             if (result) {
-                console.log(`Cooldown set, remaining: ${npcCannonSystem.getRemainingCooldown(ship).toFixed(1)}s`);
+                console.log(`Cooldown set, remaining: ${ship.cooldownTimer.toFixed(1)}s`);
             }
         } else {
             console.error("NPC Cannon System not available");

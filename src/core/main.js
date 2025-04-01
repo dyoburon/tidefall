@@ -1666,3 +1666,19 @@ window.setNpcDebugLevel = function (level) {
     setNpcDebugLevel(validLevel);
     console.log(`Set NPC debug level to: ${validLevel} (0=none, 1=minimal, 2=verbose)`);
 };
+
+// Display cooldown info for NPC ships
+window.showNpcCooldowns = function () {
+    const { getNpcCannon } = require('../npc/abilities/npcCannon.js');
+    const { activeNpcShips } = require('../entities/npcShip.js');
+
+    if (!activeNpcShips || activeNpcShips.length === 0) {
+        console.log("No active NPC ships to check cooldowns");
+        return;
+    }
+
+    console.log("NPC Cannon Cooldowns:");
+    activeNpcShips.forEach(ship => {
+        console.log(`Ship ${ship.id}: ${ship.cooldownTimer.toFixed(2)}s remaining`);
+    });
+};

@@ -15,15 +15,12 @@ import { createWaterSplashEffect } from '../../effects/playerDamageEffects.js';
  */
 export class NpcCannonSystem {
     constructor() {
-        this.cannonballSpeed = 35;
-        this.gravity = 100;
-        this.cooldown = 1.0; // One second cooldown
-        this.range = 600;    // Increased from 150 to 600 (4x)
-        this.damage = 100;   // Damage per hit
-        this.aimInaccuracy = 5.0; // New property for randomness in aiming
-
-        // Track cooldowns for each ship by ID
-        this.lastFiredTimes = new Map();
+        this.cannonballSpeed = 50;  // Increased speed for better travel
+        this.gravity = 40;         // Reduced gravity so cannonballs travel farther
+        this.cooldown = 1.0;       // One second cooldown
+        this.range = 600;          // Keep original engagement range
+        this.damage = 100;         // Damage per hit
+        this.aimInaccuracy = 5.0;  // Randomness in aiming
 
         // Default cannon positions relative to ship model
         this.defaultCannonPositions = [
@@ -35,39 +32,6 @@ export class NpcCannonSystem {
 
         // Log system creation
         console.log("NPC Cannon System created with range:", this.range, "cooldown:", this.cooldown);
-    }
-
-    /**
-     * Check if the ship is currently on cooldown
-     * @param {Object} npc - The NPC ship object
-     * @returns {boolean} - True if the ship is on cooldown
-     */
-    isOnCooldown(npc) {
-        if (!npc || !npc.id) return false;
-
-        const lastFiredTime = this.lastFiredTimes.get(npc.id);
-        if (!lastFiredTime) return false;
-
-        const currentTime = getTime() / 1000;
-        return (currentTime - lastFiredTime) < this.cooldown;
-    }
-
-    /**
-     * Get the remaining cooldown time for a ship
-     * @param {Object} npc - The NPC ship object
-     * @returns {number} - Remaining cooldown in seconds
-     */
-    getRemainingCooldown(npc) {
-        if (!npc || !npc.id) return 0;
-
-        const lastFiredTime = this.lastFiredTimes.get(npc.id);
-        if (!lastFiredTime) return 0;
-
-        const currentTime = getTime() / 1000;
-        const timeElapsed = currentTime - lastFiredTime;
-        const remaining = Math.max(0, this.cooldown - timeElapsed);
-
-        return remaining;
     }
 
     /**
@@ -105,10 +69,9 @@ export class NpcCannonSystem {
             const distanceToTarget = shipPosition.distanceTo(targetPosition);
             console.log(`NPC Ship ${npcShip.id || 'unknown'} distance to target: ${distanceToTarget.toFixed(1)}, range: ${this.range}`);
 
-            // Check cooldown using our new method
-            if (this.isOnCooldown(npcShip)) {
-                const remaining = this.getRemainingCooldown(npcShip);
-                console.log(`Cannon on cooldown for ${remaining.toFixed(1)} more seconds`);
+            // Check cooldown - simple approach using the ship's cooldownTimer property
+            if (npcShip.cooldownTimer > 0) {
+                console.log(`Cannon on cooldown for ${npcShip.cooldownTimer.toFixed(1)} more seconds`);
                 return false;
             }
 
@@ -125,82 +88,109 @@ export class NpcCannonSystem {
             const randomizedTarget = this.addRandomnessToTarget(targetPosition, distanceToTarget);
             console.log(`Aiming with randomness: Original (${targetPosition.x.toFixed(1)}, ${targetPosition.z.toFixed(1)}) → Modified (${randomizedTarget.x.toFixed(1)}, ${randomizedTarget.z.toFixed(1)})`);
 
-            // Firing logic
+            // Determine which side of the ship the target is on
             const localTarget = randomizedTarget.clone().sub(shipPosition);
             localTarget.applyAxisAngle(new THREE.Vector3(0, 1, 0), -npcShip.rotation.y);
+            const isTargetOnLeft = localTarget.x < 0;
 
-            const cannonsToFire = [];
-            if (localTarget.x < 0) {
-                cannonsToFire.push('leftFront', 'leftRear');
-                console.log('Target is on left side, using left cannons');
-            } else {
-                cannonsToFire.push('rightFront', 'rightRear');
-                console.log('Target is on right side, using right cannons');
-            }
+            // Get all cannons on the side facing the target
+            let potentialCannons = this.defaultCannonPositions.filter(cannon => {
+                return (isTargetOnLeft && cannon.name.includes('left')) ||
+                    (!isTargetOnLeft && cannon.name.includes('right'));
+            });
 
-            // Fire cannons
-            let firedAny = false;
+            // Find the closest cannon to the target
+            let closestCannon = null;
+            let closestDistance = Infinity;
 
-            for (const cannonName of cannonsToFire) {
-                const cannonConfig = this.defaultCannonPositions.find(c => c.name === cannonName);
-                if (!cannonConfig) continue;
+            for (const cannon of potentialCannons) {
+                // Create local position
+                const cannonLocalPos = new THREE.Vector3(cannon.x, cannon.y, cannon.z);
 
-                try {
-                    // Get position in local space
-                    const cannonLocalPos = new THREE.Vector3(
-                        cannonConfig.x,
-                        cannonConfig.y,
-                        cannonConfig.z
-                    );
+                // Get world position
+                const cannonWorldPos = cannonLocalPos.clone().applyMatrix4(npcShip.shipGroup.matrixWorld);
 
-                    // Create matrix for conversion
-                    const shipMatrix = npcShip.shipGroup.matrixWorld.clone();
+                // Calculate distance to target
+                const distanceToTarget = cannonWorldPos.distanceTo(randomizedTarget);
 
-                    // Convert to world space
-                    const cannonPosition = cannonLocalPos.clone().applyMatrix4(shipMatrix);
-
-                    // Use aiming system
-                    const direction = AimingSystem.calculateFiringDirection(
-                        cannonPosition,
-                        randomizedTarget,
-                        {
-                            adaptiveTrajectory: true,
-                            minVerticalAdjust: -0.15,
-                            maxVerticalAdjust: 0.1,
-                            minDistance: 5,
-                            maxDistance: 600, // Increased range here too
-                            allowDownwardShots: true
-                        }
-                    );
-
-                    // Fire!
-                    this.createCannonball(cannonPosition, direction);
-                    this.createCannonSmoke(npcShip, cannonName);
-                    firedAny = true;
-
-                    console.log(`Successfully fired ${cannonName} cannon from (${cannonPosition.x.toFixed(1)}, ${cannonPosition.y.toFixed(1)}, ${cannonPosition.z.toFixed(1)})`);
-                } catch (error) {
-                    console.error(`Error firing ${cannonName} cannon:`, error);
+                if (distanceToTarget < closestDistance) {
+                    closestDistance = distanceToTarget;
+                    closestCannon = cannon;
                 }
             }
 
-            if (firedAny) {
-                // Update firing time in our cooldown tracking Map
-                const currentTime = getTime() / 1000;
-                this.lastFiredTimes.set(npcShip.id, currentTime);
+            // If no cannon found, something is wrong
+            if (!closestCannon) {
+                console.log('No suitable cannon found to fire');
+                return false;
+            }
+
+            console.log(`Selected closest cannon: ${closestCannon.name}`);
+
+            try {
+                // Get position in local space
+                const cannonLocalPos = new THREE.Vector3(
+                    closestCannon.x,
+                    closestCannon.y,
+                    closestCannon.z
+                );
+
+                // Create matrix for conversion
+                const shipMatrix = npcShip.shipGroup.matrixWorld.clone();
+
+                // Convert to world space
+                const cannonPosition = cannonLocalPos.clone().applyMatrix4(shipMatrix);
+
+                // Calculate vertical angle based on distance
+                // Farther targets need higher arc
+                const distanceFactor = Math.min(distanceToTarget / this.range, 1.0);
+                const verticalAdjustment = 0.2 + (distanceFactor * 0.4); // 0.2 to 0.6 based on distance
+
+                // Use aiming system with higher trajectory
+                const direction = AimingSystem.calculateFiringDirection(
+                    cannonPosition,
+                    randomizedTarget,
+                    {
+                        adaptiveTrajectory: true,
+                        minVerticalAdjust: 0.2,         // Force upward arcs
+                        maxVerticalAdjust: 0.6,         // Higher arcs for longer shots
+                        minDistance: 5,
+                        maxDistance: this.range,
+                        allowDownwardShots: false       // Never shoot downward
+                    }
+                );
+
+                // Fire!
+                this.createCannonball(cannonPosition, direction);
+                this.createCannonSmoke(npcShip, closestCannon.name);
+
+                console.log(`Successfully fired ${closestCannon.name} cannon from (${cannonPosition.x.toFixed(1)}, ${cannonPosition.y.toFixed(1)}, ${cannonPosition.z.toFixed(1)})`);
+
+                // Set cooldown directly on the ship
+                npcShip.cooldownTimer = this.cooldown;
+                console.log(`Set cooldown for ${npcShip.id} to ${this.cooldown}s`);
 
                 // Play sound
                 playCannonSound();
 
                 return true;
-            } else {
-                console.log('No cannons were fired');
+            } catch (error) {
+                console.error(`Error firing cannon:`, error);
                 return false;
             }
         } catch (error) {
             console.error(`Unexpected error in fireAtTarget:`, error);
             return false;
         }
+    }
+
+    /**
+     * Get the remaining cooldown for a ship (for debugging)
+     * @param {Object} npc - The NPC ship
+     * @returns {number} Remaining cooldown time
+     */
+    getRemainingCooldown(npc) {
+        return npc?.cooldownTimer || 0;
     }
 
     /**
@@ -247,7 +237,7 @@ export class NpcCannonSystem {
         this.createMuzzleFlash(position, direction);
 
         const startTime = getTime();
-        const maxDistance = 500;
+        const maxDistance = 1200;  // Greatly increased max travel distance
         const initialPosition = position.clone();
 
         // Generate a unique ID for this cannonball
@@ -286,7 +276,7 @@ export class NpcCannonSystem {
             }
 
             // Apply gravity
-            velocity.y -= this.gravity * 0.016; // Approximate for fixed timestep
+            velocity.y -= this.gravity * 0.016; // Reduced gravity for longer arcs
 
             // Update position
             cannonball.position.x += velocity.x * 0.016;
