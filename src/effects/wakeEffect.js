@@ -17,7 +17,7 @@ const wakeConfig = {
     maxLifetime: 2.5,         // Maximum lifetime of particles in seconds
     spawnRate: 0.07,          // Seconds between particle spawns
     spawnAreaWidth: 3.0,      // Width of spawn area behind boat
-    spawnDistanceMin: -3,     // Minimum distance behind boat
+    spawnDistanceMin: -6,     // Minimum distance behind boat
     spawnDistanceMax: 3,      // Maximum distance behind boat
     baseOffset: 0,            // Base offset behind the boat before min/max distances are applied
 

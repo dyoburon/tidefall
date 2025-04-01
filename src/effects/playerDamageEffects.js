@@ -49,7 +49,7 @@ export function showDamageEffect(playerMesh, damageAmount, damageType = 'cannon'
         smokeIntensity = 'medium';
     }
 
-    showSmokeEffect(playerMesh, smokeIntensity);
+    //showSmokeEffect(playerMesh, smokeIntensity);
 
     // Play appropriate sound based on damage type
     playDamageSound(damageType, damageAmount);

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene, getTime, boat } from '../../core/gameState.js';
+import { scene, getTime, boat, applyDamageToPlayer } from '../../core/gameState.js';
 import { playCannonSound } from '../../audio/soundEffects.js';
 import { debugLog } from '../../utils/debug.js';
 import {
@@ -9,6 +9,7 @@ import {
 } from '../../abilities/damageSystem.js';
 import AimingSystem from '../../abilities/aimingSystem.js';
 import { createWaterSplashEffect } from '../../effects/playerDamageEffects.js';
+import { showDamageEffect } from '../../effects/playerDamageEffects.js';
 
 /**
  * NPC Cannon System - Provides cannons for NPC ships
@@ -243,6 +244,9 @@ export class NpcCannonSystem {
         // Generate a unique ID for this cannonball
         const cannonballId = `npc-cannonball-${startTime}`;
 
+        // Create a bounding sphere for player collision detection
+        const playerCollisionSphere = new THREE.Sphere(new THREE.Vector3(), 5.0);
+
         // Register projectile with damage system
         registerProjectile(cannonballId, {
             mesh: cannonball,
@@ -256,7 +260,8 @@ export class NpcCannonSystem {
                 debugLog(`NPC Cannonball hit: ${hitData.targetType}`, 1, 'combat');
 
                 // Create hit effect
-                this.createHitEffect(hitData.point);
+                // Commenting out to remove red circles on impact
+                // this.createHitEffect(hitData.point);
 
                 // Remove cannonball
                 scene.remove(cannonball);
@@ -275,6 +280,9 @@ export class NpcCannonSystem {
                 return;
             }
 
+            // Save previous position for collision detection
+            const prevPosition = cannonball.position.clone();
+
             // Apply gravity
             velocity.y -= this.gravity * 0.016; // Reduced gravity for longer arcs
 
@@ -286,6 +294,44 @@ export class NpcCannonSystem {
             // Add rotation for visual effect
             cannonball.rotation.x += 0.02;
             cannonball.rotation.z += 0.02;
+
+            // Check for player boat collision
+            if (boat) {
+                // Update player collision sphere
+                playerCollisionSphere.center.copy(boat.position);
+
+                // Create a ray from previous position to current position
+                const rayDirection = new THREE.Vector3().subVectors(
+                    cannonball.position, prevPosition
+                ).normalize();
+
+                const rayLength = prevPosition.distanceTo(cannonball.position);
+                const ray = new THREE.Ray(prevPosition, rayDirection);
+
+                // Check for intersection with player's collision sphere
+                const intersection = ray.intersectSphere(playerCollisionSphere, new THREE.Vector3());
+
+                if (intersection) {
+                    // Hit the player boat!
+                    debugLog(`NPC Cannonball hit player!`, 1, 'combat');
+                    console.log(`NPC Cannonball hit player!`);
+
+                    // Apply damage to player (only local state, no network event)
+                    if (applyDamageToPlayer(this.damage, 'npc_cannon')) {
+                        // Show hit effect on the player boat
+                        // Comment out to remove floating damage numbers
+                        showDamageEffect(boat, this.damage, 'cannon');
+                    }
+
+                    // Create explosion effect at hit point
+                    //this.createHitEffect(intersection);
+
+                    // Remove cannonball
+                    unregisterProjectile(cannonballId);
+                    scene.remove(cannonball);
+                    return;
+                }
+            }
 
             // Check for water impact
             if (cannonball.position.y <= 0) {
@@ -372,6 +418,7 @@ export class NpcCannonSystem {
      * @param {THREE.Vector3} position - Position of the hit
      */
     createHitEffect(position) {
+        /*
         const hitGeometry = new THREE.SphereGeometry(2.0, 8, 8);
         const hitMaterial = new THREE.MeshBasicMaterial({
             color: 0xff4400,
@@ -402,6 +449,7 @@ export class NpcCannonSystem {
 
         // Start animation
         requestAnimationFrame(animateHit);
+        */
     }
 
     /**

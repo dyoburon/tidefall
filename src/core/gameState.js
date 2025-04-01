@@ -17,6 +17,89 @@ export let playerData = {
     rgbColor: { r: 0.26, g: 0.52, b: 0.96 } // Default blue
 };
 
+// Player health system
+export const PLAYER_MAX_HEALTH = 1000;
+export let playerHealth = PLAYER_MAX_HEALTH;
+export let isPlayerDead = false;
+export let lastDamageTime = 0;
+export const DAMAGE_COOLDOWN = 0.5; // Seconds between taking damage
+
+// Add this function to apply damage to the player
+export function applyDamageToPlayer(damageAmount, damageSource = 'npc_cannon') {
+    const currentTime = getTime();
+
+    // Check cooldown to prevent rapid damage
+    if (currentTime - lastDamageTime < DAMAGE_COOLDOWN) {
+        return false;
+    }
+
+    // Update last damage time
+    lastDamageTime = currentTime;
+
+    // Apply damage
+    playerHealth -= damageAmount;
+
+    // Clamp health to 0-MAX
+    playerHealth = Math.max(0, Math.min(PLAYER_MAX_HEALTH, playerHealth));
+
+    console.log(`Player took ${damageAmount} damage from ${damageSource}. Health: ${playerHealth}/${PLAYER_MAX_HEALTH}`);
+
+    // Check if player died
+    if (playerHealth <= 0 && !isPlayerDead) {
+        isPlayerDead = true;
+        handlePlayerDeath(damageSource);
+    }
+
+    // Return true to indicate damage was applied
+    return true;
+}
+
+// Add this function to heal the player
+export function healPlayer(amount) {
+    playerHealth = Math.min(PLAYER_MAX_HEALTH, playerHealth + amount);
+    return playerHealth;
+}
+
+// Add this function to reset player health
+export function resetPlayerHealth() {
+    playerHealth = PLAYER_MAX_HEALTH;
+    isPlayerDead = false;
+    return playerHealth;
+}
+
+// Add this function to get player health status
+export function getPlayerHealthStatus() {
+    return {
+        current: playerHealth,
+        max: PLAYER_MAX_HEALTH,
+        percentage: (playerHealth / PLAYER_MAX_HEALTH) * 100,
+        isDead: isPlayerDead
+    };
+}
+
+// Handle player death
+function handlePlayerDeath(damageSource) {
+    console.log(`Player has died from ${damageSource}!`);
+
+    // Import network module dynamically to avoid circular dependencies
+    import('./network.js').then(network => {
+        // Use respawnManager which is properly exported from network.js
+        if (network.respawnManager) {
+            console.log("Starting respawn process...");
+            // Initialize with references if not already done
+            network.respawnManager.initRespawnManager(playerState, boat);
+            // Start the respawn process
+            network.respawnManager.startRespawn();
+        } else {
+            console.error("Unable to start respawn process - respawnManager not found");
+        }
+    }).catch(error => {
+        console.error("Error importing network module:", error);
+    });
+
+    // Add any other death logic here (visual effects, sound, etc.)
+}
+
 export const boatVelocity = new THREE.Vector3(0, 0, 0);
 export const boatSpeed = 1.4; // Much slower speed (was 0.03)
 export const rotationSpeed = 0.03; // Slower turning (was 0.03)

@@ -56,6 +56,9 @@ class GameUI {
         // Create FPS counter (at the very top left, above all other elements)
         this.elements.fpsCounter = this.createFPSCounter();
 
+        // Create health bar
+        this.elements.healthBar = this.createHealthBar();
+
         // Create basic UI elements
         this.elements.coordinates = this.createUIElement('Position: 0, 0');
         //this.elements.wind = this.createUIElement('Wind: Calm (0 knots)');
@@ -650,6 +653,28 @@ class GameUI {
         // Update chat bubble positions every frame
         //updateChatBubblePositions();
 
+        // Update player health if provided
+        if (data.playerHealth !== undefined && this.elements.healthBar) {
+            const { current, max, percentage } = data.playerHealth;
+
+            // Update health bar width
+            this.elements.healthBar.bar.style.width = `${percentage}%`;
+
+            // Update health text
+            this.elements.healthBar.text.textContent = `${current}/${max}`;
+
+            // Update color based on health percentage
+            if (percentage < 25) {
+                this.elements.healthBar.bar.style.backgroundColor = 'rgba(255, 0, 0, 0.8)'; // Critical (red)
+            } else if (percentage < 50) {
+                this.elements.healthBar.bar.style.backgroundColor = 'rgba(255, 165, 0, 0.8)'; // Warning (orange)
+            } else if (percentage < 75) {
+                this.elements.healthBar.bar.style.backgroundColor = 'rgba(255, 255, 0, 0.8)'; // Caution (yellow)
+            } else {
+                this.elements.healthBar.bar.style.backgroundColor = 'rgba(0, 180, 0, 0.8)'; // Healthy (green)
+            }
+        }
+
         // Update speed
         if (data.speed !== undefined) {
             // Update speedometer (max speed of 10 knots)
@@ -665,7 +690,6 @@ class GameUI {
                 this.elements.speedometer.bar.style.backgroundColor = 'rgba(0, 255, 128, 0.7)';
             }
         }
-
 
         // Update coordinates
         if (data.position) {
@@ -1390,6 +1414,60 @@ class GameUI {
         document.head.appendChild(style);
 
         return button;
+    }
+
+    // Create a health bar for the player
+    createHealthBar() {
+        const healthContainer = document.createElement('div');
+        healthContainer.style.marginBottom = '8px';
+        healthContainer.style.backgroundColor = 'rgba(60, 30, 0, 0.7)';
+        healthContainer.style.padding = '5px 10px';
+        healthContainer.style.borderRadius = '5px';
+        healthContainer.style.border = '1px solid rgba(120, 80, 40, 0.8)';
+        healthContainer.style.color = '#E6C68A';
+        healthContainer.style.fontFamily = 'serif';
+        healthContainer.style.fontSize = isTouchDevice() ? '9px' : '12px';
+
+        // Label for the health bar
+        const healthLabel = document.createElement('div');
+        healthLabel.textContent = 'Ship Health:';
+        healthLabel.style.marginBottom = '3px';
+        healthContainer.appendChild(healthLabel);
+
+        // Progress bar container
+        const barContainer = document.createElement('div');
+        barContainer.style.width = '100%';
+        barContainer.style.height = '8px';
+        barContainer.style.backgroundColor = 'rgba(50, 50, 50, 0.5)';
+        barContainer.style.borderRadius = '4px';
+        barContainer.style.overflow = 'hidden';
+
+        // Health bar itself
+        const healthBar = document.createElement('div');
+        healthBar.style.width = '100%';
+        healthBar.style.height = '100%';
+        healthBar.style.backgroundColor = 'rgba(0, 180, 0, 0.8)';
+        healthBar.style.transition = 'width 0.3s, background-color 0.3s';
+
+        // Add health bar to container
+        barContainer.appendChild(healthBar);
+        healthContainer.appendChild(barContainer);
+
+        // Add health percentage text
+        const healthText = document.createElement('div');
+        healthText.textContent = '1000/1000';
+        healthText.style.fontSize = isTouchDevice() ? '8px' : '10px';
+        healthText.style.textAlign = 'center';
+        healthText.style.marginTop = '2px';
+        healthContainer.appendChild(healthText);
+
+        this.container.appendChild(healthContainer);
+
+        return {
+            container: healthContainer,
+            bar: healthBar,
+            text: healthText
+        };
     }
 }
 
