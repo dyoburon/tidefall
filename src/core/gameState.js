@@ -83,13 +83,35 @@ function handlePlayerDeath(damageSource) {
 
     // Import network module dynamically to avoid circular dependencies
     import('./network.js').then(network => {
+        // Send player_defeated event to server
+        if (network.socket && network.socket.connected) {
+            console.log("Sending player_defeated event to server");
+            network.socket.emit('player_defeated', {
+                player_id: network.firebaseDocId || 'local_player',
+                killer_id: damageSource,
+                timestamp: Date.now()
+            });
+        }
+
         // Use respawnManager which is properly exported from network.js
         if (network.respawnManager) {
             console.log("Starting respawn process...");
             // Initialize with references if not already done
-            network.respawnManager.initRespawnManager(playerState, boat);
+            // Fix: pass the boat reference without relying on playerState variable
+            network.respawnManager.initRespawnManager({
+                isRespawning: true,
+                mode: 'boat'
+            }, boat);
             // Start the respawn process
             network.respawnManager.startRespawn();
+
+            // Auto-complete respawn after 3 seconds for local players
+            setTimeout(() => {
+                if (network.respawnManager.isRespawning) {
+                    console.log("Auto-completing respawn for local player");
+                    network.respawnManager.completeRespawn();
+                }
+            }, 3000); // 3 second delay to match respawn countdown
         } else {
             console.error("Unable to start respawn process - respawnManager not found");
         }
@@ -97,7 +119,8 @@ function handlePlayerDeath(damageSource) {
         console.error("Error importing network module:", error);
     });
 
-    // Add any other death logic here (visual effects, sound, etc.)
+    // Reset player health
+    resetPlayerHealth();
 }
 
 export const boatVelocity = new THREE.Vector3(0, 0, 0);

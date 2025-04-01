@@ -316,12 +316,12 @@ export class NpcCannonSystem {
                     debugLog(`NPC Cannonball hit player!`, 1, 'combat');
                     console.log(`NPC Cannonball hit player!`);
 
-                    // Apply damage to player (only local state, no network event)
-                    if (applyDamageToPlayer(this.damage, 'npc_cannon')) {
-                        // Show hit effect on the player boat
-                        // Comment out to remove floating damage numbers
-                        showDamageEffect(boat, this.damage, 'cannon');
-                    }
+                    // Apply damage to player using the gameState damage system
+                    // This will handle respawn automatically if health reaches zero
+                    applyDamageToPlayer(this.damage, 'npc_cannon');
+
+                    // Show hit effect on the player boat
+                    showDamageEffect(boat, this.damage, 'cannon');
 
                     // Create explosion effect at hit point
                     //this.createHitEffect(intersection);
