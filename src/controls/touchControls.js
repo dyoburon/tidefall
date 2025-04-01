@@ -20,7 +20,9 @@ const movementJoystickConfig = {
     color: 'rgba(255, 255, 255, 0.7)',
     size: 60,
     fadeTime: 0,
-    restOpacity: 0.5
+    restOpacity: 0.5,
+    catchDistance: 100,
+    multitouch: true
 };
 
 // Configuration for camera joystick
@@ -31,7 +33,9 @@ const cameraJoystickConfig = {
     color: 'rgba(255, 255, 255, 0.7)',
     size: 60,
     fadeTime: 0,
-    restOpacity: 0.5
+    restOpacity: 0.5,
+    catchDistance: 100,
+    multitouch: true
 };
 
 // Initialize touch controls
@@ -127,6 +131,8 @@ function createJoystickContainer(id, leftPos, bottomPos) {
     container.style.width = '75px';
     container.style.height = '75px';
     container.style.zIndex = '1000';
+    container.style.pointerEvents = 'auto'; // Restore pointer events
+    container.style.touchAction = 'none'; // Prevent scrolling while using joystick
     return container;
 }
 

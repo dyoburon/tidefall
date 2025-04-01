@@ -6,13 +6,14 @@ class MobileAbilityBar {
         this.container.id = 'mobile-ability-bar';
         this.container.style.position = 'absolute';
         this.container.style.bottom = '20px';
-        this.container.style.right = '40px';
+        this.container.style.right = 'calc(20% - 100px)';
         this.container.style.width = '80px';
         this.container.style.display = 'flex';
         this.container.style.flexDirection = 'column';
         this.container.style.gap = '8px';
         this.container.style.pointerEvents = 'auto';
-        this.container.style.zIndex = '1000';
+        this.container.style.zIndex = '1001';
+        this.container.style.touchAction = 'none';
 
         this.abilities = new Map();
         this.setupAbilities();
@@ -69,6 +70,7 @@ class MobileAbilityBar {
         button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
         button.style.border = '2px solid rgba(255,255,255,0.4)';
         button.style.transition = 'transform 0.1s ease';
+        button.style.touchAction = 'none';
         button.innerHTML = ability.icon;
 
         button.addEventListener('touchstart', (e) => {

@@ -66,6 +66,15 @@
                 display: block;
             }
         }
+
+        /* Mobile styles for Vibe Jam link */
+        @media screen and (max-width: 768px) {
+            .vibe-jam-link {
+                padding: 4px !important;
+                font-size: 8px !important;
+                border-top-left-radius: 8px !important;
+            }
+        }
     </style>
 </head>
 
@@ -114,7 +123,7 @@
         });
     </script>
 
-    <a target="_blank" href="https://jam.pieter.com"
+    <a target="_blank" href="https://jam.pieter.com" class="vibe-jam-link"
         style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: -1px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">🕹️
         Vibe Jam 2025</a>
 </body>
