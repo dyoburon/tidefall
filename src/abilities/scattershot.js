@@ -7,6 +7,7 @@ import {
     applyCannonballSplash
 } from './damageSystem.js';
 import { AimingSystem } from './aimingSystem.js';
+import { activeNpcShips } from '../entities/npcShip.js'; // Import active NPC ships
 
 /**
  * Scatter Shot ability - Fires multiple small cannonballs in a spread pattern.
@@ -21,7 +22,7 @@ class ScatterShot {
         this.gravity = 80;         // Lower gravity for wider spread
 
         // ScatterShot specific properties
-        this.projectileCount = 8;     // Number of cannonballs to fire
+        this.projectileCount = 16;     // Number of cannonballs to fire
         this.spreadAngle = Math.PI / 6; // 30-degree cone of fire
 
         // Using the same cannon positions as regular cannonshot
@@ -171,6 +172,9 @@ class ScatterShot {
         // Generate unique ID
         const cannonballId = `scatter-${startTime}-${Math.floor(Math.random() * 1000)}`;
 
+        // Create collision spheres for NPC ships
+        const npcShipCollisionSpheres = new Map();
+
         // Register with damage system - reusing existing system
         registerProjectile(cannonballId, {
             mesh: cannonball,
@@ -210,6 +214,50 @@ class ScatterShot {
 
             cannonball.rotation.x += 0.05;
             cannonball.rotation.z += 0.05;
+
+            // Check for NPC ship collisions
+            if (activeNpcShips && activeNpcShips.length > 0) {
+                // For each NPC ship, check for collision
+                for (const npcShip of activeNpcShips) {
+                    // Skip if ship is already destroyed
+                    if (npcShip.isDestroyed) continue;
+
+                    // Get or create collision sphere for this NPC ship
+                    if (!npcShipCollisionSpheres.has(npcShip.id)) {
+                        // Create a new collision sphere for this ship
+                        npcShipCollisionSpheres.set(
+                            npcShip.id,
+                            new THREE.Sphere(new THREE.Vector3(), 8.0) // Same collision radius as cannonshot
+                        );
+                    }
+
+                    const collisionSphere = npcShipCollisionSpheres.get(npcShip.id);
+
+                    // Update collision sphere center to match ship position
+                    collisionSphere.center.copy(npcShip.position);
+
+                    // Use direct sphere collision test
+                    const distanceToCenter = cannonball.position.distanceTo(collisionSphere.center);
+
+                    // Check if cannonball is inside or very close to the ship's collision sphere
+                    if (distanceToCenter <= collisionSphere.radius + 0.5) {
+                        // Hit the NPC ship!
+                        // Apply damage to the NPC ship - less damage per projectile than cannonshot
+                        const damage = 10; // Half the damage of cannonshot since we fire multiple projectiles
+                        if (npcShip.takeDamage) {
+                            npcShip.takeDamage(damage, 'player_scatter');
+                        }
+
+                        // Create hit effect at actual cannonball position
+                        this.createHitEffect(cannonball.position.clone(), 0.6);
+
+                        // Remove cannonball
+                        unregisterProjectile(cannonballId);
+                        scene.remove(cannonball);
+                        return;
+                    }
+                }
+            }
 
             // Water impact
             if (cannonball.position.y <= 0) {
