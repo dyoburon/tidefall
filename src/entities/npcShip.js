@@ -739,7 +739,7 @@ class NpcShip {
         const duration = 2.5; // seconds
 
         function animateExplosion() {
-            elapsed += 0.6; // Approximately 60fps
+            elapsed += 0.04; // Reduced from 0.2 to slow down by 5x
 
             if (elapsed >= duration) {
                 // Remove particles when animation completes
@@ -758,8 +758,8 @@ class NpcShip {
                 // Apply gravity
                 particle.userData.velocity.y -= 0.2; // Stronger gravity
 
-                // Move based on velocity
-                particle.position.add(particle.userData.velocity.clone().multiplyScalar(0.016));
+                // Move based on velocity - MATCH THE TIME INCREMENT
+                particle.position.add(particle.userData.velocity.clone().multiplyScalar(0.04));
 
                 // Expand
                 particle.scale.addScalar(particle.userData.scaleRate);
@@ -795,12 +795,12 @@ class NpcShip {
         flash.position.copy(position);
         scene.add(flash);
 
-        // Animate the flash - quick expand and fade
-        const startTime = getTime();
+        // Animate the flash using the same incremental approach as other animations
+        let elapsed = 0;
         const flashDuration = 0.4; // seconds
 
         function animateFlash() {
-            const elapsed = (getTime() - startTime) / 1000;
+            elapsed += 0.04; // Reduced from 0.2 to slow down by 5x
 
             if (elapsed >= flashDuration) {
                 scene.remove(flash);
@@ -809,12 +809,15 @@ class NpcShip {
                 return;
             }
 
-            // Quickly expand then contract
-            const scale = 1 + 4 * Math.sin(Math.PI * elapsed / flashDuration);
+            // Calculate progress as a percentage of duration
+            const progress = elapsed / flashDuration;
+
+            // Quickly expand then contract (using sin curve for smooth animation)
+            const scale = 1 + 4 * Math.sin(Math.PI * progress);
             flash.scale.set(scale, scale, scale);
 
             // Fade out
-            flash.material.opacity = 1 - (elapsed / flashDuration);
+            flash.material.opacity = 1 - progress;
 
             requestAnimationFrame(animateFlash);
         }
@@ -870,7 +873,7 @@ class NpcShip {
         const smokeDuration = 5.0; // seconds
 
         function animateSmoke() {
-            elapsed += 0.6;
+            elapsed += 0.04; // Reduced from 0.2 to slow down by 5x
 
             if (elapsed >= smokeDuration) {
                 smokeClouds.forEach(smoke => {
@@ -884,8 +887,8 @@ class NpcShip {
             }
 
             smokeClouds.forEach(smoke => {
-                // Slow rising motion
-                smoke.position.add(smoke.userData.velocity.clone().multiplyScalar(0.016));
+                // Slow rising motion - MATCH THE TIME INCREMENT
+                smoke.position.add(smoke.userData.velocity.clone().multiplyScalar(0.04));
 
                 // Expand smoke over time
                 if (elapsed < smokeDuration * 0.7) {
@@ -971,7 +974,7 @@ class NpcShip {
         const debrisDuration = 3.0; // seconds
 
         function animateDebris() {
-            elapsed += 0.6;
+            elapsed += 0.04; // Reduced from 0.2 to slow down by 5x
 
             if (elapsed >= debrisDuration) {
                 debrisPieces.forEach(debris => {
@@ -988,8 +991,8 @@ class NpcShip {
                 // Apply gravity
                 debris.userData.velocity.y -= 0.3;
 
-                // Move based on velocity
-                debris.position.add(debris.userData.velocity.clone().multiplyScalar(0.016));
+                // Move based on velocity - MATCH THE TIME INCREMENT
+                debris.position.add(debris.userData.velocity.clone().multiplyScalar(0.04));
 
                 // Rotate debris
                 debris.rotation.x += debris.userData.rotationSpeed.x;
