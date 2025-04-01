@@ -12,6 +12,10 @@ const SPAWN_CONFIG = {
     // Seeds for consistent generation
     hugeIslandSeed: 42424242,
 
+    // Respawn configuration
+    respawnTime: 5, // Time in seconds before a destroyed ship respawns
+    respawnEnabled: true, // Whether respawning is enabled
+
     // Portal configuration
     portalPositions: [
         { x: -500, y: 0, z: 0, name: "Vibeverse", url: "https://portal.pieter.com" },
@@ -138,7 +142,8 @@ const SPAWN_CONFIG = {
 const spawnedElements = {
     hugeIsland: null,
     portals: [],
-    npcShips: []
+    npcShips: [],
+    destroyedShips: [] // Track destroyed ships for respawning
 };
 
 /**
@@ -146,7 +151,8 @@ const spawnedElements = {
  * @returns {Object} References to all spawned elements
  */
 export function setupSpawnArea() {
-
+    // Clear any existing destroyed ships tracking
+    spawnedElements.destroyedShips = [];
 
     // Spawn huge island near the spawn point
     spawnHugeIslandNearSpawn();
@@ -157,6 +163,10 @@ export function setupSpawnArea() {
     // Spawn NPC ships
     spawnNpcShips();
 
+    // Start respawn system if enabled
+    if (SPAWN_CONFIG.respawnEnabled) {
+        startRespawnSystem();
+    }
 
     return spawnedElements;
 }
@@ -231,6 +241,51 @@ function spawnNpcShips() {
 
 
     return spawnedElements.npcShips;
+}
+
+/**
+ * Start the respawn system to check for and respawn destroyed ships
+ */
+function startRespawnSystem() {
+    setInterval(() => {
+        const currentTime = Date.now() / 1000; // Convert to seconds
+
+        // Check each destroyed ship
+        spawnedElements.destroyedShips = spawnedElements.destroyedShips.filter(destroyedShip => {
+            // Check if enough time has passed for respawn
+            if (currentTime - destroyedShip.destroyedTime >= SPAWN_CONFIG.respawnTime) {
+                // Respawn the ship with original configuration
+                const newShip = createNpcShip(
+                    new THREE.Vector3(
+                        destroyedShip.config.x,
+                        destroyedShip.config.y,
+                        destroyedShip.config.z
+                    ),
+                    {
+                        type: destroyedShip.config.type,
+                        ...destroyedShip.config.options
+                    }
+                );
+
+                spawnedElements.npcShips.push(newShip);
+                return false; // Remove from destroyed ships list
+            }
+            return true; // Keep in destroyed ships list
+        });
+    }, 5000); // Check every 5 seconds
+}
+
+/**
+ * Track a destroyed ship for respawning
+ * @param {Object} shipConfig - The original configuration of the destroyed ship
+ */
+export function trackDestroyedShip(shipConfig) {
+    if (SPAWN_CONFIG.respawnEnabled) {
+        spawnedElements.destroyedShips.push({
+            config: shipConfig,
+            destroyedTime: Date.now() / 1000 // Current time in seconds
+        });
+    }
 }
 
 /**

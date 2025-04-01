@@ -4,6 +4,7 @@ import { loadShipModel } from './boatLoader.js';
 import npcCannonSystem from '../npc/abilities/npcCannon.js';
 import { debugLog } from '../utils/debug.js';
 import { startNpcFollow, stopNpcFollow, updateNpcFollow, isNpcFollowing } from '../npc/behavior/npcFollowBehavior.js';
+import { trackDestroyedShip } from '../world/spawn.js';
 
 // Configuration for NPC ships
 const NPC_SHIP_CONFIG = {
@@ -716,7 +717,22 @@ class NpcShip {
      * @param {string} source - Source of the killing damage
      */
     handleDestruction(source) {
-
+        // Track this ship for respawning with its original configuration
+        const shipConfig = {
+            x: this.spawnPosition.x,
+            y: this.spawnPosition.y,
+            z: this.spawnPosition.z,
+            type: this.type,
+            options: {
+                moveSpeed: this.moveSpeed,
+                turnSpeed: this.turnSpeed,
+                patrolRadius: this.patrolRadius,
+                combatEnabled: this.combatEnabled,
+                attackRange: this.attackRange,
+                aggroRange: this.aggroRange
+            }
+        };
+        trackDestroyedShip(shipConfig);
 
         // Create explosion effect
         const position = this.position.clone();
@@ -745,7 +761,7 @@ class NpcShip {
                     }
                 });
             } catch (error) {
-
+                // Handle error silently
             }
         }
     }
