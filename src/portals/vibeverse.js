@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { scene, addToScene, getPlayerInfo } from '../core/gameState.js';
 import { createHugeFloatingText } from '../effects/HugeFloatingText.js';
+import { createPortalParticles } from '../effects/PortalParticles.js';
 import { applyOutline } from '../theme/outlineStyles';
 import { loadBrightenedModel } from '../utils/islandLoader.js';
 
@@ -21,6 +22,10 @@ const PORTAL_COLLISION_RADIUS = 100; // How close the player needs to be to trig
 
 // Array to track all portals in the game
 const portals = [];
+
+// Track animation frame for updates
+let animationFrameId = null;
+let lastTime = performance.now();
 
 /**
  * Creates a portal using a GLB model with enhanced brightness
@@ -92,9 +97,16 @@ export function createPortal(position, text, url, options = {}) {
         }
     }
 
+    // Add particles
+    const particles = createPortalParticles({
+        position: position.clone(),
+        color: portalColor,
+        radius: 150 * (options.scale || 1.0) // Scale with portal but keep it focused
+    });
+
     // Add a huge floating text above the portal
     const textPosition = position.clone();
-    textPosition.y += 300;
+    textPosition.y += 250;
     textPosition.z += 0;
 
     const textObj = createHugeFloatingText({
@@ -121,13 +133,52 @@ export function createPortal(position, text, url, options = {}) {
         activated: false,
         triggerCollision: false,
         text: text,
-        id: portals.length
+        id: portals.length,
+        particles: particles // Store particles reference
     };
 
     // Add to our portals array
     portals.push(portalObject);
 
+    // Start animation loop if not already running
+    if (!animationFrameId) {
+        startAnimationLoop();
+    }
+
     return portalObject;
+}
+
+/**
+ * Animation loop for updating portal effects
+ */
+function startAnimationLoop() {
+    function animate() {
+        const currentTime = performance.now();
+        const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+        lastTime = currentTime;
+
+        // Update all portal particles
+        portals.forEach(portal => {
+            if (portal.particles && portal.active) {
+                portal.particles.update(deltaTime);
+            }
+        });
+
+        animationFrameId = requestAnimationFrame(animate);
+    }
+
+    lastTime = performance.now();
+    animate();
+}
+
+/**
+ * Stop the animation loop
+ */
+function stopAnimationLoop() {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
 }
 
 /**
@@ -185,6 +236,11 @@ export function removePortal(portalId) {
     if (portalIndex >= 0) {
         const portal = portals[portalIndex];
 
+        // Clean up particles
+        if (portal.particles) {
+            portal.particles.dispose();
+        }
+
         // Remove from scene
         if (portal.instance) {
             scene.remove(portal.instance);
@@ -192,6 +248,12 @@ export function removePortal(portalId) {
 
         // Remove from tracking array
         portals.splice(portalIndex, 1);
+
+        // Stop animation loop if no portals left
+        if (portals.length === 0) {
+            stopAnimationLoop();
+        }
+
         return true;
     }
 
