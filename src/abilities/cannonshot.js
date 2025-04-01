@@ -194,17 +194,13 @@ class CannonShot {
                     // Update collision sphere center to match ship position
                     collisionSphere.center.copy(npcShip.position);
 
-                    // Create a ray from previous position to current position
-                    const rayDirection = new THREE.Vector3().subVectors(
-                        cannonball.position, prevPosition
-                    ).normalize();
+                    // Use direct sphere collision test instead of ray casting
+                    // This ensures the cannonball is actually inside or very close to the ship
+                    // before registering a hit, preventing early disappearance
+                    const distanceToCenter = cannonball.position.distanceTo(collisionSphere.center);
 
-                    const ray = new THREE.Ray(prevPosition, rayDirection);
-
-                    // Check for intersection with ship's collision sphere
-                    const intersection = ray.intersectSphere(collisionSphere, new THREE.Vector3());
-
-                    if (intersection) {
+                    // Check if cannonball is inside or very close to the ship's collision sphere
+                    if (distanceToCenter <= collisionSphere.radius + 0.5) {
                         // Hit the NPC ship!
                         console.log(`Player cannonball hit NPC Ship ${npcShip.id}!`);
 
@@ -214,8 +210,8 @@ class CannonShot {
                             npcShip.takeDamage(damage, 'player_cannon');
                         }
 
-                        // Create hit effect at intersection point
-                        this.createHitEffect(intersection);
+                        // Create hit effect at actual cannonball position (visual accuracy)
+                        this.createHitEffect(cannonball.position.clone());
 
                         // Remove cannonball
                         unregisterProjectile(cannonballId);
@@ -693,17 +689,13 @@ class CannonShot {
                     // Update collision sphere center to match ship position
                     collisionSphere.center.copy(npcShip.position);
 
-                    // Create a ray from previous position to current position
-                    const rayDirection = new THREE.Vector3().subVectors(
-                        cannonball.position, prevPosition
-                    ).normalize();
+                    // Use direct sphere collision test instead of ray casting
+                    // This ensures the cannonball is actually inside or very close to the ship
+                    // before registering a hit, preventing early disappearance
+                    const distanceToCenter = cannonball.position.distanceTo(collisionSphere.center);
 
-                    const ray = new THREE.Ray(prevPosition, rayDirection);
-
-                    // Check for intersection with ship's collision sphere
-                    const intersection = ray.intersectSphere(collisionSphere, new THREE.Vector3());
-
-                    if (intersection) {
+                    // Check if cannonball is inside or very close to the ship's collision sphere
+                    if (distanceToCenter <= collisionSphere.radius + 0.5) {
                         // Hit the NPC ship!
                         console.log(`Remote cannonball hit NPC Ship ${npcShip.id}!`);
 
@@ -713,8 +705,8 @@ class CannonShot {
                             npcShip.takeDamage(damage, 'remote_player_cannon');
                         }
 
-                        // Create hit effect at intersection point
-                        cannonInstance.createHitEffect(intersection);
+                        // Create hit effect at actual cannonball position (visual accuracy)
+                        cannonInstance.createHitEffect(cannonball.position.clone());
 
                         // Remove cannonball
                         unregisterProjectile(cannon_id);
