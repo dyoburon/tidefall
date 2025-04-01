@@ -278,7 +278,7 @@ export function updateAllEntityChunks() {
  * @param {string} chunkKey - Key of the chunk to populate
  */
 export function populateChunkWithEntities(chunkKey) {
-    console.log("populating chunk with monsters")
+
     if (populatedChunks.has(chunkKey)) {
         return;
     }
@@ -350,7 +350,7 @@ export function populateChunkWithVillagers(chunkKey) {
         // We have saved villagers, respawn them using the villagers.js respawn function
         respawnVillagers(savedVillagers);
     } else {
-        console.log("Spawning new villagers for chunk", chunkKey);
+
         // No saved villagers, generate new ones using our enhanced EntitySpawner
 
         // Use the activeIslands Map from islands.js instead of scene traversal
@@ -369,7 +369,7 @@ export function populateChunkWithVillagers(chunkKey) {
             }
         });
 
-        console.log(`Found ${islands.length} islands for villager spawning in chunk ${chunkKey}`);
+
 
         // Use the EntitySpawner to find and spawn villagers in this chunk
         if (islands.length > 0) {
@@ -409,9 +409,9 @@ export function populateChunkWithVillagers(chunkKey) {
                 });
             }
 
-            console.log(`Spawned ${spawnedVillagers.length} villagers in chunk ${chunkKey}`);
+
         } else {
-            console.log(`No islands found for villager spawning in chunk ${chunkKey}`);
+
         }
     }
 

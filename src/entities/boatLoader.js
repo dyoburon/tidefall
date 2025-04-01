@@ -218,10 +218,10 @@ export function loadShipModel(targetGroup, options = {}, onComplete) {
                         }
                     });
 
-                    console.log(`Enhanced visibility for mesh: ${child.name || 'unnamed'}`);
+
                 }
             });
-            console.log('Applied enhanced brightness to ship for mobile visibility');
+
         }
 
         // Call onComplete callback if provided

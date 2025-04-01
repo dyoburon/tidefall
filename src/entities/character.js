@@ -345,10 +345,14 @@ export function createBoat(scene) {
     loadShipFromPlayerSelection(boat);
 
     // Position the boat
-    boat.position.set(0, 0.5, 0);
+    boat.position.set(750, 0.5, 527);
 
-    // Add a small Minecraft-style character to the boat
-    //addCharacterToBoat(boat);
+    // Set initial rotation (in radians)
+    // Parameters are (x, y, z) where:
+    // x = pitch (tilt forward/backward)
+    // y = yaw (direction boat is facing)
+    // z = roll (tilt left/right)
+    boat.rotation.set(0, -Math.PI / 2, 0); // This will make the boat face the opposite direction (180 degrees)
 
     // Create the damage overlay
     createDamageOverlay(boat);

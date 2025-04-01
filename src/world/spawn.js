@@ -22,7 +22,7 @@ const SPAWN_CONFIG = {
     npcShipPositions: [
         // Patrol ships near spawn - aggressive
         {
-            x: -200, y: 0, z: 150,
+            x: -200, y: 0, z: -100,
             type: 'mediumpirate',
             options: {
                 moveSpeed: 12.0,
@@ -33,7 +33,40 @@ const SPAWN_CONFIG = {
             }
         },
         {
-            x: 100, y: 0, z: -300,
+            x: -350, y: 0, z: 0,
+            type: 'mediumpirate',
+            options: {
+                moveSpeed: 12.0,
+                patrolRadius: 400,
+                combatEnabled: true,
+                attackRange: 100,
+                aggroRange: 150
+            }
+        },
+        {
+            x: 500, y: 0, z: 570,
+            type: 'mediumpirate',
+            options: {
+                moveSpeed: 12.0,
+                patrolRadius: 400,
+                combatEnabled: true,
+                attackRange: 100,
+                aggroRange: 150
+            }
+        },
+        {
+            x: 450, y: 0, z: 500,
+            type: 'mediumpirate',
+            options: {
+                moveSpeed: 12.0,
+                patrolRadius: 400,
+                combatEnabled: true,
+                attackRange: 100,
+                aggroRange: 150
+            }
+        },
+        {
+            x: -100, y: 0, z: -100,
             type: 'smallpirate',
             options: {
                 moveSpeed: 15.0,
@@ -44,7 +77,7 @@ const SPAWN_CONFIG = {
             }
         },
         {
-            x: 300, y: 0, z: 200,
+            x: -400, y: 0, z: 500,
             type: 'smallcolonial',
             options: {
                 moveSpeed: 13.0,
@@ -57,7 +90,7 @@ const SPAWN_CONFIG = {
 
         // Distant patrol ships - passive (non-combat)
         {
-            x: 600, y: 0, z: 600,
+            x: -100, y: 0, z: 300,
             type: 'mediumcolonial',
             options: {
                 moveSpeed: 9.0,
@@ -66,7 +99,7 @@ const SPAWN_CONFIG = {
             }
         },
         {
-            x: -700, y: 0, z: -500,
+            x: -100, y: 0, z: 600,
             type: 'mediumpirate',
             options: {
                 moveSpeed: 10.0,
@@ -77,7 +110,7 @@ const SPAWN_CONFIG = {
 
         // Ships around the huge island - aggressive with longer range
         {
-            x: 1400, y: 0, z: 1400,
+            x: -300, y: 0, z: 300,
             type: 'massivepirate',
             options: {
                 moveSpeed: 7.0,
@@ -88,7 +121,7 @@ const SPAWN_CONFIG = {
             }
         },
         {
-            x: 1600, y: 0, z: 1450,
+            x: -350, y: 0, z: 0,
             type: 'smallpirate',
             options: {
                 moveSpeed: 14.0,
@@ -113,7 +146,7 @@ const spawnedElements = {
  * @returns {Object} References to all spawned elements
  */
 export function setupSpawnArea() {
-    console.log("Setting up curated spawn area...");
+
 
     // Spawn huge island near the spawn point
     spawnHugeIslandNearSpawn();
@@ -124,7 +157,7 @@ export function setupSpawnArea() {
     // Spawn NPC ships
     spawnNpcShips();
 
-    console.log("Spawn area setup complete");
+
     return spawnedElements;
 }
 
@@ -138,7 +171,7 @@ function spawnHugeIslandNearSpawn() {
     const x = Math.cos(angle) * SPAWN_CONFIG.hugeIslandDistance;
     const z = Math.sin(angle) * SPAWN_CONFIG.hugeIslandDistance;
 
-    console.log(`Spawning huge island at (${x}, ${z})`);
+
 
     // Create the island with a fixed seed for consistency
     const hugeIsland = createHugeIsland(
@@ -196,7 +229,7 @@ function spawnNpcShips() {
         spawnedElements.npcShips.push(npcShip);
     });
 
-    console.log(`Spawned ${spawnedElements.npcShips.length} NPC ships in the spawn area`);
+
     return spawnedElements.npcShips;
 }
 

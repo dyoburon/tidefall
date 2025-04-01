@@ -19,7 +19,7 @@ export function createTreehouseTavern(params) {
         scale = 1.0
     } = params;
 
-    console.log("Creating Treehouse Tavern at:", position);
+
 
     // Create container for the tavern
     const tavern = new THREE.Group();
@@ -522,7 +522,7 @@ export function createTreehouseTavern(params) {
         tavern.add(branch);
     }
 
-    console.log("Created Treehouse Tavern with outline effect");
+
     return tavern;
 }
 

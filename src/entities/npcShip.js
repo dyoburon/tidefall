@@ -30,7 +30,7 @@ const NPC_SHIP_CONFIG = {
     waypointMode: 'curved', // 'direct' or 'curved' or 'zigzag'
 
     // Debug settings
-    debugVisuals: true,     // Whether to show debug visuals
+    debugVisuals: false,     // Whether to show debug visuals
     debugLevel: 1,          // 0=none, 1=minimal, 2=verbose
 };
 
@@ -140,9 +140,9 @@ class NpcShip {
             isOtherPlayer: true  // Use NPC orientation
         }, (success) => {
             if (success) {
-                console.log(`NPC Ship ${this.id} model loaded successfully`);
+
             } else {
-                console.error(`Failed to load NPC Ship ${this.id} model`);
+
             }
         });
     }
@@ -274,7 +274,7 @@ class NpcShip {
         this.debugCombatIndicator.visible = this.combatState === 'aggressive';
         addToScene(this.debugCombatIndicator);
 
-        console.log(`Created debug visuals for NPC ship ${this.id}`);
+
     }
 
     /**
@@ -302,6 +302,11 @@ class NpcShip {
      * @param {number} deltaTime - Time since last update in seconds
      */
     update(deltaTime) {
+        // Skip updates if ship is destroyed
+        if (this.isDestroyed) {
+            return;
+        }
+
         // Make sure deltaTime is valid
         const dt = Math.min(deltaTime || 0.016, 0.1);  // Cap at 100ms, default to 16ms
 
@@ -568,8 +573,8 @@ class NpcShip {
      * @param {number} deltaTime - Time since last update
      */
     updateCombat(playerPosition, deltaTime) {
-        if (!this.combatEnabled) {
-            // Skip silently
+        // Skip if combat is disabled or ship is destroyed
+        if (!this.combatEnabled || this.isDestroyed) {
             return;
         }
 
@@ -581,7 +586,7 @@ class NpcShip {
 
         // Log distance to player less frequently to reduce console spam
         if (Math.random() < 0.01) { // 1% chance to log
-            console.log(`NPC Ship ${this.id} distance to player: ${distanceToPlayer.toFixed(0)} units (attack: ${this.attackRange}, aggro: ${this.aggroRange})`);
+
         }
 
         // If player is within cannon range, fire
@@ -589,7 +594,7 @@ class NpcShip {
             // Set combat state
             if (this.combatState !== 'aggressive') {
                 this.combatState = 'aggressive';
-                console.log(`NPC Ship ${this.id} engaging player at distance ${distanceToPlayer.toFixed(0)}`);
+
 
                 // Start following behavior when entering aggressive mode
                 if (!this.isFollowing) {
@@ -601,18 +606,18 @@ class NpcShip {
             // Check if we can fire (not on cooldown)
             if (this.cooldownTimer <= 0) {
                 // Show debug info for firing
-                console.log(`Attempting to fire cannons at player from NPC ${this.id}`);
+
 
                 // Fire cannons at player directly using npcCannonSystem
                 const fired = npcCannonSystem.fireAtTarget(this, playerPosition);
 
                 if (fired) {
-                    console.log(`NPC Ship ${this.id} successfully fired cannons at player`);
+
                 } else {
-                    console.log(`NPC Ship ${this.id} failed to fire`);
+
                 }
             } else if (Math.random() < 0.05) { // Occasionally log cooldown status
-                console.log(`NPC Ship ${this.id} on cooldown: ${this.cooldownTimer.toFixed(1)}s remaining`);
+
             }
         }
         // If player is within aggro range but outside attack range, pursue
@@ -620,7 +625,7 @@ class NpcShip {
             // Set to aggressive and use follow behavior
             if (this.combatState !== 'aggressive') {
                 this.combatState = 'aggressive';
-                console.log(`NPC Ship ${this.id} pursuing player at distance ${distanceToPlayer.toFixed(0)}`);
+
 
                 // Start following behavior when entering aggressive mode
                 if (!this.isFollowing) {
@@ -632,7 +637,7 @@ class NpcShip {
         // If player is outside aggro range, return to passive
         else if (this.combatState !== 'passive') {
             this.combatState = 'passive';
-            console.log(`NPC Ship ${this.id} returning to passive state at distance ${distanceToPlayer.toFixed(0)}`);
+
 
             // Stop following when returning to passive mode
             if (this.isFollowing) {
@@ -687,7 +692,7 @@ class NpcShip {
         // Clamp health to 0-max
         this.health = Math.max(0, Math.min(this.maxHealth, this.health));
 
-        console.log(`NPC Ship ${this.id} took ${amount} damage from ${source}. Health: ${this.health}/${this.maxHealth}`);
+
 
         // Show damage effect
         if (this.shipGroup) {
@@ -711,7 +716,7 @@ class NpcShip {
      * @param {string} source - Source of the killing damage
      */
     handleDestruction(source) {
-        console.log(`NPC Ship ${this.id} destroyed by ${source}!`);
+
 
         // Create explosion effect
         const position = this.position.clone();
@@ -740,7 +745,7 @@ class NpcShip {
                     }
                 });
             } catch (error) {
-                console.error("Failed to increment player stats:", error);
+
             }
         }
     }
@@ -1116,7 +1121,7 @@ export function createNpcShip(position, options = {}) {
 export function updateNpcShips(deltaTime) {
     // Log the first update call to verify it's running
     if (activeNpcShips.length > 0 && !updateNpcShips.hasLogged) {
-        console.log(`Updating ${activeNpcShips.length} NPC ships with deltaTime: ${deltaTime}`);
+
         updateNpcShips.hasLogged = true;
     }
 
@@ -1125,12 +1130,12 @@ export function updateNpcShips(deltaTime) {
 
     // Log player position occasionally
     if (playerPosition && Math.random() < 0.01) {
-        console.log(`Player position: (${playerPosition.x.toFixed(0)}, ${playerPosition.y.toFixed(0)}, ${playerPosition.z.toFixed(0)})`);
+
     }
 
     // If no player position, nothing to do for combat
     if (!playerPosition) {
-        console.log("No player position available for NPC combat");
+
         return;
     }
 
@@ -1143,7 +1148,7 @@ export function updateNpcShips(deltaTime) {
             npcShip.combatEnabled = true;
             npcShip.attackRange = 100; // Original attack range
             npcShip.aggroRange = 150;  // Original aggro range
-            console.log(`Forced combat enabled for NPC ship ${npcShip.id}`);
+
         }
 
         // Update movement and animations
@@ -1162,7 +1167,7 @@ export function updateNpcShips(deltaTime) {
 
     // Log closest ship for debugging
     if (closestShip && Math.random() < 0.03) {
-        console.log(`Closest ship ${closestShip.id} at distance ${closestDistance.toFixed(0)}`);
+
     }
 }
 
@@ -1181,7 +1186,7 @@ export function clearAllNpcShips() {
  * @param {string} shipType - Type of ship to create
  */
 export function createDebugNpcShip(position, shipType = 'mediumpirate') {
-    console.log(`Creating debug NPC ship at position (${position.x}, ${position.y}, ${position.z})`);
+
     return createNpcShip(position, { shipType });
 }
 
@@ -1245,31 +1250,31 @@ export function toggleNpcDebugVisuals(enabled) {
  */
 export function debugNpcCombatStatus() {
     if (activeNpcShips.length === 0) {
-        console.log("No active NPC ships to debug");
+
         return;
     }
 
-    console.log(`=== NPC Ships Combat Status (${activeNpcShips.length} ships) ===`);
+
 
     // Get player position
     const playerPos = boat ? boat.position : null;
     if (!playerPos) {
-        console.log("Cannot find player position for distance calculation");
+
     }
 
     activeNpcShips.forEach(ship => {
         const distToPlayer = playerPos ? ship.position.distanceTo(playerPos) : "unknown";
 
-        console.log(`Ship ${ship.id} (${ship.type}):`);
-        console.log(`  Position: (${ship.position.x.toFixed(0)}, ${ship.position.z.toFixed(0)})`);
-        console.log(`  Combat: ${ship.combatEnabled ? 'ENABLED' : 'disabled'}`);
-        console.log(`  State: ${ship.combatState}`);
-        console.log(`  Attack range: ${ship.attackRange}`);
-        console.log(`  Aggro range: ${ship.aggroRange}`);
-        console.log(`  Distance to player: ${typeof distToPlayer === 'number' ? distToPlayer.toFixed(0) : distToPlayer}`);
-        console.log(`  Can attack player: ${ship.combatEnabled && typeof distToPlayer === 'number' && distToPlayer < ship.attackRange}`);
-        console.log(`  Cooldown: ${ship.cooldownTimer > 0 ? ship.cooldownTimer.toFixed(1) + 's remaining' : 'ready to fire'}`);
-        console.log('---');
+
+
+
+
+
+
+
+
+
+
     });
 }
 
@@ -1358,7 +1363,7 @@ export function toggleAllNpcCombat(enabled, attackRange, aggroRange) {
  */
 export function testNpcFire() {
     if (!boat) {
-        console.error("Cannot test NPC firing - player boat not found");
+
         return;
     }
 
@@ -1372,7 +1377,7 @@ export function testNpcFire() {
         playerPos.z
     );
 
-    console.log("TEST: Spawning test NPC ship at", spawnPos);
+
 
     // Create the ship
     const ship = createNpcShip(spawnPos, {
@@ -1389,16 +1394,16 @@ export function testNpcFire() {
 
     // Wait a moment for the model to load
     setTimeout(() => {
-        console.log("TEST: Forcing test NPC ship to fire");
+
         if (npcCannonSystem) {
             const result = npcCannonSystem.fireAtTarget(ship, playerPos);
-            console.log("Cannon fire result:", result);
+
 
             if (result) {
-                console.log(`Cooldown set, remaining: ${ship.cooldownTimer.toFixed(1)}s`);
+
             }
         } else {
-            console.error("NPC Cannon System not available");
+
         }
     }, 1000);
 
@@ -1408,5 +1413,5 @@ export function testNpcFire() {
 // Register test function globally
 if (typeof window !== 'undefined') {
     window.testNpcFire = testNpcFire;
-    console.log("Test function registered: Call testNpcFire() to test NPC firing");
+
 }

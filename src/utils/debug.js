@@ -19,10 +19,11 @@ const DEBUG_CONFIG = {
  * @param {string} module - Optional module name for filtering
  */
 export function debugLog(message, level = 1, module = 'all') {
+    return;
     if (level <= DEBUG_CONFIG.debugLevel) {
         if (DEBUG_CONFIG.enabledModules.all || DEBUG_CONFIG.enabledModules[module]) {
             const prefix = module !== 'all' ? `[${module}] ` : '';
-            console.log(`${prefix}${message}`);
+
         }
     }
 }

@@ -23,7 +23,7 @@ const activeHugeIslands = new Map();
  * @returns {Object} - The created island entry with mesh and collider info
  */
 export function createHugeIsland(x, z, seed, chunkGroup) {
-    console.log(`Creating huge island at (${x}, ${z}) with seed ${seed}`);
+
 
     // Create a deterministic random function based on the seed
     const random = () => {
@@ -36,7 +36,7 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
 
     // Skip if this island already exists
     if (activeHugeIslands.has(islandId)) {
-        console.log(`Island ${islandId} already exists, returning existing instance`);
+
         return activeHugeIslands.get(islandId);
     }
 
@@ -63,7 +63,7 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
     const scaleValue = 3500.0 + random() * 500.0; // Significantly increased scale
     const yOffset = 700;
 
-    console.log(`Loading island model with scale ${scaleValue} at position [0, ${yOffset}, 0]`);
+
 
     // Island entry will be updated inside onLoad
     const islandEntry = {
@@ -80,7 +80,7 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
     try {
         // Randomly select between island1.glb and island2.glb with 50% probability
         const islandModel = random() < 0.5 ? '/island1.glb' : '/island2.glb';
-        console.log(`Selected model: ${islandModel} for island ${islandId}`);
+
 
         // Load the GLB model with modified settings using the brightened model loader
         loadBrightenedModel(island, {
@@ -91,7 +91,7 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
             rotation: [0, random() * Math.PI * 2, 0],
             animationSetup: null,
             onLoad: function (model, gltf) {
-                console.log(`Successfully loaded island model for ${islandId}`);
+
 
                 // Store the model in the islandEntry for collision purposes
                 islandEntry.glbMesh = model;
@@ -155,17 +155,17 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
                 model.updateMatrixWorld(true);
             },
             onError: function (error) {
-                console.error(`Error loading island model: ${error}`);
+
             }
         });
     } catch (error) {
-        console.error(`Exception during GLB loading: ${error}`);
+
     }
 
     // Removed shore effect for huge islands
     // Shore effects disabled for performance and visual clarity on huge islands
 
-    console.log(`Island ${islandId} creation complete`);
+
     return islandEntry;
 }
 
@@ -200,7 +200,7 @@ export function clearHugeIslands() {
     });
 
     activeHugeIslands.clear();
-    console.log("All huge islands cleared");
+
 }
 
 // Add a getter for all island meshes

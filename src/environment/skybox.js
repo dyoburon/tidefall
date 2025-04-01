@@ -939,12 +939,6 @@ export function toggleSkySystem() {
 
 
             // Debugging
-            console.log("Camera frustum:", {
-                near: camera.near,
-                far: camera.far,
-                fov: camera.fov,
-                aspect: camera.aspect
-            });
         } else {
 
         }

@@ -55,7 +55,7 @@ export class AimingSystem {
 
         if (adaptiveTrajectory) {
             // For debugging - log the actual distance
-            console.log(`Horizontal distance to target: ${horizontalDistance.toFixed(2)} units`);
+
 
             // Don't scale the distance - use it directly
             // This helps ensure we're using real-world measurements
@@ -64,7 +64,7 @@ export class AimingSystem {
             const clampedDistance = Math.max(minDistance, Math.min(horizontalDistance, maxDistance));
             const normalizedDistance = (clampedDistance - minDistance) / (maxDistance - minDistance);
 
-            console.log(`Normalized distance (0-1): ${normalizedDistance.toFixed(2)}`);
+
 
             // Calculate the vertical adjustment with a more dramatic curve for close distances
             let verticalAdjustment;
@@ -89,7 +89,7 @@ export class AimingSystem {
                 verticalAdjustment *= randomFactor;
             }
 
-            console.log(`Vertical adjustment: ${verticalAdjustment.toFixed(2)}`);
+
 
             // IMPORTANT CHANGE: Don't add to direction.y, REPLACE it
             // This ensures our adjustment isn't diluted by normalization
@@ -98,7 +98,7 @@ export class AimingSystem {
             // Renormalize after changing the Y component
             direction.normalize();
 
-            console.log(`Final direction Y: ${direction.y.toFixed(2)}`);
+
         }
 
         // Do vertical angle clamping AFTER we've set our adaptive trajectory

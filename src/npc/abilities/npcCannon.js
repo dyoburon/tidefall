@@ -32,7 +32,7 @@ export class NpcCannonSystem {
         ];
 
         // Log system creation
-        console.log("NPC Cannon System created with range:", this.range, "cooldown:", this.cooldown);
+
     }
 
     /**
@@ -46,48 +46,48 @@ export class NpcCannonSystem {
         try {
             // Basic validation with logging
             if (!npcShip) {
-                console.log('Cannot fire cannons: npcShip is null');
+
                 return false;
             }
 
             if (!npcShip.position) {
-                console.log('Cannot fire cannons: npcShip.position is missing');
+
                 return false;
             }
 
             if (!npcShip.shipGroup) {
-                console.log('Cannot fire cannons: npcShip.shipGroup is missing');
+
                 return false;
             }
 
             if (!targetPosition) {
-                console.log('Cannot fire cannons: targetPosition is null');
+
                 return false;
             }
 
             // Always print distance info for debugging
             const shipPosition = npcShip.position.clone();
             const distanceToTarget = shipPosition.distanceTo(targetPosition);
-            console.log(`NPC Ship ${npcShip.id || 'unknown'} distance to target: ${distanceToTarget.toFixed(1)}, range: ${this.range}`);
+
 
             // Check cooldown - simple approach using the ship's cooldownTimer property
             if (npcShip.cooldownTimer > 0) {
-                console.log(`Cannon on cooldown for ${npcShip.cooldownTimer.toFixed(1)} more seconds`);
+
                 return false;
             }
 
             // Check range
             if (distanceToTarget > this.range) {
-                console.log(`Target out of range (${distanceToTarget.toFixed(0)} > ${this.range})`);
+
                 return false;
             }
 
             // Debug info
-            console.log(`NPC Ship ${npcShip.id || 'unknown'} FIRING cannons at target (distance: ${distanceToTarget.toFixed(1)})`);
+
 
             // Add randomness to target position for inaccuracy
             const randomizedTarget = this.addRandomnessToTarget(targetPosition, distanceToTarget);
-            console.log(`Aiming with randomness: Original (${targetPosition.x.toFixed(1)}, ${targetPosition.z.toFixed(1)}) → Modified (${randomizedTarget.x.toFixed(1)}, ${randomizedTarget.z.toFixed(1)})`);
+
 
             // Determine which side of the ship the target is on
             const localTarget = randomizedTarget.clone().sub(shipPosition);
@@ -122,11 +122,11 @@ export class NpcCannonSystem {
 
             // If no cannon found, something is wrong
             if (!closestCannon) {
-                console.log('No suitable cannon found to fire');
+
                 return false;
             }
 
-            console.log(`Selected closest cannon: ${closestCannon.name}`);
+
 
             try {
                 // Get position in local space
@@ -165,22 +165,22 @@ export class NpcCannonSystem {
                 this.createCannonball(cannonPosition, direction);
                 this.createCannonSmoke(npcShip, closestCannon.name);
 
-                console.log(`Successfully fired ${closestCannon.name} cannon from (${cannonPosition.x.toFixed(1)}, ${cannonPosition.y.toFixed(1)}, ${cannonPosition.z.toFixed(1)})`);
+
 
                 // Set cooldown directly on the ship
                 npcShip.cooldownTimer = this.cooldown;
-                console.log(`Set cooldown for ${npcShip.id} to ${this.cooldown}s`);
+
 
                 // Play sound
                 playCannonSound();
 
                 return true;
             } catch (error) {
-                console.error(`Error firing cannon:`, error);
+
                 return false;
             }
         } catch (error) {
-            console.error(`Unexpected error in fireAtTarget:`, error);
+
             return false;
         }
     }
@@ -314,7 +314,7 @@ export class NpcCannonSystem {
                 if (intersection) {
                     // Hit the player boat!
                     debugLog(`NPC Cannonball hit player!`, 1, 'combat');
-                    console.log(`NPC Cannonball hit player!`);
+
 
                     // Apply damage to player using the gameState damage system
                     // This will handle respawn automatically if health reaches zero
@@ -912,11 +912,11 @@ export function getNpcCannon() {
  */
 export function testFireCannonball() {
     if (!boat) {
-        console.error("Cannot test cannon - player boat not found");
+
         return false;
     }
 
-    console.log("TEST: Firing test cannonball from player position");
+
 
     // Create cannonball at player position
     const position = boat.position.clone();
@@ -930,8 +930,8 @@ export function testFireCannonball() {
     ).normalize();
 
     // Log test info
-    console.log(`Firing from: (${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)})`);
-    console.log(`Direction: (${direction.x.toFixed(2)}, ${direction.y.toFixed(2)}, ${direction.z.toFixed(2)})`);
+
+
 
     // Use the cannonball system directly
     npcCannonSystem.createCannonball(position, direction);
@@ -943,5 +943,5 @@ export function testFireCannonball() {
 // Register global test function for console access
 if (typeof window !== 'undefined') {
     window.testFireCannonball = testFireCannonball;
-    console.log("Test function registered: Call testFireCannonball() to test");
+
 } 

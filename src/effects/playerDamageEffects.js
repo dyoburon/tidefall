@@ -126,7 +126,7 @@ export function showHitFlash(playerMesh) {
  * @param {number} amount - Amount of damage to display
  */
 export function showDamageNumber(position, amount) {
-    console.log("Showing damage number at position:", position, "amount:", amount);
+
 
     // Add some randomness to position so multiple hits don't overlap
     const offsetPosition = position.clone().add(
@@ -139,7 +139,7 @@ export function showDamageNumber(position, amount) {
 
     // Format damage amount
     const damageText = `-${Math.round(amount)}`;
-    console.log("Creating damage text:", damageText, "at offset position:", offsetPosition);
+
 
     // Create floating text that rises and fades
     const textObj = createFloatingText({

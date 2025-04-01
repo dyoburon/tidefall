@@ -27,7 +27,7 @@ const FOLLOW_CONFIG = {
     useFlocking: false,       // Consider other NPC ships (for future implementation)
 
     // Debug settings
-    debugVisuals: true,       // Show debug paths and markers
+    debugVisuals: false,       // Show debug paths and markers
     debugLevel: 1,            // 0=none, 1=minimal, 2=verbose
 };
 
@@ -44,7 +44,7 @@ class NpcFollowBehavior {
         // Debug visualization
         this.debugMarkers = new Map();
 
-        console.log("NPC Follow Behavior system initialized");
+
     }
 
     /**
@@ -54,7 +54,7 @@ class NpcFollowBehavior {
      */
     initializeFollow(npcShip) {
         if (!npcShip || !npcShip.id) {
-            console.error("Cannot initialize follow behavior: Invalid NPC ship");
+
             return null;
         }
 

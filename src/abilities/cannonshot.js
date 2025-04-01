@@ -139,8 +139,8 @@ class CannonShot {
             },
             prevPosition: position.clone(),
             onHit: (hitData) => {
-                console.log(`Cannonball HIT: ${hitData.monster.typeId}!`);
-                console.log(`Monster should now be DEAD. Health: ${hitData.monster.health}`);
+
+
 
                 // Create a visible effect at the hit point
                 this.createHitEffect(hitData.point);
@@ -202,7 +202,7 @@ class CannonShot {
                     // Check if cannonball is inside or very close to the ship's collision sphere
                     if (distanceToCenter <= collisionSphere.radius + 0.5) {
                         // Hit the NPC ship!
-                        console.log(`Player cannonball hit NPC Ship ${npcShip.id}!`);
+
 
                         // Apply damage to the NPC ship
                         const damage = 200; // Base damage amount
@@ -229,7 +229,7 @@ class CannonShot {
 
                 // Log damage results
                 if (damagedMonsters.length > 0) {
-                    console.log(`Cannonball splash damaged ${damagedMonsters.length} monsters!`);
+
                 }
 
                 this.createEnhancedSplashEffect(cannonball.position.clone(), 2.0 / 3.0);
@@ -592,7 +592,7 @@ class CannonShot {
      * @param {string} cannon_position_name - Name of the cannon position on the boat (e.g. 'leftFront')
      */
     static createRemoteCannonball(position, direction, cannon_id, playerBoat, cannon_position_name = 'default') {
-        console.log("triggered remote cannonball ", position, " direction ", direction, " player id ", playerBoat)
+
         // Create the cannonball mesh
         const cannonballGeometry = new THREE.SphereGeometry(2.0 / 3, 16, 16);
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
@@ -635,7 +635,7 @@ class CannonShot {
             },
             prevPosition: position.clone(),
             onHit: (hitData) => {
-                console.log(`Remote cannonball HIT: ${hitData.monster.typeId}!`);
+
 
                 // Create a visible effect at the hit point
                 cannonInstance.createHitEffect(hitData.point);
@@ -697,7 +697,7 @@ class CannonShot {
                     // Check if cannonball is inside or very close to the ship's collision sphere
                     if (distanceToCenter <= collisionSphere.radius + 0.5) {
                         // Hit the NPC ship!
-                        console.log(`Remote cannonball hit NPC Ship ${npcShip.id}!`);
+
 
                         // Apply damage to the NPC ship
                         const damage = 200; // Base damage amount
@@ -724,7 +724,7 @@ class CannonShot {
 
                 // Log damage results
                 if (damagedMonsters.length > 0) {
-                    console.log(`Remote cannonball splash damaged ${damagedMonsters.length} monsters!`);
+
                 }
 
                 cannonInstance.createEnhancedSplashEffect(cannonball.position.clone(), 2.0 / 3.0);

@@ -51,7 +51,7 @@ function toggleCameraLock(forceLock = null) {
     const message = cameraLocked ? "Camera locked to ship" : "Camera unlocked";
     showCameraMessage(message);
 
-    console.log(message);
+
     return cameraLocked;
 }
 
@@ -319,7 +319,7 @@ export function initCameraControls() {
     // Initialize with camera locked to boat
     lastBoatRotation = getBoatRotationY();
 
-    console.log("✅ Camera orbit controls initialized");
+
 }
 
 // Update camera position around the boat
@@ -432,7 +432,7 @@ export function resetCameraPosition() {
     // Lock camera after reset
     toggleCameraLock(true);
 
-    console.log("Camera position reset");
+
 }
 
 // Function to smoothly zoom camera to a specific distance

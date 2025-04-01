@@ -282,7 +282,7 @@ let initialized = false;
  * Completely reinitialize the effect composer to ensure clean state
  */
 export function initGLBOutlineEffects(scene, camera, renderer, options = {}) {
-    console.log("Initializing GLB outline effects with fresh composer");
+
 
     // If we already have a composer, dispose it properly to avoid memory leaks
     if (composer) {
@@ -341,7 +341,7 @@ export function initGLBOutlineEffects(scene, camera, renderer, options = {}) {
     // Mark as initialized
     initialized = true;
 
-    console.log(`GLB Outline Effects initialized at ${size.width}x${size.height} with pixel ratio ${pixelRatio}`);
+
 
     return composer;
 }
@@ -351,7 +351,7 @@ export function initGLBOutlineEffects(scene, camera, renderer, options = {}) {
  */
 export function applyGLBOutline(model, options = {}) {
     if (!initialized || !selection) {
-        console.warn("GLB outline effects not initialized");
+
         return;
     }
 
@@ -370,7 +370,7 @@ export function applyGLBOutline(model, options = {}) {
  */
 export function render() {
     if (!initialized || !composer) {
-        console.warn("Cannot render - GLB outline effects not initialized");
+
         return;
     }
 
@@ -410,7 +410,7 @@ export function dispose() {
  */
 export function updateOutlineSettings(settings = {}) {
     if (!initialized || !outlineEffect) {
-        console.warn("Cannot update - outline effects not initialized");
+
         return;
     }
 
@@ -434,5 +434,5 @@ export function updateOutlineSettings(settings = {}) {
         outlineEffect.blur = settings.blur;
     }
 
-    console.log("Updated outline settings:", settings);
+
 }

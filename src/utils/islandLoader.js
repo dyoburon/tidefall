@@ -49,10 +49,10 @@ export function loadBrightenedModel(parent, options, onComplete) {
                         }
                     });
 
-                    console.log(`Enhanced visibility for mesh: ${child.name || 'unnamed'}`);
+
                 }
             });
-            console.log('Applied enhanced brightness to island for better visibility');
+
         }
 
         // Call onComplete callback if provided
