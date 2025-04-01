@@ -18,7 +18,8 @@ export class NpcCannonSystem {
     constructor() {
         this.cannonballSpeed = 130;  // Increased speed for better travel
         this.gravity = 80;         // Reduced gravity so cannonballs travel farther
-        this.cooldown = 1.0;       // One second cooldown
+        this.minCooldown = 1.0;    // Minimum cooldown time in seconds
+        this.maxCooldown = 2.0;    // Maximum cooldown time in seconds
         this.range = 600;          // Keep original engagement range
         this.damage = 10;         // Changed from 100 to 10 damage per hit
         this.aimInaccuracy = 20.0;  // Randomness in aiming
@@ -167,8 +168,8 @@ export class NpcCannonSystem {
 
 
 
-                // Set cooldown directly on the ship
-                npcShip.cooldownTimer = this.cooldown;
+                // Set cooldown directly on the ship with random value
+                npcShip.cooldownTimer = this.minCooldown + Math.random() * (this.maxCooldown - this.minCooldown);
 
 
                 // Play sound
