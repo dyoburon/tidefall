@@ -7,6 +7,17 @@
     <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
     <link rel="stylesheet" href="src/style.css">
     <style>
+        /* Prevent scrolling and ensure full viewport height */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+
         /* Styling for orientation messages */
         #orientation-message {
             display: none;
