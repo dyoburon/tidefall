@@ -447,16 +447,21 @@ export class NpcCannonSystem {
         }
 
         const startTime = getTime();
+        let animationFrameId;
 
         const animateSmoke = () => {
             const elapsedTime = (getTime() - startTime) / 1000;
 
             if (elapsedTime >= 2.0) {
+                // Clean up all particles
                 particles.forEach(particle => {
                     if (particle.parent) {
                         scene.remove(particle);
                     }
                 });
+
+                // Cancel the animation frame to stop the loop
+                cancelAnimationFrame(animationFrameId);
                 return;
             }
 
@@ -475,11 +480,26 @@ export class NpcCannonSystem {
                 particle.material.opacity = 0.7 * (1.0 - elapsedTime / 2.0);
             });
 
-            requestAnimationFrame(animateSmoke);
+            animationFrameId = requestAnimationFrame(animateSmoke);
         };
 
         // Start animation
-        requestAnimationFrame(animateSmoke);
+        animationFrameId = requestAnimationFrame(animateSmoke);
+
+        // Backup cleanup timeout to ensure particles are removed
+        setTimeout(() => {
+            // Cancel animation frame if it's still running
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            // Remove any remaining particles
+            particles.forEach(particle => {
+                if (particle.parent) {
+                    scene.remove(particle);
+                }
+            });
+        }, 2100); // Just slightly longer than the animation duration
     }
 
     /**
