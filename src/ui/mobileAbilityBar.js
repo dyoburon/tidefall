@@ -25,21 +25,21 @@ class MobileAbilityBar {
             {
                 id: 'cannonShot',
                 name: 'Cannon',
-                icon: '💥',
+                imagePath: './cannonshotability.jpeg',
                 color: '#ff4444',
                 key: 'q'
             },
             {
                 id: 'sprint',
                 name: 'Sprint',
-                icon: '🏃',
+                imagePath: './sprintability.jpeg',
                 color: '#44ff44',
                 key: 'shift'
             },
             {
                 id: 'scatterShot',
                 name: 'Scatter',
-                icon: '🔫',
+                imagePath: './scattershotability.jpeg',
                 color: '#4444ff',
                 key: 't'
             }
@@ -65,13 +65,22 @@ class MobileAbilityBar {
         button.style.display = 'flex';
         button.style.alignItems = 'center';
         button.style.justifyContent = 'center';
-        button.style.fontSize = '18px';
-        button.style.color = 'white';
+        button.style.position = 'relative';
+        button.style.overflow = 'hidden';
         button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
         button.style.border = '2px solid rgba(255,255,255,0.4)';
         button.style.transition = 'transform 0.1s ease';
         button.style.touchAction = 'none';
-        button.innerHTML = ability.icon;
+
+        // Create image element for the ability icon
+        const abilityImage = document.createElement('div');
+        abilityImage.style.width = '100%';
+        abilityImage.style.height = '100%';
+        abilityImage.style.backgroundImage = `url(${ability.imagePath})`;
+        abilityImage.style.backgroundSize = 'cover';
+        abilityImage.style.backgroundPosition = 'center';
+        abilityImage.style.borderRadius = '50%';
+        button.appendChild(abilityImage);
 
         button.addEventListener('touchstart', (e) => {
             e.preventDefault();
