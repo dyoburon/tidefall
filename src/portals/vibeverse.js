@@ -1,7 +1,7 @@
 // vibeverse.js - Portal to the Vibeverse
 import * as THREE from 'three';
 import { scene, addToScene, getPlayerInfo } from '../core/gameState.js';
-import { createFloatingText } from '../effects/floatingText.js';
+import { createHugeFloatingText } from '../effects/HugeFloatingText.js';
 import { applyOutline } from '../theme/outlineStyles';
 import { loadBrightenedModel } from '../utils/islandLoader.js';
 
@@ -11,7 +11,11 @@ const PORTAL_HEIGHT = 150; // Height of the arch
 const PORTAL_WIDTH = 120;  // Width of the arch
 const PORTAL_THICKNESS = 20; // Thickness of the arch border
 const PORTAL_SEGMENTS = 32;
-const PORTAL_COLOR = 0x00ff66; // Bright green color
+const PORTAL_COLORS = {
+    green: 0x00ff66, // Bright green color for Vibeverse
+    blue: 0x00ffff,  // Bright blue color for Jetski
+    default: 0x00ff66 // Default fallback color
+};
 const PORTAL_GLOW_COLOR = 0x66ffaa;
 const PORTAL_COLLISION_RADIUS = 100; // How close the player needs to be to trigger the portal
 
@@ -58,7 +62,7 @@ function createVibeversePortal(options = {}) {
 export function createPortal(position, text, url, options = {}) {
     // Configure portal options based on type
     const portalOptions = {
-        modelPath: options.modelPath || './models/portal.glb', // Default portal model
+        modelPath: options.modelPath || './models/portal.glb',
         scale: options.scale || 1.0
     };
 
@@ -78,20 +82,31 @@ export function createPortal(position, text, url, options = {}) {
         portal.rotation.z += options.rotation.z || 0;
     }
 
-    // Add a simple floating text above the portal
-    const textPosition = position.clone();
-    textPosition.y += 250; // Position above the portal model
-    textPosition.z -= 100;
+    // Determine portal color based on model path
+    let portalColor = PORTAL_COLORS.default;
+    if (options.modelPath) {
+        if (options.modelPath.includes('green')) {
+            portalColor = PORTAL_COLORS.green;
+        } else if (options.modelPath.includes('blue')) {
+            portalColor = PORTAL_COLORS.blue;
+        }
+    }
 
-    const textObj = createFloatingText({
+    // Add a huge floating text above the portal
+    const textPosition = position.clone();
+    textPosition.y += 300;
+    textPosition.z += 0;
+
+    const textObj = createHugeFloatingText({
         text: text,
         position: textPosition,
-        color: 0xFFFFFF,
-        size: 500,
+        color: portalColor,
+        size: 700,
         duration: 100.0,
         disappear: false,
         riseFactor: 0.0,
-        fadeOut: false
+        fadeOut: false,
+        glow: true
     });
 
     // Add the portal to the scene
