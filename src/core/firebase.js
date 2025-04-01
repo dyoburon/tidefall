@@ -11,6 +11,7 @@ import {
     setPersistence,
     browserLocalPersistence
 } from 'firebase/auth';
+import { touchControlsActive } from '../controls/touchControls.js';
 // import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 // Firebase state variables
@@ -132,53 +133,88 @@ export function showAuthPopup(onSuccess) {
 
     const authForm = document.createElement('div');
     authForm.className = 'auth-form';
+
+    // Apply different styles based on touch controls being active
+    const scale = touchControlsActive ? 0.5 : 1;
     authForm.style.cssText = `
         background-color: #0f1626;
-        padding: 30px;
+        padding: ${touchControlsActive ? '15px' : '30px'};
         border-radius: 8px;
         box-shadow: 0 0 30px rgba(0,100,255,0.3);
-        width: 350px;
+        width: ${touchControlsActive ? '175px' : '350px'};
         max-width: 90%;
         border: 1px solid rgba(50, 130, 240, 0.3);
-        
-        @media screen and (max-width: 768px) {
-            padding: 15px;
-            width: 250px;
-            transform: scale(0.9);
-        }
+        transform: scale(${scale});
+        ${touchControlsActive ? 'transform-origin: center center;' : ''}
     `;
 
     authForm.innerHTML = `
         <style>
-            @media screen and (max-width: 768px) {
-                .auth-title {
-                    font-size: 24px !important;
-                    margin-bottom: 3px !important;
-                }
-                .auth-description {
-                    font-size: 12px !important;
-                    padding: 10px !important;
-                }
-                .auth-button {
-                    padding: 8px 12px !important;
-                    font-size: 12px !important;
-                }
-                .auth-input {
-                    padding: 6px !important;
-                    margin-bottom: 8px !important;
-                    font-size: 12px !important;
-                }
-                .auth-divider {
-                    margin: 10px 0 !important;
-                    font-size: 12px !important;
-                }
+            .auth-title {
+                text-align: center;
+                color: #fff;
+                font-size: ${touchControlsActive ? '20px' : '32px'};
+                margin-bottom: ${touchControlsActive ? '2px' : '5px'};
+                font-weight: 800;
+                letter-spacing: ${touchControlsActive ? '1px' : '2px'};
+                text-transform: uppercase;
+                text-shadow: 0 0 10px rgba(66, 133, 244, 0.7);
+            }
+            .auth-description {
+                margin: 0;
+                color: #e0e0e0;
+                font-size: ${touchControlsActive ? '10px' : '15px'};
+                line-height: ${touchControlsActive ? '1.2' : '1.5'};
+                font-weight: 400;
+                text-align: center;
+                padding: ${touchControlsActive ? '5px' : '15px'};
+            }
+            .auth-button {
+                padding: ${touchControlsActive ? '4px 8px' : '12px 15px'};
+                font-size: ${touchControlsActive ? '10px' : '14px'};
+                min-height: ${touchControlsActive ? '24px' : '36px'};
+            }
+            .auth-input {
+                padding: ${touchControlsActive ? '4px' : '8px'};
+                margin-bottom: ${touchControlsActive ? '4px' : '10px'};
+                font-size: ${touchControlsActive ? '10px' : '14px'};
+                width: 100%;
+                box-sizing: border-box;
+                height: ${touchControlsActive ? '24px' : '32px'};
+            }
+            .auth-divider {
+                text-align: center;
+                margin: ${touchControlsActive ? '5px 0' : '15px 0'};
+                color: #757575;
+                font-size: ${touchControlsActive ? '10px' : '14px'};
+            }
+            #auth-error {
+                color: red;
+                margin-top: ${touchControlsActive ? '4px' : '10px'};
+                text-align: center;
+                font-size: ${touchControlsActive ? '8px' : '12px'};
+            }
+            .gradient-divider {
+                height: ${touchControlsActive ? '2px' : '3px'};
+                width: ${touchControlsActive ? '30px' : '60px'};
+                margin: ${touchControlsActive ? '0 auto 8px' : '0 auto 15px'};
+            }
+            .description-container {
+                padding: ${touchControlsActive ? '8px' : '15px'};
+                margin-top: ${touchControlsActive ? '5px' : '10px'};
+            }
+            .button-container {
+                margin-bottom: ${touchControlsActive ? '10px' : '20px'};
+            }
+            .input-container {
+                margin-bottom: ${touchControlsActive ? '8px' : '15px'};
             }
         </style>
-        <div style="position: relative; margin-bottom: 25px;">
-            <h2 class="auth-title" style="text-align: center; color: #fff; font-size: 32px; margin-bottom: 5px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px rgba(66, 133, 244, 0.7);">TideFall</h2>
-            <div style="height: 3px; width: 60px; background: linear-gradient(to right, #4285f4, #34a853); margin: 0 auto 15px;"></div>
-            <div style="background: linear-gradient(135deg, rgba(10, 37, 64, 0.9), rgba(32, 58, 96, 0.9)); border-radius: 8px; padding: 15px; border-left: 2px solid #4285f4; margin-top: 10px;">
-                <p class="auth-description" style="margin: 0; color: #e0e0e0; font-size: 15px; line-height: 1.5; font-weight: 400; text-align: center;">
+        <div style="position: relative; margin-bottom: ${touchControlsActive ? '10px' : '25px'};">
+            <h2 class="auth-title">TideFall</h2>
+            <div class="gradient-divider" style="background: linear-gradient(to right, #4285f4, #34a853);"></div>
+            <div class="description-container" style="background: linear-gradient(135deg, rgba(10, 37, 64, 0.9), rgba(32, 58, 96, 0.9)); border-radius: 8px; border-left: 2px solid #4285f4;">
+                <p class="auth-description">
                 Build alliances, claim vast lands, and hunt for loot in dangerous realms.</p>
             </div>
         </div>
