@@ -3,6 +3,7 @@ import { scene, addToScene, removeFromScene, getTime, boat } from '../core/gameS
 import { loadShipModel } from './boatLoader.js';
 import npcCannonSystem from '../npc/abilities/npcCannon.js';
 import { debugLog } from '../utils/debug.js';
+import { startNpcFollow, stopNpcFollow, updateNpcFollow, isNpcFollowing } from '../npc/behavior/npcFollowBehavior.js';
 
 // Configuration for NPC ships
 const NPC_SHIP_CONFIG = {
@@ -86,6 +87,9 @@ class NpcShip {
         this.aggroRange = options.aggroRange || 150;
         this.combatState = 'passive'; // 'passive' or 'aggressive'
         this.cooldownTimer = 0; // Simple cooldown timer in seconds
+
+        // Add follow behavior property
+        this.isFollowing = false;
 
         // Behavior state
         this.state = 'moving';  // 'moving' or 'idling'
@@ -312,7 +316,43 @@ class NpcShip {
 
         // Remember previous state for debug visualization
         const previousState = this.state;
+        const previousCombatState = this.combatState;
 
+        // Check if we should be following the player in aggressive mode
+        if (this.combatState === 'aggressive' && this.combatEnabled && boat) {
+            // While aggressive, use follow behavior instead of normal movement
+            const followUpdated = updateNpcFollow(this, dt);
+
+            // Track follow state
+            this.isFollowing = followUpdated;
+
+            // If following, we skip normal movement state updates
+            if (followUpdated) {
+                // Apply water-based rocking effect
+                this.updateBoatRocking(dt);
+
+                // Update the ship group position/rotation
+                this.shipGroup.position.copy(this.position);
+
+                // We now apply full rotation including rocking
+                this.shipGroup.rotation.set(
+                    this.rockAngleX,
+                    this.rotation.y,
+                    this.rockAngleZ
+                );
+
+                // Update debug visuals
+                this.updateDebugStateIndicator(previousState);
+
+                return; // Skip normal movement
+            }
+        } else if (this.isFollowing) {
+            // Was following but no longer aggressive - stop following
+            stopNpcFollow(this);
+            this.isFollowing = false;
+        }
+
+        // Normal movement states when not aggressively following
         switch (this.state) {
             case 'moving':
                 this.moveTowardsWaypoint(dt);
@@ -337,23 +377,31 @@ class NpcShip {
         );
 
         // Update debug visuals
-        if (NPC_SHIP_CONFIG.debugVisuals) {
-            // Update path line
-            if (this.debugPathLine) {
-                const linePoints = [this.position.clone(), this.currentWaypoint.clone()];
-                this.debugPathLine.geometry.dispose();
-                this.debugPathLine.geometry = new THREE.BufferGeometry().setFromPoints(linePoints);
-            }
+        this.updateDebugStateIndicator(previousState);
+    }
 
-            // Update state indicator position and color
-            if (this.debugStateIndicator) {
-                this.debugStateIndicator.position.copy(this.position.clone().add(new THREE.Vector3(0, 15, 0)));
+    /**
+     * Update debug state indicator color and position
+     * @param {string} previousState - Previous movement state
+     */
+    updateDebugStateIndicator(previousState) {
+        if (!NPC_SHIP_CONFIG.debugVisuals) return;
 
-                // Change color if state changed
-                if (previousState !== this.state) {
-                    this.debugStateIndicator.material =
-                        this.state === 'moving' ? debugHelpers.movingMaterial : debugHelpers.idleMaterial;
-                }
+        // Update path line
+        if (this.debugPathLine && !this.isFollowing) {
+            const linePoints = [this.position.clone(), this.currentWaypoint.clone()];
+            this.debugPathLine.geometry.dispose();
+            this.debugPathLine.geometry = new THREE.BufferGeometry().setFromPoints(linePoints);
+        }
+
+        // Update state indicator position and color
+        if (this.debugStateIndicator) {
+            this.debugStateIndicator.position.copy(this.position.clone().add(new THREE.Vector3(0, 15, 0)));
+
+            // Change color if state changed
+            if (previousState !== this.state) {
+                this.debugStateIndicator.material =
+                    this.state === 'moving' ? debugHelpers.movingMaterial : debugHelpers.idleMaterial;
             }
         }
     }
@@ -478,6 +526,12 @@ class NpcShip {
      * Remove the ship from the scene and memory
      */
     dispose() {
+        // Stop follow behavior if active
+        if (this.isFollowing) {
+            stopNpcFollow(this);
+            this.isFollowing = false;
+        }
+
         removeFromScene(this.shipGroup);
 
         // Clean up debug visuals
@@ -536,6 +590,12 @@ class NpcShip {
             if (this.combatState !== 'aggressive') {
                 this.combatState = 'aggressive';
                 console.log(`NPC Ship ${this.id} engaging player at distance ${distanceToPlayer.toFixed(0)}`);
+
+                // Start following behavior when entering aggressive mode
+                if (!this.isFollowing) {
+                    this.isFollowing = startNpcFollow(this);
+                    debugLog(`Started follow behavior for NPC ${this.id}: ${this.isFollowing}`, 1);
+                }
             }
 
             // Check if we can fire (not on cooldown)
@@ -557,17 +617,29 @@ class NpcShip {
         }
         // If player is within aggro range but outside attack range, pursue
         else if (distanceToPlayer < this.aggroRange) {
-            // In a full implementation, we would change the ship's waypoint to follow the player
-            // For now, we'll just set the combat state
+            // Set to aggressive and use follow behavior
             if (this.combatState !== 'aggressive') {
                 this.combatState = 'aggressive';
                 console.log(`NPC Ship ${this.id} pursuing player at distance ${distanceToPlayer.toFixed(0)}`);
+
+                // Start following behavior when entering aggressive mode
+                if (!this.isFollowing) {
+                    this.isFollowing = startNpcFollow(this);
+                    debugLog(`Started follow behavior for NPC ${this.id}: ${this.isFollowing}`, 1);
+                }
             }
         }
         // If player is outside aggro range, return to passive
         else if (this.combatState !== 'passive') {
             this.combatState = 'passive';
             console.log(`NPC Ship ${this.id} returning to passive state at distance ${distanceToPlayer.toFixed(0)}`);
+
+            // Stop following when returning to passive mode
+            if (this.isFollowing) {
+                stopNpcFollow(this);
+                this.isFollowing = false;
+                debugLog(`Stopped follow behavior for NPC ${this.id}`, 1);
+            }
         }
 
         // Update combat indicator if state changed
