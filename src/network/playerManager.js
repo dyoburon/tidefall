@@ -84,13 +84,17 @@ export function addOtherPlayerToScene(playerData) {
         pointLight.position.y = 7; // Adjusted for the pirate model height
         playerGroup.add(pointLight);
 
+        // EXPLICITLY ROTATE the entire player group by 180 degrees to fix backward orientation
+        playerGroup.rotation.y = Math.PI;
+
         // Position the player - IMPORTANT: Set position after model is loaded
         playerGroup.position.set(
             playerData.position.x,
             playerData.position.y,
             playerData.position.z
         );
-        playerGroup.rotation.y = playerData.rotation;
+        // Adjust player rotation by adding PI (180 degrees) to make them face the right direction
+        playerGroup.rotation.y = Math.PI + playerData.rotation;
 
         addPlayerNameLabel(playerData.id, playerData.name);
 
@@ -228,4 +232,45 @@ export function removeOtherPlayerFromScene(playerId) {
 
 export function getOtherPlayers() {
     return otherPlayers;
+}
+
+export function updateOtherPlayerPosition(playerData) {
+    const player = otherPlayers.get(playerData.id);
+    if (!player) {
+        // Add the player if they don't exist yet
+        //addOtherPlayerToScene(playerData);
+        return;
+    }
+
+    // Check if mode has changed
+    if (player.data.mode !== playerData.mode) {
+        // Remove old mesh and create a new one with the correct mode
+        //removeOtherPlayerFromScene(playerData.id);
+        //addOtherPlayerToScene(playerData);
+        return;
+    }
+
+    // Make sure the mesh exists and is loaded before updating position
+    if (!player.loaded || !player.mesh) {
+        // Update the data even if we can't update the position yet
+        player.data = {
+            ...player.data,
+            position: playerData.position,
+            rotation: playerData.rotation,
+            mode: playerData.mode
+        };
+        return;
+    }
+
+    // Update position and rotation
+    player.mesh.position.set(
+        playerData.position.x,
+        playerData.position.y,
+        playerData.position.z
+    );
+    // Apply 180-degree adjustment to player rotation
+    player.mesh.rotation.y = Math.PI + playerData.rotation;
+
+    // Force update the matrix world to ensure all children update
+    player.mesh.updateMatrixWorld(true);
 }

@@ -158,7 +158,7 @@ export function loadShipModel(targetGroup, options = {}, onComplete) {
         modelUrl: shipConfig.path,
         scaleValue: shipConfig.scale,
         position: shipConfig.position,
-        // For other players, we generally want to rotate the ship model 180 degrees
+        // For other players, we definitely rotate the ship model 180 degrees
         rotation: isOtherPlayer ? [0, Math.PI, 0] : shipConfig.rotation,
         animationSetup: (model) => {
             // Only set up sail animations if appropriate
@@ -174,7 +174,8 @@ export function loadShipModel(targetGroup, options = {}, onComplete) {
             position: SHIP_MODELS[DEFAULT_SHIP_TYPE].position,
             rotation: isOtherPlayer ? [0, Math.PI, 0] : SHIP_MODELS[DEFAULT_SHIP_TYPE].rotation
         },
-        isFromBoatLoader: true  // Add this flag to prevent infinite recursion
+        isFromBoatLoader: true,  // Add this flag to prevent infinite recursion
+        isOtherPlayer: isOtherPlayer  // Pass this flag to the GLB loader
     };
 
     // Use the generic GLB loader

@@ -20,7 +20,8 @@ export function loadGLBModel(targetGroup, config, onComplete) {
         position = [0, 0, 0],
         rotation = [0, 0, 0],
         animationSetup,
-        fallbackConfig
+        fallbackConfig,
+        isOtherPlayer = false
     } = config;
 
     // Don't load if already loaded or currently loading
@@ -75,6 +76,11 @@ export function loadGLBModel(targetGroup, config, onComplete) {
                 }
             });
 
+            // Make sure simplified model has the same orientation as the detailed model
+            simplifiedModel.position.copy(model.position);
+            simplifiedModel.rotation.copy(model.rotation);
+            simplifiedModel.scale.copy(model.scale);
+
             // Use visibleDistance from chunkControl.js to match view distance
             lod.addLevel(simplifiedModel, visibleDistance * 0.5);  // Medium detail at half visible distance
 
@@ -100,9 +106,15 @@ export function loadGLBModel(targetGroup, config, onComplete) {
                 const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x8b4513 });
                 const boxModel = new THREE.Mesh(boxGeometry, boxMaterial);
                 boxModel.position.set(posX, posY, posZ);
+
+                // Apply rotation to box model (same for all cases, just being explicit)
                 boxModel.rotation.set(rotX, rotY, rotZ);
+
                 lod.addLevel(boxModel, visibleDistance);  // Low detail at full visible distance
             }
+
+            // Store the isOtherPlayer flag in userData for future reference
+            lod.userData.isOtherPlayer = isOtherPlayer;
 
             // Add LOD to target group
             targetGroup.add(lod);

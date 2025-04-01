@@ -777,7 +777,7 @@ function updateOtherPlayerPosition(playerData) {
         playerData.position.y,
         playerData.position.z
     );
-    player.mesh.rotation.y = playerData.rotation;
+    player.mesh.rotation.y = Math.PI + playerData.rotation;
 
     // Force update the matrix world to ensure all children update
     player.mesh.updateMatrixWorld(true);
