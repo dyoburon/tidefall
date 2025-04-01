@@ -213,10 +213,26 @@ function spawnHugeIslandNearSpawn() {
         x,
         z,
         SPAWN_CONFIG.hugeIslandSeed,
-        null // No chunk group as it will be added directly to scene
+        null, // No chunk group as it will be added directly to scene
+        null, // Use random model selection
+        700   // Default height
     );
 
-    spawnedElements.hugeIsland = hugeIsland;
+    // Create a second huge island with island2.glb model - using different angle
+    const angle2 = -Math.PI / 3; // -60 degrees in radians
+    const x2 = Math.cos(angle2) * (SPAWN_CONFIG.hugeIslandDistance + 1250);
+    const z2 = Math.sin(angle2) * (SPAWN_CONFIG.hugeIslandDistance + 650);
+
+    const hugeIsland2 = createHugeIsland(
+        x2,
+        z2,
+        SPAWN_CONFIG.hugeIslandSeed + 1, // Different seed
+        null,
+        '/island2.glb', // Specify the model
+        500    // Higher elevation
+    );
+
+    spawnedElements.hugeIsland = [hugeIsland, hugeIsland2];
 
     // Create islands with specific mega structures
     // Note: Seeds are carefully chosen to generate specific structures based on the random() calculation in islands.js

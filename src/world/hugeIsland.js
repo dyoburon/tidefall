@@ -20,9 +20,11 @@ const activeHugeIslands = new Map();
  * @param {number} z - Z coordinate in the world
  * @param {number} seed - Seed for random generation
  * @param {THREE.Group} chunkGroup - The chunk group to add the island to
+ * @param {string} [modelPath] - Optional path to specific island model ('/island1.glb' or '/island2.glb')
+ * @param {number} [yOffset=700] - Optional Y offset for the island height (defaults to 700)
  * @returns {Object} - The created island entry with mesh and collider info
  */
-export function createHugeIsland(x, z, seed, chunkGroup) {
+export function createHugeIsland(x, z, seed, chunkGroup, modelPath, yOffset = 700) {
 
 
     // Create a deterministic random function based on the seed
@@ -61,7 +63,8 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
 
     // Make the scale even larger for better visibility
     const scaleValue = 3500.0 + random() * 500.0; // Significantly increased scale
-    const yOffset = 700;
+    // Use the provided yOffset or default to 700
+    const heightOffset = yOffset;
 
 
 
@@ -78,8 +81,8 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
     activeHugeIslands.set(islandId, islandEntry);
 
     try {
-        // Randomly select between island1.glb and island2.glb with 50% probability
-        const islandModel = random() < 0.5 ? '/island1.glb' : '/island2.glb';
+        // Use specified modelPath if provided, otherwise randomly select
+        const islandModel = modelPath || (random() < 0.5 ? '/island1.glb' : '/island2.glb');
 
 
         // Load the GLB model with modified settings using the brightened model loader
@@ -87,7 +90,7 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
             modelId: islandId,
             modelUrl: islandModel,
             scaleValue: scaleValue,
-            position: [0, yOffset, 0],
+            position: [0, heightOffset, 0],
             rotation: [0, random() * Math.PI * 2, 0],
             animationSetup: null,
             onLoad: function (model, gltf) {
