@@ -231,6 +231,20 @@ class GameUI {
     }
 
     createFishingUI() {
+        // Don't create fishing UI on mobile devices
+        if (isTouchDevice()) {
+            return {
+                container: null,
+                castButton: null,
+                status: null,
+                counter: null,
+                minigame: {
+                    container: null,
+                    enhanced: {}
+                }
+            };
+        }
+
         // Create fishing container with ornate ship control styling
         const fishingContainer = document.createElement('div');
         fishingContainer.id = 'fishing-ui';
@@ -601,44 +615,18 @@ class GameUI {
             this.elements.healthBar.bar.style.boxShadow = `inset 0 0 10px ${healthColor}`; // Dynamic glow effect
         }
 
-        // Update speed
-        /*
-        if (data.speed !== undefined) {
-            // Update speedometer (max speed of 10 knots)
-            const speedPercent = Math.min(data.speed / 10 * 100, 100);
-            this.elements.speedometer.bar.style.width = `${speedPercent}%`;
-
-            // Change color based on speed
-            if (data.speed > 7) {
-                this.elements.speedometer.bar.style.backgroundColor = 'rgba(255, 50, 50, 0.7)';
-            } else if (data.speed > 4) {
-                this.elements.speedometer.bar.style.backgroundColor = 'rgba(255, 200, 50, 0.7)';
-            } else {
-                this.elements.speedometer.bar.style.backgroundColor = 'rgba(0, 255, 128, 0.7)';
-            }
-        }*/
-
         // Update coordinates
-        if (data.position) {
+        if (data.position && this.elements.coordinates) {
             this.elements.coordinates.textContent = `Position: ${data.position.x.toFixed(0)}, ${data.position.z.toFixed(0)}`;
         }
 
-        // Update wind
-        /* if (data.windDirection !== undefined && data.windSpeed !== undefined) {
-             const windDescription = this.getWindDescription(data.windSpeed);
-             this.elements.wind.textContent = `Wind: ${windDescription} (${data.windSpeed.toFixed(1)} knots)`;
-         }*/
-
-        // Update time
-
-
         // Update player count
-        if (data.playerCount !== undefined) {
+        if (data.playerCount !== undefined && this.elements.playerCount) {
             this.elements.playerCount.textContent = `Players: ${data.playerCount}`;
         }
 
         // Update connection status
-        if (data.isConnected !== undefined) {
+        if (data.isConnected !== undefined && this.elements.connectionStatus) {
             this.elements.connectionStatus.textContent = data.isConnected ?
                 'Status: Connected' : 'Status: Disconnected';
             this.elements.connectionStatus.style.color = data.isConnected ?
@@ -646,7 +634,7 @@ class GameUI {
         }
 
         // Update fish count
-        if (data.fishCount !== undefined) {
+        if (data.fishCount !== undefined && this.elements.fishing && this.elements.fishing.counter) {
             this.elements.fishing.counter.textContent = `Fish: ${data.fishCount}`;
         }
 

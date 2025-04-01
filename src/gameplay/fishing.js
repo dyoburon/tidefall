@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { scene, camera } from '../core/gameState.js';
 import { gameUI } from '../ui/ui.js';
 import { onFishCaught, onMoneyEarned, addToInventory } from '../core/network.js';
+import { touchControlsActive } from '../controls/touchControls.js';
 
 // Fishing system configuration
 const FISHING_CAST_DISTANCE = 15;
@@ -61,6 +62,11 @@ export function initFishing(playerBoat) {
 
 // Toggle fishing on/off
 function toggleFishing() {
+    if (isTouchDevice()) {
+        // Don't allow fishing on mobile devices
+        return;
+    }
+
     if (isFishing) {
         stopFishing();
     } else {
@@ -70,11 +76,15 @@ function toggleFishing() {
 
 // Start fishing
 function startFishing() {
-    if (isFishing) return;
+    if (isTouchDevice() || isFishing) return;
 
     isFishing = true;
-    gameUI.elements.fishing.castButton.textContent = 'Reel In';
-    gameUI.elements.fishing.status.textContent = 'Waiting for a bite...';
+    if (gameUI.elements.fishing.castButton) {
+        gameUI.elements.fishing.castButton.textContent = 'Reel In';
+    }
+    if (gameUI.elements.fishing.status) {
+        gameUI.elements.fishing.status.textContent = 'Waiting for a bite...';
+    }
 
     // Calculate fishing line start and end positions
     fishingStartPosition.copy(boat.position);
@@ -310,6 +320,17 @@ function startMinigame() {
 
 // Setup the enhanced minigame UI
 function setupEnhancedMinigameUI(fish) {
+    // Don't show fishing UI if touch controls are active
+    if (window.touchControlsActive) {
+        // Auto-catch fish on mobile with a success chance based on fish difficulty
+        const successChance = Math.max(0.1, 1 - (currentHookedFish.difficulty * 0.15));
+        const success = Math.random() < successChance;
+
+        // Stop the minigame with the determined outcome
+        stopEnhancedMinigame(success);
+        return;
+    }
+
     const container = gameUI.elements.fishing.minigame.container;
 
     // Reset container styles and content
@@ -1203,4 +1224,13 @@ function getFishValue(fishType) {
 function playSound(soundName) {
     // Implement sound effects later
     console.log(`Playing sound: ${soundName}`);
+}
+
+// Helper function to check if the device is a touch device
+function isTouchDevice() {
+    return (
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        navigator.msMaxTouchPoints > 0
+    );
 } 
