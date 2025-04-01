@@ -1,12 +1,14 @@
 /**
  * Simple Music System
- * Loads and plays background music from the server
+ * Loads and plays background music and ambient sounds from the server
  */
 
 const MusicSystem = (() => {
-    // Main background music
+    // Main background music and ocean sounds
     let backgroundMusic = null;
+    let oceanSound = null;
     let musicVolume = 0.2;
+    let oceanVolume = 0.3; // Half of music volume
     let isMuted = true;
     let musicStartedByUserInteraction = false;
 
@@ -19,8 +21,14 @@ const MusicSystem = (() => {
         backgroundMusic.loop = true;
         backgroundMusic.volume = musicVolume;
 
+        // Create the audio element for ocean sounds
+        oceanSound = new Audio('./ocean.mp3');
+        oceanSound.loop = true;
+        oceanSound.volume = oceanVolume;
+
         // Preload the audio
         backgroundMusic.load();
+        oceanSound.load();
 
         // Check if mute state is saved in localStorage
         if (localStorage.getItem('musicMuted') === 'true') {
@@ -31,17 +39,18 @@ const MusicSystem = (() => {
         if (backgroundMusic) {
             backgroundMusic.volume = isMuted ? 0 : musicVolume;
         }
+        if (oceanSound) {
+            oceanSound.volume = isMuted ? 0 : oceanVolume;
+        }
 
         // Also load volume if available
         if (localStorage.getItem('musicVolume') !== null) {
             musicVolume = parseFloat(localStorage.getItem('musicVolume'));
-
+            //oceanVolume = musicVolume * 0.5; // Keep ocean at half music volume
         }
 
         // Add user interaction listeners to start music
         setupUserInteractionListeners();
-
-
 
         // Make MusicSystem available globally for UI components
         window.MusicSystem = MusicSystem;
@@ -55,14 +64,13 @@ const MusicSystem = (() => {
         const startMusicOnInteraction = () => {
             if (!musicStartedByUserInteraction) {
                 playMusic();
+                playOceanSound();
                 musicStartedByUserInteraction = true;
 
                 // Remove listeners once music has started
                 document.removeEventListener('click', startMusicOnInteraction);
                 document.removeEventListener('keydown', startMusicOnInteraction);
                 document.removeEventListener('touchstart', startMusicOnInteraction);
-
-
             }
         };
 
@@ -70,15 +78,12 @@ const MusicSystem = (() => {
         document.addEventListener('click', startMusicOnInteraction);
         document.addEventListener('keydown', startMusicOnInteraction);
         document.addEventListener('touchstart', startMusicOnInteraction);
-
-
     };
 
     /**
-     * Play the background music
+     * Play the background music and ocean sound
      */
     const playMusic = () => {
-
         if (backgroundMusic) {
             backgroundMusic.play()
                 .catch(error => {
@@ -88,32 +93,50 @@ const MusicSystem = (() => {
     };
 
     /**
-     * Pause the background music
+     * Play the ocean sound
+     */
+    const playOceanSound = () => {
+        if (oceanSound) {
+            oceanSound.play()
+                .catch(error => {
+                    console.error('Error playing ocean sound:', error);
+                });
+        }
+    };
+
+    /**
+     * Pause the background music and ocean sound
      */
     const pauseMusic = () => {
         if (backgroundMusic) {
             backgroundMusic.pause();
         }
+        if (oceanSound) {
+            oceanSound.pause();
+        }
     };
 
     /**
-     * Set the volume of the background music
+     * Set the volume of the background music and adjust ocean sound accordingly
      * @param {number} volume - Volume level (0-1)
      */
     const setVolume = (volume) => {
         musicVolume = Math.max(0, Math.min(1, volume));
+        //oceanVolume = musicVolume; // Keep ocean at half music volume
 
         if (backgroundMusic && !isMuted) {
             backgroundMusic.volume = musicVolume;
         }
+        if (oceanSound && !isMuted) {
+            oceanSound.volume = oceanVolume;
+        }
 
         // Save volume to localStorage
         localStorage.setItem('musicVolume', musicVolume);
-
     };
 
     /**
-     * Mute or unmute the music
+     * Mute or unmute all sounds
      * @param {boolean} mute - Whether to mute
      */
     const setMute = (mute) => {
@@ -122,10 +145,12 @@ const MusicSystem = (() => {
         if (backgroundMusic) {
             backgroundMusic.volume = mute ? 0 : musicVolume;
         }
+        if (oceanSound) {
+            oceanSound.volume = mute ? 0 : oceanVolume;
+        }
 
         // Save mute state to localStorage
         localStorage.setItem('musicMuted', isMuted);
-
     };
 
     /**
@@ -143,20 +168,19 @@ const MusicSystem = (() => {
     const updateWaveSound = (waveIntensity) => {
         // To be implemented in the future
         // Could adjust wave sound volume based on wave intensity
-
     };
 
     // Placeholder for future weather sounds
     const updateWeatherSounds = (weatherType) => {
         // To be implemented in the future
         // Could play different weather sounds based on type
-
     };
 
     // Return public API
     return {
         init,
         playMusic,
+        playOceanSound,
         pauseMusic,
         setVolume,
         setMute,
@@ -169,9 +193,6 @@ const MusicSystem = (() => {
 // Initialize when the document is loaded
 document.addEventListener('DOMContentLoaded', () => {
     MusicSystem.init();
-
-    // Uncomment to start music automatically
-    // MusicSystem.playMusic();
 
     // After other UI elements are initialized
     initMusicIcon();
@@ -194,16 +215,10 @@ function initMusicIcon() {
             // Show muted icon
             musicIcon.classList.add('muted');
             musicIcon.classList.remove('unmuted');
-            // Optional: Update icon image/text if needed
-            // musicIcon.src = 'path/to/muted-icon.png';
-            // or musicIcon.innerHTML = '🔇'; 
         } else {
             // Show unmuted icon
             musicIcon.classList.add('unmuted');
             musicIcon.classList.remove('muted');
-            // Optional: Update icon image/text if needed
-            // musicIcon.src = 'path/to/unmuted-icon.png';
-            // or musicIcon.innerHTML = '🔊';
         }
     }
 
