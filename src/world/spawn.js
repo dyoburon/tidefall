@@ -86,7 +86,7 @@ const SPAWN_CONFIG = {
         },
         {
             x: 450, y: 0, z: 500,
-            type: 'mediumpirate',
+            type: 'smallpirate',
             options: {
                 moveSpeed: 12.0,
                 patrolRadius: 400,
@@ -108,7 +108,7 @@ const SPAWN_CONFIG = {
         },
         {
             x: -400, y: 0, z: 500,
-            type: 'smallcolonial',
+            type: 'mediumpirate',
             options: {
                 moveSpeed: 13.0,
                 patrolRadius: 350,
@@ -121,7 +121,7 @@ const SPAWN_CONFIG = {
         // Distant patrol ships - passive (non-combat)
         {
             x: -100, y: 0, z: 300,
-            type: 'mediumcolonial',
+            type: 'mediumpirate',
             options: {
                 moveSpeed: 9.0,
                 patrolRadius: 600,

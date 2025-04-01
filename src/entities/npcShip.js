@@ -19,7 +19,7 @@ const NPC_SHIP_CONFIG = {
     patrolRadius: 500,      // Increased patrol radius
 
     // Model settings
-    defaultShipType: 'mediumpirate',  // Default ship type to use
+    defaultShipType: 'mediumpirate',  // Default ship type to use if none specified
 
     // Physics and effects
     boatRockSpeed: 1.0,     // Speed of boat rocking
@@ -71,7 +71,7 @@ class NpcShip {
         this.damageCooldown = 0.3; // Short cooldown between damage events
 
         // Ship model type selection
-        this.type = options.type || 'mediumpirate';
+        this.type = options.shipType || options.type || NPC_SHIP_CONFIG.defaultShipType;
 
         // Path planning properties
         this.intermediateWaypoints = [];
