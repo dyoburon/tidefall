@@ -61,7 +61,7 @@ class NpcShip {
         this.velocity = new THREE.Vector3(0, 0, 0);
 
         // Health system
-        this.maxHealth = options.maxHealth || 1000;
+        this.maxHealth = options.maxHealth || 2000;
         this.health = this.maxHealth;
         this.isDestroyed = false;
         this.lastDamageTime = 0;
