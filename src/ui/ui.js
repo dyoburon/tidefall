@@ -336,7 +336,11 @@ class GameUI {
             container: fishingContainer,
             castButton: castButton,
             status: fishingStatus,
-            counter: fishCounter
+            counter: fishCounter,
+            minigame: {
+                container: document.createElement('div'),
+                enhanced: {}
+            }
         };
     }
 

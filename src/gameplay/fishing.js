@@ -311,13 +311,26 @@ function startMinigame() {
 // Setup the enhanced minigame UI
 function setupEnhancedMinigameUI(fish) {
     const container = gameUI.elements.fishing.minigame.container;
+
+    // Reset container styles and content
+    container.innerHTML = '';
+    container.style.position = 'absolute';
+    container.style.top = '50%';
+    container.style.left = '50%';
+    container.style.transform = 'translate(-50%, -50%)';
+    container.style.width = '350px';
+    container.style.backgroundColor = '#3A2616';
+    container.style.border = '2px solid #DAA520';
+    container.style.borderRadius = '8px';
+    container.style.padding = '20px';
+    container.style.boxShadow = '0 0 25px rgba(0, 0, 0, 0.7)';
+    container.style.color = '#E6C68A';
+    container.style.fontFamily = 'serif';
+    container.style.zIndex = '1000';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
-    container.style.width = '300px';
-    container.style.padding = '15px';
-
-    // Clear previous content
-    container.innerHTML = '';
+    container.style.alignItems = 'center';
+    document.body.appendChild(container);
 
     // Create fish info header
     const fishInfo = document.createElement('div');
