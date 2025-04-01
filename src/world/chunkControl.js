@@ -145,6 +145,13 @@ function generateChunk(chunkX, chunkZ, scene) {
         return;
     }
 
+    // Calculate world coordinates for this chunk
+    const worldX = chunkX * chunkSize;
+    const worldZ = chunkZ * chunkSize;
+
+    // Check if this chunk is within the spawn area (3000x3000)
+    const isInSpawnArea = Math.abs(worldX) <= 1500 && Math.abs(worldZ) <= 1500;
+
     // Get biome for this chunk
     const biome = getBiomeForChunk(chunkX, chunkZ);
     const biomeProperties = biome ? biome.getProperties() : {};
@@ -157,12 +164,9 @@ function generateChunk(chunkX, chunkZ, scene) {
     // Store the group in our map
     chunkGroups.set(chunkKey, chunkGroup);
 
-    // Calculate chunk world coordinates
-    const worldX = chunkX * chunkSize;
-    const worldZ = chunkZ * chunkSize;
-
     // Process biome-specific features (like islands) using the chunk group
-    if (biome) {
+    // Only process if not in spawn area
+    if (biome && !isInSpawnArea) {
         // Pass the chunk group to the biome's processChunk method
         biome.processChunk(chunkX, chunkZ, chunkSize, chunkGroup, WORLD_SEED);
     }
