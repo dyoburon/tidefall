@@ -7,6 +7,7 @@ import {
     applyCannonballSplash
 } from './damageSystem.js';
 import { getAllMonsters } from '../entities/monsterManager.js';
+import { activeNpcShips } from '../entities/npcShip.js'; // Import active NPC ships
 import AimingSystem from './aimingSystem.js';
 import { fireCannon } from '../core/network.js'; // Import network function for cannon events
 import { showDamageEffect, createWaterSplashEffect } from '../effects/playerDamageEffects.js'; // Import damage effects
@@ -126,6 +127,9 @@ class CannonShot {
         // Generate a unique ID for this cannonball
         const cannonballId = `cannonball-${startTime}`;
 
+        // Create collision spheres for NPC ships
+        const npcShipCollisionSpheres = new Map();
+
         // Register with more reasonable hit radius (reduced from 100)
         registerProjectile(cannonballId, {
             mesh: cannonball,
@@ -156,6 +160,9 @@ class CannonShot {
                 return;
             }
 
+            // Save previous position for collision detection
+            const prevPosition = cannonball.position.clone();
+
             velocity.y -= this.gravity * elapsedTime;
 
             // Update cannonball position
@@ -165,6 +172,58 @@ class CannonShot {
 
             cannonball.rotation.x += 0.02;
             cannonball.rotation.z += 0.02;
+
+            // Check for NPC ship collisions
+            if (activeNpcShips && activeNpcShips.length > 0) {
+                // For each NPC ship, check for collision
+                for (const npcShip of activeNpcShips) {
+                    // Skip if ship is already destroyed
+                    if (npcShip.isDestroyed) continue;
+
+                    // Get or create collision sphere for this NPC ship
+                    if (!npcShipCollisionSpheres.has(npcShip.id)) {
+                        // Create a new collision sphere for this ship
+                        npcShipCollisionSpheres.set(
+                            npcShip.id,
+                            new THREE.Sphere(new THREE.Vector3(), 8.0) // Larger collision radius
+                        );
+                    }
+
+                    const collisionSphere = npcShipCollisionSpheres.get(npcShip.id);
+
+                    // Update collision sphere center to match ship position
+                    collisionSphere.center.copy(npcShip.position);
+
+                    // Create a ray from previous position to current position
+                    const rayDirection = new THREE.Vector3().subVectors(
+                        cannonball.position, prevPosition
+                    ).normalize();
+
+                    const ray = new THREE.Ray(prevPosition, rayDirection);
+
+                    // Check for intersection with ship's collision sphere
+                    const intersection = ray.intersectSphere(collisionSphere, new THREE.Vector3());
+
+                    if (intersection) {
+                        // Hit the NPC ship!
+                        console.log(`Player cannonball hit NPC Ship ${npcShip.id}!`);
+
+                        // Apply damage to the NPC ship
+                        const damage = 200; // Base damage amount
+                        if (npcShip.takeDamage) {
+                            npcShip.takeDamage(damage, 'player_cannon');
+                        }
+
+                        // Create hit effect at intersection point
+                        this.createHitEffect(intersection);
+
+                        // Remove cannonball
+                        unregisterProjectile(cannonballId);
+                        scene.remove(cannonball);
+                        return;
+                    }
+                }
+            }
 
             // Handle water impact
             if (cannonball.position.y <= 0) {
@@ -568,6 +627,9 @@ class CannonShot {
         const maxDistance = 700;
         const initialPosition = position.clone();
 
+        // Create collision spheres for NPC ships
+        const npcShipCollisionSpheres = new Map();
+
         // Register the projectile for hit detection
         registerProjectile(cannon_id, {
             mesh: cannonball,
@@ -597,6 +659,9 @@ class CannonShot {
                 return;
             }
 
+            // Save previous position for collision detection
+            const prevPosition = cannonball.position.clone();
+
             velocity.y -= gravity * elapsedTime;
 
             // Update cannonball position - exactly the same as local cannonballs
@@ -606,6 +671,58 @@ class CannonShot {
 
             cannonball.rotation.x += 0.02;
             cannonball.rotation.z += 0.02;
+
+            // Check for NPC ship collisions
+            if (activeNpcShips && activeNpcShips.length > 0) {
+                // For each NPC ship, check for collision
+                for (const npcShip of activeNpcShips) {
+                    // Skip if ship is already destroyed
+                    if (npcShip.isDestroyed) continue;
+
+                    // Get or create collision sphere for this NPC ship
+                    if (!npcShipCollisionSpheres.has(npcShip.id)) {
+                        // Create a new collision sphere for this ship
+                        npcShipCollisionSpheres.set(
+                            npcShip.id,
+                            new THREE.Sphere(new THREE.Vector3(), 8.0) // Larger collision radius
+                        );
+                    }
+
+                    const collisionSphere = npcShipCollisionSpheres.get(npcShip.id);
+
+                    // Update collision sphere center to match ship position
+                    collisionSphere.center.copy(npcShip.position);
+
+                    // Create a ray from previous position to current position
+                    const rayDirection = new THREE.Vector3().subVectors(
+                        cannonball.position, prevPosition
+                    ).normalize();
+
+                    const ray = new THREE.Ray(prevPosition, rayDirection);
+
+                    // Check for intersection with ship's collision sphere
+                    const intersection = ray.intersectSphere(collisionSphere, new THREE.Vector3());
+
+                    if (intersection) {
+                        // Hit the NPC ship!
+                        console.log(`Remote cannonball hit NPC Ship ${npcShip.id}!`);
+
+                        // Apply damage to the NPC ship
+                        const damage = 200; // Base damage amount
+                        if (npcShip.takeDamage) {
+                            npcShip.takeDamage(damage, 'remote_player_cannon');
+                        }
+
+                        // Create hit effect at intersection point
+                        cannonInstance.createHitEffect(intersection);
+
+                        // Remove cannonball
+                        unregisterProjectile(cannon_id);
+                        scene.remove(cannonball);
+                        return;
+                    }
+                }
+            }
 
             // Handle water impact
             if (cannonball.position.y <= 0) {

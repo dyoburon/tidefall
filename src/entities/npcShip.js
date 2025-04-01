@@ -54,18 +54,26 @@ const debugHelpers = {
  */
 class NpcShip {
     constructor(position, options = {}) {
-        // Core properties
-        this.id = 'npc_' + Math.floor(Math.random() * 10000);
-        this.position = position.clone();
-        this.rotation = new THREE.Euler();
-        this.velocity = new THREE.Vector3();
+        this.id = options.id || `npc-ship-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        this.position = new THREE.Vector3(position.x, position.y, position.z);
+        this.rotation = new THREE.Euler(0, Math.random() * Math.PI * 2, 0);
+        this.velocity = new THREE.Vector3(0, 0, 0);
+
+        // Health system
+        this.maxHealth = options.maxHealth || 1000;
+        this.health = this.maxHealth;
+        this.isDestroyed = false;
+        this.lastDamageTime = 0;
+        this.damageCooldown = 0.3; // Short cooldown between damage events
+
+        // Ship model type selection
+        this.type = options.type || 'mediumpirate';
 
         // Path planning properties
         this.intermediateWaypoints = [];
         this.lastWaypointDirection = Math.random() < 0.5 ? 'left' : 'right';
 
         // Apply custom options or defaults
-        this.shipType = options.shipType || NPC_SHIP_CONFIG.defaultShipType;
         this.moveSpeed = options.moveSpeed || NPC_SHIP_CONFIG.moveSpeed;
         this.turnSpeed = options.turnSpeed || NPC_SHIP_CONFIG.turnSpeed;
         this.waypointRadius = options.waypointRadius || NPC_SHIP_CONFIG.waypointRadius;
@@ -82,7 +90,7 @@ class NpcShip {
         // Behavior state
         this.state = 'moving';  // 'moving' or 'idling'
         this.idleTimer = 0;
-        this.spawnPosition = position.clone();
+        this.spawnPosition = this.position.clone();
         this.currentWaypoint = this.generateWaypoint();
 
         // Add physics and animation properties
@@ -114,7 +122,7 @@ class NpcShip {
             this.debugLevel = NPC_SHIP_CONFIG.debugLevel;
         }
 
-        debugLog(`Created NPC Ship ${this.id} of type ${this.shipType} at position (${position.x.toFixed(0)}, ${position.z.toFixed(0)})`, 1);
+        debugLog(`Created NPC Ship ${this.id} of type ${this.type} at position (${position.x.toFixed(0)}, ${position.z.toFixed(0)})`, 1);
         debugLog(`Ship settings: speed=${this.moveSpeed.toFixed(1)}, turnSpeed=${this.turnSpeed.toFixed(3)}, patrolRadius=${this.patrolRadius}`, 2);
     }
 
@@ -123,7 +131,7 @@ class NpcShip {
      */
     loadModel() {
         loadShipModel(this.shipGroup, {
-            shipType: this.shipType,
+            shipType: this.type,
             customModelId: this.id,
             isOtherPlayer: true  // Use NPC orientation
         }, (success) => {
@@ -567,6 +575,181 @@ class NpcShip {
             this.debugCombatIndicator.visible = this.combatState === 'aggressive';
         }
     }
+
+    /**
+     * Apply damage to the NPC ship
+     * @param {number} amount - Amount of damage to apply
+     * @param {string} source - Source of damage (e.g., 'player_cannon')
+     * @returns {boolean} - Returns true if damage was applied, false otherwise
+     */
+    takeDamage(amount, source = 'player_cannon') {
+        const currentTime = getTime();
+
+        // Check cooldown to prevent damage spamming
+        if (currentTime - this.lastDamageTime < this.damageCooldown) {
+            return false;
+        }
+
+        // Update last damage time
+        this.lastDamageTime = currentTime;
+
+        // Apply damage
+        this.health -= amount;
+
+        // Clamp health to 0-max
+        this.health = Math.max(0, Math.min(this.maxHealth, this.health));
+
+        console.log(`NPC Ship ${this.id} took ${amount} damage from ${source}. Health: ${this.health}/${this.maxHealth}`);
+
+        // Show damage effect
+        if (this.shipGroup) {
+            import('../effects/playerDamageEffects.js').then(effects => {
+                effects.showDamageEffect(this.shipGroup, amount, 'cannon');
+            });
+        }
+
+        // Check if ship is destroyed
+        if (this.health <= 0 && !this.isDestroyed) {
+            this.isDestroyed = true;
+            this.handleDestruction(source);
+        }
+
+        return true;
+    }
+
+    /**
+     * Handle ship destruction
+     * @param {string} source - Source of the killing damage
+     */
+    handleDestruction(source) {
+        console.log(`NPC Ship ${this.id} destroyed by ${source}!`);
+
+        // Create explosion effect
+        const position = this.position.clone();
+        position.y += 1; // Raise explosion slightly above water
+
+        // Create destruction visual effects
+        this.createDestructionEffect(position);
+
+        // Remove the ship after a short delay
+        setTimeout(() => {
+            this.dispose();
+        }, 1000);
+
+        // Increment player stats for destroying an NPC ship
+        if (source === 'player_cannon') {
+            try {
+                // Try to increment player stats if the network module is available
+                import('../core/network.js').then(network => {
+                    if (network.incrementPlayerStats) {
+                        network.incrementPlayerStats({ npcShipsDestroyed: 1 });
+                    }
+                });
+            } catch (error) {
+                console.error("Failed to increment player stats:", error);
+            }
+        }
+    }
+
+    /**
+     * Create destruction visual effects
+     * @param {THREE.Vector3} position - Position of the explosion
+     */
+    createDestructionEffect(position) {
+        // Create explosion particles
+        const particleCount = 30;
+        const particles = [];
+
+        // Create simple particle geometry
+        const particleGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff5500,
+            transparent: true,
+            opacity: 0.9
+        });
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial.clone());
+
+            // Position around the explosion point
+            particle.position.copy(position).add(
+                new THREE.Vector3(
+                    (Math.random() - 0.5) * 4,
+                    Math.random() * 2,
+                    (Math.random() - 0.5) * 4
+                )
+            );
+
+            // Add random velocity
+            particle.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 8,
+                5 + Math.random() * 5,
+                (Math.random() - 0.5) * 8
+            );
+
+            // Add to scene
+            scene.add(particle);
+            particles.push(particle);
+
+            // Set particle to expand over time
+            particle.userData.scaleRate = 0.05 + Math.random() * 0.05;
+            particle.userData.opacityDecay = 0.02 + Math.random() * 0.02;
+        }
+
+        // Animate explosion particles
+        let elapsed = 0;
+        const duration = 2.0; // seconds
+
+        function animateExplosion() {
+            elapsed += 0.016; // Approximately 60fps
+
+            if (elapsed >= duration) {
+                // Remove particles when animation completes
+                particles.forEach(particle => {
+                    if (particle.parent) {
+                        scene.remove(particle);
+                        particle.geometry.dispose();
+                        particle.material.dispose();
+                    }
+                });
+                return;
+            }
+
+            // Update each particle
+            particles.forEach(particle => {
+                // Apply gravity
+                particle.userData.velocity.y -= 0.1;
+
+                // Move based on velocity
+                particle.position.add(particle.userData.velocity.clone().multiplyScalar(0.016));
+
+                // Expand
+                particle.scale.addScalar(particle.userData.scaleRate);
+
+                // Fade out
+                particle.material.opacity -= particle.userData.opacityDecay;
+                if (particle.material.opacity < 0) {
+                    particle.material.opacity = 0;
+                }
+            });
+
+            requestAnimationFrame(animateExplosion);
+        }
+
+        // Start animation
+        animateExplosion();
+
+        // Play explosion sound
+        try {
+            import('../audio/soundEffects.js').then(audio => {
+                if (audio.playExplosionSound) {
+                    audio.playExplosionSound();
+                }
+            });
+        } catch (error) {
+            console.error("Failed to play explosion sound:", error);
+        }
+    }
 }
 
 /**
@@ -732,7 +915,7 @@ export function debugNpcCombatStatus() {
     activeNpcShips.forEach(ship => {
         const distToPlayer = playerPos ? ship.position.distanceTo(playerPos) : "unknown";
 
-        console.log(`Ship ${ship.id} (${ship.shipType}):`);
+        console.log(`Ship ${ship.id} (${ship.type}):`);
         console.log(`  Position: (${ship.position.x.toFixed(0)}, ${ship.position.z.toFixed(0)})`);
         console.log(`  Combat: ${ship.combatEnabled ? 'ENABLED' : 'disabled'}`);
         console.log(`  State: ${ship.combatState}`);

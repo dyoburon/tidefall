@@ -1017,10 +1017,14 @@ export function onMoneyEarned(value) {
 
 // Add this new function to initialize player stats
 function initializePlayerStats() {
-    if (!isConnected || !socket || !playerId) return;
-
-    // Request player stats from server
-    socket.emit('get_player_stats', { id: playerId, player_id: firebaseDocId });
+    if (!playerStats) {
+        playerStats = {
+            fishCount: 0,
+            monsterKills: 0,
+            money: 0,
+            npcShipsDestroyed: 0, // Add counter for NPC ships destroyed
+        };
+    }
 }
 
 // Send a chat message
