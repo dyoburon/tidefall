@@ -252,32 +252,29 @@ let playerColor = '#3498db'; // Default blue
 
 // Add this function after your other initialization code
 async function initializeFirebaseAuth() {
-
-
     // Try to initialize Firebase
     firebaseInitialized = await Firebase.initializeFirebase();
 
     if (!firebaseInitialized) {
-
         return;
     }
 
     // Show Firebase auth popup
     Firebase.showAuthPopup((user) => {
-
-
+        // For mobile devices, skip the login process
+        if (isTouchDevice()) {
+            onAuthAndLoginComplete(user);
+            return;
+        }
 
         // Check if user has already completed login process
         if (localStorage.getItem('hasCompletedLogin') === 'true') {
-
             onAuthAndLoginComplete(user);
             return;
         }
 
         // Check both Firebase displayName AND localStorage
         if ((user && !user.name) || !localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
-
-
             // If there's a name in localStorage, use it as default in the login screen
             const savedName = localStorage.getItem('playerName');
             if (savedName) {
@@ -287,13 +284,10 @@ async function initializeFirebaseAuth() {
             // Your showLoginScreen function
             if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
                 showLoginScreen(() => {
-
                     onAuthAndLoginComplete(user);
                 });
             }
-
         } else {
-
             // If there's a saved name, make sure to use it
             if (localStorage.getItem('playerName')) {
                 playerName = localStorage.getItem('playerName');
@@ -302,9 +296,13 @@ async function initializeFirebaseAuth() {
         }
     });
 
+    // For mobile devices, skip the login check
+    if (isTouchDevice()) {
+        return;
+    }
+
     if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
         showLoginScreen(() => {
-
             onAuthAndLoginComplete(user);
         });
     }
@@ -339,6 +337,32 @@ function completeAuthAndShowMOTD(user = null) {
 
 // Create a simple login UI
 export function showLoginScreen(onComplete) {
+    // Skip login screen on mobile devices
+    if (isTouchDevice()) {
+        // Set default values for mobile users
+        const defaultName = 'Sailor ' + Math.floor(Math.random() * 1000);
+        const defaultColor = '#3498db';
+        const defaultBoat = 'pirate-medium';
+
+        // Save default values to localStorage
+        localStorage.setItem('playerName', defaultName);
+        localStorage.setItem('playerColor', defaultColor);
+        localStorage.setItem('playerBoat', defaultBoat);
+        localStorage.setItem('playerBoatModel', './mediumpirate.glb');
+        localStorage.setItem('hasCompletedLogin', 'true');
+
+        // Set global variables
+        playerName = defaultName;
+        playerColor = defaultColor;
+
+        // Call completion callback
+        if (onComplete && typeof onComplete === 'function') {
+            onComplete();
+        }
+        return;
+    }
+
+    // Existing login screen code for non-mobile devices
     // Create container
     const loginContainer = document.createElement('div');
     loginContainer.style.position = 'fixed';
