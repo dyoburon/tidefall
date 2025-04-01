@@ -3,6 +3,7 @@ import { scene } from '../core/gameState.js';
 import { createHugeIsland } from './hugeIsland.js';
 import { createPortal } from '../portals/vibeverse.js';
 import { createNpcShip } from '../entities/npcShip.js';
+import { createIsland } from './islands.js';
 
 const urlParams = new URLSearchParams(window.location.search);
 const refParam = urlParams.get('ref');
@@ -141,7 +142,7 @@ const SPAWN_CONFIG = {
         // Ships around the huge island - aggressive with longer range
         {
             x: -300, y: 0, z: 300,
-            type: 'massivepirate',
+            type: 'mediumpirate',
             options: {
                 moveSpeed: 7.0,
                 patrolRadius: 500,
@@ -207,8 +208,6 @@ function spawnHugeIslandNearSpawn() {
     const x = Math.cos(angle) * SPAWN_CONFIG.hugeIslandDistance;
     const z = Math.sin(angle) * SPAWN_CONFIG.hugeIslandDistance;
 
-
-
     // Create the island with a fixed seed for consistency
     const hugeIsland = createHugeIsland(
         x,
@@ -218,6 +217,14 @@ function spawnHugeIslandNearSpawn() {
     );
 
     spawnedElements.hugeIsland = hugeIsland;
+
+    // Create additional default islands in negative Z
+    const island1 = createIsland(0, -300, 12345, scene);
+    const island2 = createIsland(253, -600, 12346, scene);
+    const island3 = createIsland(1815, -500, 12346, scene);
+    const island4 = createIsland(1085, -260, 12346, scene);
+    const island5 = createIsland(2145, 200, 12346, scene);
+
     return hugeIsland;
 }
 

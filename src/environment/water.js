@@ -274,9 +274,32 @@ export function setupWater(style = 'realistic') {
     return waterMesh;
 }
 
+// Add safety check for water uniforms
+function ensureWaterUniforms() {
+    if (!waterMesh || !waterMesh.material || !waterMesh.material.uniforms) return;
+
+    // Ensure all required uniforms exist and have valid values
+    const requiredUniforms = {
+        time: { value: 0 },
+        distortionScale: { value: 3.7 },
+        size: { value: 1.0 },
+        waterColor: { value: new THREE.Color(0x001e4d) }
+    };
+
+    // Check and restore any missing uniforms
+    Object.entries(requiredUniforms).forEach(([key, defaultValue]) => {
+        if (!waterMesh.material.uniforms[key] || waterMesh.material.uniforms[key].value === undefined) {
+            waterMesh.material.uniforms[key] = { value: defaultValue.value };
+        }
+    });
+}
+
 // Update water in animation loop
 export function updateWater(deltaTime) {
     if (!waterMesh) return;
+
+    // Ensure uniforms are valid before updating
+    ensureWaterUniforms();
 
     // Frame skipping for performance - only update on certain frames
     updateFrameSkip = (updateFrameSkip + 1) % (MAX_UPDATE_SKIP + 1);
