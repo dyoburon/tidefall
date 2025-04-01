@@ -313,6 +313,8 @@ const raycaster = new THREE.Raycaster(); // Add raycaster to game state
 export function checkBoatIslandCollision() {
     if (!boat) return false;
 
+    return;
+
     // Persistent state for frame-skipping
     if (!checkBoatIslandCollision.state) {
         checkBoatIslandCollision.state = {
@@ -344,7 +346,7 @@ export function checkBoatIslandCollision() {
 
     let intersects = [];
     if (islandMeshes) {
-        intersects = raycaster.intersectObjects(islandMeshes, true);
+        //intersects = raycaster.intersectObjects(islandMeshes, true);
     }
 
     const collisionThreshold = 20;
