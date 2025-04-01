@@ -218,12 +218,23 @@ function spawnHugeIslandNearSpawn() {
 
     spawnedElements.hugeIsland = hugeIsland;
 
-    // Create additional default islands in negative Z
-    const island1 = createIsland(0, -300, 12345, scene);
-    const island2 = createIsland(253, -600, 12346, scene);
-    const island3 = createIsland(1815, -500, 12346, scene);
-    const island4 = createIsland(1085, -260, 12346, scene);
-    const island5 = createIsland(2145, 200, 12346, scene);
+    // Create islands with specific mega structures
+    // Note: Seeds are carefully chosen to generate specific structures based on the random() calculation in islands.js
+
+    // Ancient Temple (seed chosen to ensure random() < 0.2 and structureType = 0)
+    const island1 = createIsland(0, -300, 10347, scene);
+
+    // Lighthouse (seed chosen to ensure random() < 0.2 and structureType = 1)
+    const island2 = createIsland(253, -600, 12348, scene);
+
+    // Giant Statue/Roman Obelisk (seed chosen to ensure random() < 0.2 and structureType = 2)
+    const island3 = createIsland(1815, -500, 11000, scene);
+
+    // Ruined Tower (seed chosen to ensure random() < 0.2 and structureType = 3)
+    const island4 = createIsland(1085, -260, 14000, scene);
+
+    // Regular island with temples and vegetation (seed chosen to ensure random() >= 0.2)
+    const island5 = createIsland(2145, 200, 13000, scene);
 
     return hugeIsland;
 }

@@ -50,7 +50,7 @@ const SPAWN_CONTROLS = {
     enableRandomSpawning: false,  // Enable random spawning (was false)
     smugglersHideout: false,
     pirateTavern: false,
-    pirateTavern2: false,
+    pirateTavern2: true,  // Changed to true to enable spawning
     treehouseTavern: true,
     blockCave: false,
 };
@@ -122,7 +122,7 @@ function createIsland(x, z, seed, chunkGroup) {
     ];
 
     // Determine if this island should have a mega structure (roughly 20% chance)
-    const hasMegaStructure = random() < 0.2;
+    const hasMegaStructure = random() < 1.0;
 
     if (hasMegaStructure) {
         // Choose a type of mega structure
@@ -364,7 +364,7 @@ function createIsland(x, z, seed, chunkGroup) {
     }
 
     // Add the Smuggler's Hideout (with a certain probability or on specific islands)
-    if (random() < 0.0) {  // Changed from 1.0 to 0.5 for 50% chance
+    if (random() < 1.0) {  // Changed to 1.0 for 100% chance
 
 
         // Find a good spot on the island
