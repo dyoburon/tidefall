@@ -18,7 +18,7 @@ const movementJoystickConfig = {
     mode: 'static',
     position: { left: '30%', bottom: '25%' }, // Left side, 25% from bottom
     color: 'rgba(255, 255, 255, 0.7)',
-    size: 120,
+    size: 60,
     fadeTime: 0,
     restOpacity: 0.5
 };
@@ -29,7 +29,7 @@ const cameraJoystickConfig = {
     mode: 'static',
     position: { left: '70%', bottom: '25%' }, // Right side, 25% from bottom
     color: 'rgba(255, 255, 255, 0.7)',
-    size: 120,
+    size: 60,
     fadeTime: 0,
     restOpacity: 0.5
 };
@@ -124,8 +124,8 @@ function createJoystickContainer(id, leftPos, bottomPos) {
     container.style.left = leftPos;
     container.style.bottom = bottomPos;
     container.style.transform = 'translateX(-50%)'; // Center horizontally
-    container.style.width = '150px';
-    container.style.height = '150px';
+    container.style.width = '75px';
+    container.style.height = '75px';
     container.style.zIndex = '1000';
     return container;
 }
