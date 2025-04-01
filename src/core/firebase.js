@@ -140,19 +140,50 @@ export function showAuthPopup(onSuccess) {
         width: 350px;
         max-width: 90%;
         border: 1px solid rgba(50, 130, 240, 0.3);
+        
+        @media screen and (max-width: 768px) {
+            padding: 15px;
+            width: 250px;
+            transform: scale(0.9);
+        }
     `;
 
     authForm.innerHTML = `
+        <style>
+            @media screen and (max-width: 768px) {
+                .auth-title {
+                    font-size: 24px !important;
+                    margin-bottom: 3px !important;
+                }
+                .auth-description {
+                    font-size: 12px !important;
+                    padding: 10px !important;
+                }
+                .auth-button {
+                    padding: 8px 12px !important;
+                    font-size: 12px !important;
+                }
+                .auth-input {
+                    padding: 6px !important;
+                    margin-bottom: 8px !important;
+                    font-size: 12px !important;
+                }
+                .auth-divider {
+                    margin: 10px 0 !important;
+                    font-size: 12px !important;
+                }
+            }
+        </style>
         <div style="position: relative; margin-bottom: 25px;">
-            <h2 style="text-align: center; color: #fff; font-size: 32px; margin-bottom: 5px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px rgba(66, 133, 244, 0.7);">TideFall</h2>
+            <h2 class="auth-title" style="text-align: center; color: #fff; font-size: 32px; margin-bottom: 5px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px rgba(66, 133, 244, 0.7);">TideFall</h2>
             <div style="height: 3px; width: 60px; background: linear-gradient(to right, #4285f4, #34a853); margin: 0 auto 15px;"></div>
             <div style="background: linear-gradient(135deg, rgba(10, 37, 64, 0.9), rgba(32, 58, 96, 0.9)); border-radius: 8px; padding: 15px; border-left: 2px solid #4285f4; margin-top: 10px;">
-                <p style="margin: 0; color: #e0e0e0; font-size: 15px; line-height: 1.5; font-weight: 400; text-align: center;">
-                Build alliances, claim vast lands, and hunt for loot in dangerous realms.                </p>
+                <p class="auth-description" style="margin: 0; color: #e0e0e0; font-size: 15px; line-height: 1.5; font-weight: 400; text-align: center;">
+                Build alliances, claim vast lands, and hunt for loot in dangerous realms.</p>
             </div>
         </div>
         <div style="text-align: center; margin-bottom: 20px;">
-            <button id="google-signin" style="
+            <button id="google-signin" class="auth-button" style="
                 background-color: #1a73e8;
                 color: white;
                 border: none;
@@ -182,12 +213,10 @@ export function showAuthPopup(onSuccess) {
             </button>
         </div>
 
-        <!-- Add the OR divider -->
-        <div style="text-align: center; margin-bottom: 15px; color: #757575;">OR</div>
+        <div class="auth-divider" style="text-align: center; margin-bottom: 15px; color: #757575;">OR</div>
 
-        <!-- Add the Play Offline button -->
         <div style="text-align: center; margin-bottom: 20px;">
-            <button id="offline-play" style="
+            <button id="offline-play" class="auth-button" style="
                 background-color: #a9a9a9;
                 color: white;
                 border: 1px solid #dadce0;
@@ -206,16 +235,16 @@ export function showAuthPopup(onSuccess) {
         </div>
         
         <div style="margin-bottom: 15px;">
-            <input type="email" id="email" placeholder="Email" style="width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box;">
-            <input type="password" id="password" placeholder="Password" style="width: 100%; padding: 8px; box-sizing: border-box;">
+            <input type="email" id="email" class="auth-input" placeholder="Email" style="width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box;">
+            <input type="password" id="password" class="auth-input" placeholder="Password" style="width: 100%; padding: 8px; box-sizing: border-box;">
         </div>
         
         <div style="display: flex; gap: 10px;">
-            <button id="signin-btn" style="flex: 1; padding: 10px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Sign In</button>
-            <button id="signup-btn" style="flex: 1; padding: 10px; background-color: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer;">Sign Up</button>
+            <button id="signin-btn" class="auth-button" style="flex: 1; padding: 10px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Sign In</button>
+            <button id="signup-btn" class="auth-button" style="flex: 1; padding: 10px; background-color: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer;">Sign Up</button>
         </div>
         
-        <div id="auth-error" style="color: red; margin-top: 10px; text-align: center;"></div>
+        <div id="auth-error" style="color: red; margin-top: 10px; text-align: center; font-size: 12px;"></div>
     `;
 
     authContainer.appendChild(authForm);
