@@ -5,6 +5,7 @@ import npcCannonSystem from '../npc/abilities/npcCannon.js';
 import { debugLog } from '../utils/debug.js';
 import { startNpcFollow, stopNpcFollow, updateNpcFollow, isNpcFollowing } from '../npc/behavior/npcFollowBehavior.js';
 import { trackDestroyedShip } from '../world/spawn.js';
+import { playSound } from '../audio/soundEffects.js';
 
 // Configuration for NPC ships
 const NPC_SHIP_CONFIG = {
@@ -717,53 +718,80 @@ class NpcShip {
      * @param {string} source - Source of the killing damage
      */
     handleDestruction(source) {
-        // Track this ship for respawning with its original configuration
-        const shipConfig = {
-            x: this.spawnPosition.x,
-            y: this.spawnPosition.y,
-            z: this.spawnPosition.z,
-            type: this.type,
-            options: {
-                moveSpeed: this.moveSpeed,
-                turnSpeed: this.turnSpeed,
-                patrolRadius: this.patrolRadius,
-                combatEnabled: this.combatEnabled,
-                attackRange: this.attackRange,
-                aggroRange: this.aggroRange
-            }
-        };
-        trackDestroyedShip(shipConfig);
+        // Always play explosion sound
+        playSound('shipblowingup.mp3', {
+            volume: 0.2, // Increased volume significantly
+            spatial: false,
+            position: this.position,
+            minDistance: 20,
+            maxDistance: 1000
+        }).catch(error => {
+            console.warn('Failed to play wilhelm scream:', error);
+        });
 
-        // Create explosion effect
-        const position = this.position.clone();
-        position.y += 1; // Raise explosion slightly above water
-
-        // Hide the ship model immediately
-        if (this.shipGroup) {
-            this.shipGroup.visible = false;
+        // 50% chance to play Wilhelm scream
+        if (Math.random() < 0.3) {
+            playSound('wilhelm.wav', {
+                volume: 0.2, // Increased volume significantly
+                spatial: false,
+                position: this.position,
+                minDistance: 20,
+                maxDistance: 1000
+            }).catch(error => {
+                console.warn('Failed to play wilhelm scream:', error);
+            });
         }
 
-        // Create destruction visual effects
-        this.createDestructionEffect(position);
-
-        // Remove the ship from game logic after effects have time to play
+        // Delay the visual effects by 300ms to match audio
         setTimeout(() => {
-            this.dispose();
-        }, 3000); // Extended to match the longest effect duration (debris is 3 seconds)
+            // Track this ship for respawning with its original configuration
+            const shipConfig = {
+                x: this.spawnPosition.x,
+                y: this.spawnPosition.y,
+                z: this.spawnPosition.z,
+                type: this.type,
+                options: {
+                    moveSpeed: this.moveSpeed,
+                    turnSpeed: this.turnSpeed,
+                    patrolRadius: this.patrolRadius,
+                    combatEnabled: this.combatEnabled,
+                    attackRange: this.attackRange,
+                    aggroRange: this.aggroRange
+                }
+            };
+            trackDestroyedShip(shipConfig);
 
-        // Increment player stats for destroying an NPC ship
-        if (source === 'player_cannon') {
-            try {
-                // Try to increment player stats if the network module is available
-                import('../core/network.js').then(network => {
-                    if (network.incrementPlayerStats) {
-                        network.incrementPlayerStats({ npcShipsDestroyed: 1 });
-                    }
-                });
-            } catch (error) {
-                // Handle error silently
+            // Create explosion effect
+            const position = this.position.clone();
+            position.y += 1; // Raise explosion slightly above water
+
+            // Hide the ship model immediately
+            if (this.shipGroup) {
+                this.shipGroup.visible = false;
             }
-        }
+
+            // Create destruction visual effects
+            this.createDestructionEffect(position);
+
+            // Remove the ship from game logic after effects have time to play
+            setTimeout(() => {
+                this.dispose();
+            }, 3000); // Extended to match the longest effect duration (debris is 3 seconds)
+
+            // Increment player stats for destroying an NPC ship
+            if (source === 'player_cannon') {
+                try {
+                    // Try to increment player stats if the network module is available
+                    import('../core/network.js').then(network => {
+                        if (network.incrementPlayerStats) {
+                            network.incrementPlayerStats({ npcShipsDestroyed: 1 });
+                        }
+                    });
+                } catch (error) {
+                    // Handle error silently
+                }
+            }
+        }, 300); // 300ms delay for visual effects
     }
 
     /**

@@ -26,7 +26,7 @@ const SERVER_URL = process.env.NODE_ENV_FIREBASE === 'production'
 // Network state
 export let socket;
 let playerId;
-let firebaseDocId = null; // Store Firebase User ID globally in the module
+export let firebaseDocId = null; // Store Firebase User ID globally in the module
 let isConnected = false;
 let playerName = "Sailor_" + Math.floor(Math.random() * 1000);
 let playerColor;

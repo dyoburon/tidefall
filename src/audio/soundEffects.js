@@ -3,15 +3,17 @@
 // Audio context singleton to ensure we only create one
 let audioContext = null;
 
+// Cache for loaded audio buffers
+const audioBufferCache = new Map();
+
 // Initialize the audio system
 export function initAudioSystem() {
     try {
         // Create audio context if browser supports it
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
         return true;
     } catch (e) {
-
+        console.error('Web Audio API not supported');
         return false;
     }
 }
@@ -22,6 +24,111 @@ function getAudioContext() {
         initAudioSystem();
     }
     return audioContext;
+}
+
+/**
+ * Load and cache an audio file
+ * @param {string} filename - The name of the audio file to load
+ * @returns {Promise<AudioBuffer>} The loaded audio buffer
+ */
+async function loadAudioFile(filename) {
+    const ctx = getAudioContext();
+    if (!ctx) return null;
+
+    // Check cache first
+    if (audioBufferCache.has(filename)) {
+        return audioBufferCache.get(filename);
+    }
+
+    try {
+        const response = await fetch(`${filename}`);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+        // Cache the loaded buffer
+        audioBufferCache.set(filename, audioBuffer);
+
+        return audioBuffer;
+    } catch (error) {
+        console.error(`Error loading audio file ${filename}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Play a sound with optional spatial audio
+ * @param {string} filename - The name of the audio file to play
+ * @param {Object} options - Playback options
+ * @param {number} options.volume - Volume level (0-1)
+ * @param {boolean} options.spatial - Whether to use spatial audio
+ * @param {Object} options.position - THREE.Vector3 position for spatial audio
+ * @param {number} options.minDistance - Minimum distance for spatial audio falloff
+ * @param {number} options.maxDistance - Maximum distance for spatial audio falloff
+ * @returns {Promise<void>}
+ */
+export async function playSound(filename, options = {}) {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const {
+        volume = 1.0,
+        spatial = false,
+        position = null,
+        minDistance = 1,
+        maxDistance = 10000
+    } = options;
+
+    // Load the audio file
+    const audioBuffer = await loadAudioFile(filename);
+    if (!audioBuffer) return;
+
+    // Create source
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+
+    // Create gain node for volume control
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = volume;
+
+    // Setup audio nodes chain
+    let outputNode = gainNode;
+
+    // Add spatial audio if requested
+    if (spatial && position) {
+        const panner = ctx.createPanner();
+        panner.panningModel = 'HRTF';
+        panner.distanceModel = 'inverse';
+        panner.refDistance = minDistance;
+        panner.maxDistance = maxDistance;
+        panner.rolloffFactor = 1;
+        panner.coneInnerAngle = 360;
+        panner.coneOuterAngle = 0;
+        panner.coneOuterGain = 0;
+
+        // Set position
+        panner.positionX.setValueAtTime(position.x, ctx.currentTime);
+        panner.positionY.setValueAtTime(position.y, ctx.currentTime);
+        panner.positionZ.setValueAtTime(position.z, ctx.currentTime);
+
+        // Update chain to include panner
+        source.connect(gainNode);
+        gainNode.connect(panner);
+        outputNode = panner;
+    } else {
+        // Direct connection for non-spatial audio
+        source.connect(gainNode);
+    }
+
+    // Connect to destination
+    outputNode.connect(ctx.destination);
+
+    // Play the sound
+    source.start(0);
+
+    // Return a promise that resolves when the sound is done playing
+    return new Promise(resolve => {
+        source.onended = resolve;
+    });
 }
 
 // Play a simple cartoon-style cannon sound
