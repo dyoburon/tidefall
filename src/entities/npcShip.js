@@ -63,8 +63,9 @@ class NpcShip {
         this.velocity = new THREE.Vector3(0, 0, 0);
 
         // Health system
-        this.maxHealth = options.maxHealth || 2000;
+        this.maxHealth = 100;
         this.health = this.maxHealth;
+        this.damagePerHit = 10;
         this.isDestroyed = false;
         this.lastDamageTime = 0;
         this.damageCooldown = 0.3; // Short cooldown between damage events
@@ -688,13 +689,11 @@ class NpcShip {
         // Update last damage time
         this.lastDamageTime = currentTime;
 
-        // Apply damage
+        // Apply damage directly (no standardization needed since we fixed cannonshot.js)
         this.health -= amount;
 
         // Clamp health to 0-max
         this.health = Math.max(0, Math.min(this.maxHealth, this.health));
-
-
 
         // Show damage effect
         if (this.shipGroup) {
@@ -720,7 +719,7 @@ class NpcShip {
     handleDestruction(source) {
         // Always play explosion sound
         playSound('shipblowingup.mp3', {
-            volume: 0.2, // Increased volume significantly
+            volume: 0.1, // Increased volume significantly
             spatial: false,
             position: this.position,
             minDistance: 20,
@@ -730,9 +729,9 @@ class NpcShip {
         });
 
         // 50% chance to play Wilhelm scream
-        if (Math.random() < 0.3) {
+        if (Math.random() < 0.4) {
             playSound('wilhelm.wav', {
-                volume: 0.2, // Increased volume significantly
+                volume: 0.1, // Increased volume significantly
                 spatial: false,
                 position: this.position,
                 minDistance: 20,

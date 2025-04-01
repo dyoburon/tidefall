@@ -205,7 +205,7 @@ class CannonShot {
 
 
                         // Apply damage to the NPC ship
-                        const damage = 200; // Base damage amount
+                        const damage = 10; // Changed from 200 to 10 for consistent damage
                         if (npcShip.takeDamage) {
                             npcShip.takeDamage(damage, 'player_cannon');
                         }
@@ -700,7 +700,7 @@ class CannonShot {
 
 
                         // Apply damage to the NPC ship
-                        const damage = 200; // Base damage amount
+                        const damage = 10; // Changed from 200 to 10 for consistent damage
                         if (npcShip.takeDamage) {
                             npcShip.takeDamage(damage, 'remote_player_cannon');
                         }

@@ -569,9 +569,13 @@ function setupSocketEvents() {
     });
 
     socket.on('cannon_hit', (data) => {
-
         // When this player is hit by a cannon, this event is received
         // Data contains: {id, damage, hitPosition}
+
+        // Apply damage through gameState system
+        import('./gameState.js').then(gameState => {
+            gameState.applyDamageToPlayer(data.damage, 'player_cannon');
+        });
 
         // Use the centralized damage visualization system
         if (boatRef) {
@@ -586,15 +590,19 @@ function setupSocketEvents() {
 
     // Also handle server-side determined cannon hits
     socket.on('server_cannon_hit', (data) => {
-
-
         // Server-side hit detection event
         // Data contains: {shooter_id, hit_player_id, damage, hit_position}
 
-        // Only show damage effects if we're the player who was hit
-        // Show damage effect if we're the player who was hit
-        if (data.hit_player_id === playerId && boatRef) {
-            showDamageEffect(boatRef, data.damage, 'cannon');
+        // Only process damage if we're the player who was hit
+        if (data.hit_player_id === playerId) {
+            // Apply damage through gameState system
+            import('./gameState.js').then(gameState => {
+                gameState.applyDamageToPlayer(data.damage, 'player_cannon');
+            });
+
+            if (boatRef) {
+                showDamageEffect(boatRef, data.damage, 'cannon');
+            }
         }
 
         // Show damage effect on other players when they're hit

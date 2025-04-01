@@ -20,7 +20,7 @@ export class NpcCannonSystem {
         this.gravity = 80;         // Reduced gravity so cannonballs travel farther
         this.cooldown = 1.0;       // One second cooldown
         this.range = 600;          // Keep original engagement range
-        this.damage = 100;         // Damage per hit
+        this.damage = 10;         // Changed from 100 to 10 damage per hit
         this.aimInaccuracy = 20.0;  // Randomness in aiming
 
         // Default cannon positions relative to ship model

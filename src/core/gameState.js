@@ -18,11 +18,28 @@ export let playerData = {
 };
 
 // Player health system
-export const PLAYER_MAX_HEALTH = 1000;
+export const PLAYER_MAX_HEALTH = 100;
 export let playerHealth = PLAYER_MAX_HEALTH;
 export let isPlayerDead = false;
 export let lastDamageTime = 0;
 export const DAMAGE_COOLDOWN = 0.5; // Seconds between taking damage
+
+// Add callback system for health updates
+let healthUpdateCallbacks = [];
+
+export function registerHealthUpdateCallback(callback) {
+    healthUpdateCallbacks.push(callback);
+}
+
+export function unregisterHealthUpdateCallback(callback) {
+    healthUpdateCallbacks = healthUpdateCallbacks.filter(cb => cb !== callback);
+}
+
+// Notify all callbacks of health update
+function notifyHealthUpdate() {
+    const healthStatus = getPlayerHealthStatus();
+    healthUpdateCallbacks.forEach(callback => callback(healthStatus));
+}
 
 // Add this function to apply damage to the player
 export function applyDamageToPlayer(damageAmount, damageSource = 'npc_cannon') {
@@ -44,6 +61,9 @@ export function applyDamageToPlayer(damageAmount, damageSource = 'npc_cannon') {
 
     console.log(`Player took ${damageAmount} damage from ${damageSource}. Health: ${playerHealth}/${PLAYER_MAX_HEALTH}`);
 
+    // Notify UI and other systems of health change
+    notifyHealthUpdate();
+
     // Check if player died
     if (playerHealth <= 0 && !isPlayerDead) {
         isPlayerDead = true;
@@ -57,6 +77,7 @@ export function applyDamageToPlayer(damageAmount, damageSource = 'npc_cannon') {
 // Add this function to heal the player
 export function healPlayer(amount) {
     playerHealth = Math.min(PLAYER_MAX_HEALTH, playerHealth + amount);
+    notifyHealthUpdate();
     return playerHealth;
 }
 
@@ -64,6 +85,7 @@ export function healPlayer(amount) {
 export function resetPlayerHealth() {
     playerHealth = PLAYER_MAX_HEALTH;
     isPlayerDead = false;
+    notifyHealthUpdate();
     return playerHealth;
 }
 

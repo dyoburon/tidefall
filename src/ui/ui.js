@@ -12,6 +12,7 @@ import { initGameTerminal } from './gameTerminal.js';
 import AbilitiesBar from './abilitiesBar.js';
 import MobileAbilityBar from './mobileAbilityBar.js';
 import { isTouchDevice } from '../controls/touchControls.js';
+import { registerHealthUpdateCallback, unregisterHealthUpdateCallback } from '../core/gameState.js';
 //import { updateChatBubblePositions, showLocalChatBubble, initChatBubbleSystem } from '../effects/chatBubbleEffect.js'; // Import chat bubble functions
 import { signOutUser } from '../core/firebase.js';
 
@@ -122,6 +123,10 @@ class GameUI {
 
         // Connect the fire button to the fireCannons function
         //this.elements.cannon.fireButton.addEventListener('click', fireCannons);
+
+        // Register for health updates
+        this.handleHealthUpdate = this.handleHealthUpdate.bind(this);
+        registerHealthUpdateCallback(this.handleHealthUpdate);
     }
 
     createUIElement(text) {
@@ -573,19 +578,23 @@ class GameUI {
             // Update health bar width
             this.elements.healthBar.bar.style.width = `${percentage}%`;
 
-            // Update health text
-            this.elements.healthBar.text.textContent = `${current}/${max}`;
+            // Update health text with cleaner formatting
+            this.elements.healthBar.text.textContent = `${current}/${max} HP`;
 
-            // Update color based on health percentage
+            // Update color based on health percentage with smoother transitions
+            let healthColor;
             if (percentage < 25) {
-                this.elements.healthBar.bar.style.backgroundColor = 'rgba(255, 0, 0, 0.8)'; // Critical (red)
+                healthColor = 'rgba(255, 50, 50, 0.8)'; // Critical (red)
             } else if (percentage < 50) {
-                this.elements.healthBar.bar.style.backgroundColor = 'rgba(255, 165, 0, 0.8)'; // Warning (orange)
+                healthColor = 'rgba(255, 165, 0, 0.8)'; // Warning (orange)
             } else if (percentage < 75) {
-                this.elements.healthBar.bar.style.backgroundColor = 'rgba(255, 255, 0, 0.8)'; // Caution (yellow)
+                healthColor = 'rgba(255, 255, 0, 0.8)'; // Caution (yellow)
             } else {
-                this.elements.healthBar.bar.style.backgroundColor = 'rgba(0, 180, 0, 0.8)'; // Healthy (green)
+                healthColor = 'rgba(50, 200, 50, 0.8)'; // Healthy (green)
             }
+
+            this.elements.healthBar.bar.style.backgroundColor = healthColor;
+            this.elements.healthBar.bar.style.boxShadow = `inset 0 0 10px ${healthColor}`; // Dynamic glow effect
         }
 
         // Update speed
@@ -1365,24 +1374,26 @@ class GameUI {
 
         // Label for the health bar
         const healthLabel = document.createElement('div');
-        healthLabel.textContent = 'Ship Health:';
+        healthLabel.textContent = 'Ship Health';
         healthLabel.style.marginBottom = '3px';
         healthContainer.appendChild(healthLabel);
 
         // Progress bar container
         const barContainer = document.createElement('div');
         barContainer.style.width = '100%';
-        barContainer.style.height = '8px';
+        barContainer.style.height = '12px'; // Made slightly taller
         barContainer.style.backgroundColor = 'rgba(50, 50, 50, 0.5)';
         barContainer.style.borderRadius = '4px';
         barContainer.style.overflow = 'hidden';
+        barContainer.style.border = '1px solid rgba(120, 80, 40, 0.4)'; // Added subtle border
 
         // Health bar itself
         const healthBar = document.createElement('div');
         healthBar.style.width = '100%';
         healthBar.style.height = '100%';
-        healthBar.style.backgroundColor = 'rgba(0, 180, 0, 0.8)';
+        healthBar.style.backgroundColor = 'rgba(50, 200, 50, 0.8)';
         healthBar.style.transition = 'width 0.3s, background-color 0.3s';
+        healthBar.style.boxShadow = 'inset 0 0 10px rgba(255, 255, 255, 0.3)'; // Added inner glow
 
         // Add health bar to container
         barContainer.appendChild(healthBar);
@@ -1390,10 +1401,11 @@ class GameUI {
 
         // Add health percentage text
         const healthText = document.createElement('div');
-        healthText.textContent = '1000/1000';
+        healthText.textContent = '100/100 HP';
         healthText.style.fontSize = isTouchDevice() ? '8px' : '10px';
         healthText.style.textAlign = 'center';
         healthText.style.marginTop = '2px';
+        healthText.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)'; // Added text shadow
         healthContainer.appendChild(healthText);
 
         this.container.appendChild(healthContainer);
@@ -1403,6 +1415,54 @@ class GameUI {
             bar: healthBar,
             text: healthText
         };
+    }
+
+    // Add health update handler
+    handleHealthUpdate(healthStatus) {
+        if (this.elements.healthBar) {
+            const { current, max, percentage } = healthStatus;
+
+            // Update health bar width
+            this.elements.healthBar.bar.style.width = `${percentage}%`;
+
+            // Update health text
+            this.elements.healthBar.text.textContent = `${current}/${max} HP`;
+
+            // Update color based on health percentage
+            let healthColor;
+            if (percentage < 25) {
+                healthColor = 'rgba(255, 50, 50, 0.8)'; // Critical (red)
+            } else if (percentage < 50) {
+                healthColor = 'rgba(255, 165, 0, 0.8)'; // Warning (orange)
+            } else if (percentage < 75) {
+                healthColor = 'rgba(255, 255, 0, 0.8)'; // Caution (yellow)
+            } else {
+                healthColor = 'rgba(50, 200, 50, 0.8)'; // Healthy (green)
+            }
+
+            this.elements.healthBar.bar.style.backgroundColor = healthColor;
+            this.elements.healthBar.bar.style.boxShadow = `inset 0 0 10px ${healthColor}`;
+
+            // Add shake effect on damage
+            if (this.lastHealth && current < this.lastHealth) {
+                this.shakeHealthBar();
+            }
+            this.lastHealth = current;
+        }
+    }
+
+    // Add shake effect for the health bar
+    shakeHealthBar() {
+        const container = this.elements.healthBar.container;
+        container.style.animation = 'none';
+        container.offsetHeight; // Trigger reflow
+        container.style.animation = 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both';
+    }
+
+    // Clean up when UI is destroyed
+    destroy() {
+        unregisterHealthUpdateCallback(this.handleHealthUpdate);
+        // ... other cleanup code ...
     }
 }
 
