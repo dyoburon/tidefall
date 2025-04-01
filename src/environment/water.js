@@ -276,22 +276,51 @@ export function setupWater(style = 'realistic') {
 
 // Add safety check for water uniforms
 function ensureWaterUniforms() {
-    if (!waterMesh || !waterMesh.material || !waterMesh.material.uniforms) return;
+    if (!waterMesh || !waterMesh.material || !waterMesh.material.uniforms) {
+        console.warn('Water mesh or material not properly initialized');
+        return false;
+    }
 
     // Ensure all required uniforms exist and have valid values
     const requiredUniforms = {
         time: { value: 0 },
         distortionScale: { value: 3.7 },
         size: { value: 1.0 },
-        waterColor: { value: new THREE.Color(0x001e4d) }
+        waterColor: { value: new THREE.Color(0x001e4d) },
+        normalSampler: { value: waterNormals },
+        sunDirection: { value: new THREE.Vector3() },
+        sunColor: { value: new THREE.Color(0xffffff) },
+        waterColor: { value: new THREE.Color(0x001e4d) },
+        eye: { value: new THREE.Vector3() },
+        flowDirection: { value: new THREE.Vector2(0, 0) }
     };
+
+    let allUniformsValid = true;
 
     // Check and restore any missing uniforms
     Object.entries(requiredUniforms).forEach(([key, defaultValue]) => {
-        if (!waterMesh.material.uniforms[key] || waterMesh.material.uniforms[key].value === undefined) {
-            waterMesh.material.uniforms[key] = { value: defaultValue.value };
+        try {
+            if (!waterMesh.material.uniforms[key]) {
+                console.warn(`Missing water uniform: ${key}, creating with default value`);
+                waterMesh.material.uniforms[key] = { value: defaultValue.value };
+                allUniformsValid = false;
+            } else if (waterMesh.material.uniforms[key].value === undefined || waterMesh.material.uniforms[key].value === null) {
+                console.warn(`Invalid water uniform value for: ${key}, resetting to default`);
+                waterMesh.material.uniforms[key].value = defaultValue.value;
+                allUniformsValid = false;
+            }
+        } catch (error) {
+            console.error(`Error checking water uniform ${key}:`, error);
+            allUniformsValid = false;
         }
     });
+
+    // Force material update if any uniforms were fixed
+    if (!allUniformsValid) {
+        waterMesh.material.needsUpdate = true;
+    }
+
+    return allUniformsValid;
 }
 
 // Update water in animation loop
@@ -299,7 +328,14 @@ export function updateWater(deltaTime) {
     if (!waterMesh) return;
 
     // Ensure uniforms are valid before updating
-    ensureWaterUniforms();
+    if (!ensureWaterUniforms()) {
+        // If uniforms are invalid, skip complex updates but still update position
+        if (waterMesh) {
+            waterMesh.position.x = camera.position.x;
+            waterMesh.position.z = camera.position.z;
+        }
+        return;
+    }
 
     // Frame skipping for performance - only update on certain frames
     updateFrameSkip = (updateFrameSkip + 1) % (MAX_UPDATE_SKIP + 1);
