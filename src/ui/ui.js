@@ -9,7 +9,8 @@ import { setWaterStyle } from '../environment/water.js';
 import { areShoreEffectsEnabled } from '../world/islands.js';
 import playerList from './playerList.js';
 import { initGameTerminal } from './gameTerminal.js';
-import AbilitiesBar from './abilitiesBar.js'; // Import the new AbilitiesBar component
+import AbilitiesBar from './abilitiesBar.js';
+import MobileAbilityBar from './mobileAbilityBar.js';
 import { isTouchDevice } from '../controls/touchControls.js';
 //import { updateChatBubblePositions, showLocalChatBubble, initChatBubbleSystem } from '../effects/chatBubbleEffect.js'; // Import chat bubble functions
 import { signOutUser } from '../core/firebase.js';
@@ -83,23 +84,30 @@ class GameUI {
         this.selfMarker.style.transform = 'translate(-50%, -50%)';
         //this.miniMapContainer.appendChild(this.selfMarker);
 
-        // Initialize the abilities bar
-        this.abilitiesBar = new AbilitiesBar();
-        // this.abilitiesBar.enableKeyboardShortcuts();
+        // Initialize abilities based on device type
+        if (isTouchDevice()) {
+            // Initialize mobile ability bar
+            this.mobileAbilityBar = new MobileAbilityBar();
+            this.mobileAbilityBar.mount();
+        } else {
+            // Initialize desktop abilities bar
+            this.abilitiesBar = new AbilitiesBar();
+        }
 
-        // Initialize the chat system
-        this.chat = initChat({
-            onMessageSent: (message) => {
-                // Show a chat bubble above the local player's boat when sending a message
-                if (window.playerBoat && window.scene) {
-                    //showLocalChatBubble(message, window.playerBoat, window.scene);
+        // Initialize the chat system only for desktop
+        if (!isTouchDevice()) {
+            this.chat = initChat({
+                onMessageSent: (message) => {
+                    if (window.playerBoat && window.scene) {
+                        //showLocalChatBubble(message, window.playerBoat, window.scene);
+                    }
                 }
-            }
-        });
+            });
 
-        // Initialize the mini map and connect it to the chat system
-        this.miniMap = initMiniMap();
-        this.miniMap.setChatSystem(this.chat);
+            // Initialize the mini map and connect it to the chat system
+            this.miniMap = initMiniMap();
+            this.miniMap.setChatSystem(this.chat);
+        }
 
         // Initialize the shop UI
         this.elements.shop = initShop(this);
@@ -119,9 +127,9 @@ class GameUI {
     createUIElement(text) {
         const element = document.createElement('div');
         element.textContent = text;
-        element.style.marginBottom = '8px';
+        element.style.marginBottom = isTouchDevice() ? '4px' : '8px';
         element.style.backgroundColor = 'rgba(60, 30, 0, 0.7)';
-        element.style.padding = '5px 10px';
+        element.style.padding = isTouchDevice() ? '3px 6px' : '5px 10px';
         element.style.borderRadius = '5px';
         element.style.border = '1px solid rgba(120, 80, 40, 0.8)';
         element.style.color = '#E6C68A';
@@ -196,12 +204,12 @@ class GameUI {
 
     createSpeedometer() {
         const speedContainer = document.createElement('div');
-        speedContainer.style.width = '100px';
-        speedContainer.style.height = '15px';
+        speedContainer.style.width = isTouchDevice() ? '50px' : '100px';
+        speedContainer.style.height = isTouchDevice() ? '8px' : '15px';
         speedContainer.style.backgroundColor = 'rgba(50, 25, 0, 0.7)';
         speedContainer.style.borderRadius = '10px';
         speedContainer.style.overflow = 'hidden';
-        speedContainer.style.marginBottom = '15px';
+        speedContainer.style.marginBottom = isTouchDevice() ? '8px' : '15px';
         speedContainer.style.border = '1px solid #B8860B';
 
         const speedBar = document.createElement('div');
@@ -224,13 +232,20 @@ class GameUI {
         fishingContainer.style.position = 'absolute';
         fishingContainer.style.bottom = '20px';
         fishingContainer.style.left = '20px';
-        fishingContainer.style.width = isTouchDevice() ? '110px' : '180px';
-        fishingContainer.style.height = isTouchDevice() ? '150px' : '170px';
-        fishingContainer.style.fontSize = isTouchDevice() ? '9px' : '12px';
-        fishingContainer.style.backgroundColor = '#3A2616'; // Rich dark wood
-        fishingContainer.style.padding = '0'; // No padding, will add internal container
+        // Adjust size based on device type
+        if (isTouchDevice()) {
+            fishingContainer.style.width = '90px';  // Half of desktop width
+            fishingContainer.style.height = '85px';  // Half of desktop height
+            fishingContainer.style.fontSize = '9px';  // Smaller font for mobile
+        } else {
+            fishingContainer.style.width = '180px';
+            fishingContainer.style.height = '170px';
+            fishingContainer.style.fontSize = '12px';
+        }
+        fishingContainer.style.backgroundColor = '#3A2616';
+        fishingContainer.style.padding = '0';
         fishingContainer.style.borderRadius = '8px';
-        fishingContainer.style.border = '2px solid #DAA520'; // Gold border
+        fishingContainer.style.border = '2px solid #DAA520';
         fishingContainer.style.boxShadow = '0 0 15px rgba(0, 0, 0, 0.7), inset 0 0 5px rgba(0, 0, 0, 0.3)';
         fishingContainer.style.overflow = 'hidden';
         fishingContainer.style.pointerEvents = 'auto';
@@ -238,86 +253,61 @@ class GameUI {
 
         // Create header bar with ornate styling
         const headerBar = document.createElement('div');
-        headerBar.style.backgroundColor = '#4A2D17'; // Slightly lighter wood for header
-        headerBar.style.padding = '6px 10px';
-        headerBar.style.borderBottom = '2px solid #DAA520'; // Gold border
+        headerBar.style.backgroundColor = '#4A2D17';
+        headerBar.style.padding = isTouchDevice() ? '4px 6px' : '6px 10px';
+        headerBar.style.borderBottom = '2px solid #DAA520';
         headerBar.style.textAlign = 'center';
         headerBar.style.position = 'relative';
-        headerBar.style.backgroundImage = 'linear-gradient(to bottom, #5A3D27, #4A2D17)'; // Wood grain effect
+        headerBar.style.backgroundImage = 'linear-gradient(to bottom, #5A3D27, #4A2D17)';
         fishingContainer.appendChild(headerBar);
-
-        // Brass corner accents for header
-        const corners = ['top-left', 'top-right'];
-        corners.forEach(corner => {
-            const accent = document.createElement('div');
-            accent.style.position = 'absolute';
-            accent.style.width = '10px';
-            accent.style.height = '10px';
-            accent.style.backgroundColor = '#DAA520';
-            accent.style.borderRadius = corner.includes('top') ?
-                (corner.includes('left') ? '5px 0 0 0' : '0 5px 0 0') :
-                (corner.includes('left') ? '0 0 0 5px' : '0 0 5px 0');
-
-            if (corner.includes('top')) accent.style.top = '0';
-            if (corner.includes('bottom')) accent.style.bottom = '0';
-            if (corner.includes('left')) accent.style.left = '0';
-            if (corner.includes('right')) accent.style.right = '0';
-
-            headerBar.appendChild(accent);
-        });
 
         // Fishing label with ship manifest styling
         const fishingLabel = document.createElement('div');
         fishingLabel.textContent = 'FISHING STATION';
-        fishingLabel.style.color = '#FFD700'; // Brighter gold for header
+        fishingLabel.style.color = '#FFD700';
         fishingLabel.style.fontFamily = 'serif';
         fishingLabel.style.fontWeight = 'bold';
         fishingLabel.style.letterSpacing = '1px';
         fishingLabel.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
+        fishingLabel.style.fontSize = isTouchDevice() ? '8px' : '12px';
         headerBar.appendChild(fishingLabel);
 
         // Content container with internal padding
         const contentContainer = document.createElement('div');
-        contentContainer.style.padding = '12px';
+        contentContainer.style.padding = isTouchDevice() ? '6px' : '12px';
         contentContainer.style.backgroundColor = '#3A2616';
-        contentContainer.style.backgroundImage = 'radial-gradient(circle at center, #3A2616 0%, #2A1606 100%)'; // Vignette effect
+        contentContainer.style.backgroundImage = 'radial-gradient(circle at center, #3A2616 0%, #2A1606 100%)';
         fishingContainer.appendChild(contentContainer);
 
         // Cast button with ornate styling
         const castButton = document.createElement('button');
         castButton.textContent = 'Cast Line';
         castButton.style.width = '100%';
-        castButton.style.padding = '8px 0';
-        castButton.style.marginBottom = '10px';
-        castButton.style.backgroundColor = '#5A3D27'; // Medium brown wood
-        castButton.style.backgroundImage = 'linear-gradient(to bottom, #6A4D37, #5A3D27)'; // Wood grain effect
-        castButton.style.border = '1px solid #DAA520'; // Gold border
+        castButton.style.padding = isTouchDevice() ? '4px 0' : '8px 0';
+        castButton.style.marginBottom = isTouchDevice() ? '5px' : '10px';
+        castButton.style.backgroundColor = '#5A3D27';
+        castButton.style.backgroundImage = 'linear-gradient(to bottom, #6A4D37, #5A3D27)';
+        castButton.style.border = '1px solid #DAA520';
         castButton.style.borderRadius = '5px';
-        castButton.style.color = '#FFD700'; // Gold text
+        castButton.style.color = '#FFD700';
         castButton.style.fontWeight = 'bold';
         castButton.style.cursor = 'pointer';
         castButton.style.fontFamily = 'serif';
+        castButton.style.fontSize = isTouchDevice() ? '10px' : '14px';
         castButton.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
         castButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)';
         contentContainer.appendChild(castButton);
 
-        // Add hover effect
-        castButton.onmouseover = () => {
-            castButton.style.backgroundImage = 'linear-gradient(to bottom, #7A5D47, #6A4D37)';
-        };
-        castButton.onmouseout = () => {
-            castButton.style.backgroundImage = 'linear-gradient(to bottom, #6A4D37, #5A3D27)';
-        };
-
         // Fishing status with parchment styling
         const fishingStatus = document.createElement('div');
         fishingStatus.textContent = 'Ready to fish';
-        fishingStatus.style.color = '#FFD700'; // Gold
-        fishingStatus.style.margin = '8px 0';
+        fishingStatus.style.color = '#FFD700';
+        fishingStatus.style.margin = isTouchDevice() ? '4px 0' : '8px 0';
         fishingStatus.style.fontFamily = 'serif';
         fishingStatus.style.fontStyle = 'italic';
         fishingStatus.style.textAlign = 'center';
         fishingStatus.style.width = '100%';
+        fishingStatus.style.fontSize = isTouchDevice() ? '8px' : '12px';
         contentContainer.appendChild(fishingStatus);
 
         // Fish counter with brass instrument styling
@@ -325,108 +315,23 @@ class GameUI {
         fishCounter.textContent = 'Fish: 0';
         fishCounter.style.textAlign = 'center';
         fishCounter.style.width = '100%';
-        fishCounter.style.padding = '6px 0';
-        fishCounter.style.backgroundColor = '#28180A'; // Very dark wood
-        fishCounter.style.backgroundImage = 'linear-gradient(to bottom, #28180A, #1A0D02)'; // Gradient
-        fishCounter.style.border = '1px solid #DAA520'; // Gold border
+        fishCounter.style.padding = isTouchDevice() ? '3px 0' : '6px 0';
+        fishCounter.style.backgroundColor = '#28180A';
+        fishCounter.style.backgroundImage = 'linear-gradient(to bottom, #28180A, #1A0D02)';
+        fishCounter.style.border = '1px solid #DAA520';
         fishCounter.style.borderRadius = '5px';
-        fishCounter.style.color = '#FFD700'; // Gold
+        fishCounter.style.color = '#FFD700';
         fishCounter.style.fontFamily = 'serif';
         fishCounter.style.fontWeight = 'bold';
+        fishCounter.style.fontSize = isTouchDevice() ? '8px' : '12px';
         fishCounter.style.boxShadow = 'inset 0 0 5px rgba(0,0,0,0.5)';
         contentContainer.appendChild(fishCounter);
-
-        // Create minigame container (hidden by default)
-        const minigameContainer = document.createElement('div');
-        minigameContainer.id = 'fishing-minigame';
-        minigameContainer.style.position = 'absolute';
-        minigameContainer.style.top = '50%';
-        minigameContainer.style.left = '50%';
-        minigameContainer.style.transform = 'translate(-50%, -50%)';
-        minigameContainer.style.backgroundColor = 'rgba(60, 30, 0, 0.9)'; // Dark wood
-        minigameContainer.style.padding = '20px';
-        minigameContainer.style.borderRadius = '10px';
-        minigameContainer.style.border = '3px solid #B8860B'; // Brass border
-        minigameContainer.style.display = 'none';
-        minigameContainer.style.flexDirection = 'column';
-        minigameContainer.style.alignItems = 'center';
-        minigameContainer.style.pointerEvents = 'auto';
-        minigameContainer.style.zIndex = '100';
-        minigameContainer.style.width = '300px';
-        minigameContainer.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.8)';
-        document.body.appendChild(minigameContainer);
-
-        // Minigame title
-        const minigameTitle = document.createElement('div');
-        minigameTitle.textContent = 'Fish On!';
-        minigameTitle.style.color = '#E6C68A'; // Muted gold
-        minigameTitle.style.fontSize = '24px';
-        minigameTitle.style.marginBottom = '20px';
-        minigameTitle.style.fontFamily = 'serif';
-        minigameTitle.style.fontWeight = 'bold';
-        minigameContainer.appendChild(minigameTitle);
-
-        // Minigame instructions
-        const minigameInstructions = document.createElement('div');
-        minigameInstructions.textContent = 'Click when the marker is in the green zone!';
-        minigameInstructions.style.color = 'white';
-        minigameInstructions.style.marginBottom = '20px';
-        minigameContainer.appendChild(minigameInstructions);
-
-        // Minigame progress bar container
-        const progressBarContainer = document.createElement('div');
-        progressBarContainer.style.width = '250px';
-        progressBarContainer.style.height = '30px';
-        progressBarContainer.style.backgroundColor = 'rgba(50, 50, 50, 0.7)';
-        progressBarContainer.style.borderRadius = '15px';
-        progressBarContainer.style.position = 'relative';
-        progressBarContainer.style.overflow = 'hidden';
-        progressBarContainer.style.marginBottom = '20px';
-        minigameContainer.appendChild(progressBarContainer);
-
-        // Target zone (green area)
-        const targetZone = document.createElement('div');
-        targetZone.style.position = 'absolute';
-        targetZone.style.height = '100%';
-        targetZone.style.backgroundColor = 'rgba(0, 255, 0, 0.5)';
-        targetZone.style.width = '60px';
-        targetZone.style.left = '95px'; // Centered in the progress bar
-        progressBarContainer.appendChild(targetZone);
-
-        // Marker (moving element)
-        const marker = document.createElement('div');
-        marker.style.position = 'absolute';
-        marker.style.height = '100%';
-        marker.style.width = '10px';
-        marker.style.backgroundColor = 'white';
-        marker.style.left = '0px';
-        marker.style.transition = 'left 0.1s linear';
-        progressBarContainer.appendChild(marker);
-
-        // Catch button
-        const catchButton = document.createElement('button');
-        catchButton.textContent = 'CATCH!';
-        catchButton.style.padding = '10px 20px';
-        catchButton.style.backgroundColor = 'rgba(255, 100, 100, 0.8)';
-        catchButton.style.border = 'none';
-        catchButton.style.borderRadius = '5px';
-        catchButton.style.color = 'white';
-        catchButton.style.fontWeight = 'bold';
-        catchButton.style.fontSize = '18px';
-        catchButton.style.cursor = 'pointer';
-        minigameContainer.appendChild(catchButton);
 
         return {
             container: fishingContainer,
             castButton: castButton,
             status: fishingStatus,
-            counter: fishCounter,
-            minigame: {
-                container: minigameContainer,
-                marker: marker,
-                targetZone: targetZone,
-                catchButton: catchButton
-            }
+            counter: fishCounter
         };
     }
 
@@ -632,19 +537,27 @@ class GameUI {
     }
 
     addIslandMarker(id, position, radius) {
-        this.miniMap.addIslandMarker(id, position, radius);
+        if (this.miniMap) {
+            this.miniMap.addIslandMarker(id, position, radius);
+        }
     }
 
     addPlayerMarker(id, position, color) {
-        this.miniMap.addPlayerMarker(id, position, color);
+        if (this.miniMap) {
+            this.miniMap.addPlayerMarker(id, position, color);
+        }
     }
 
     removePlayerMarker(id) {
-        this.miniMap.removePlayerMarker(id);
+        if (this.miniMap) {
+            this.miniMap.removePlayerMarker(id);
+        }
     }
 
     updateMiniMap(playerPosition, playerRotation, mapScale) {
-        this.miniMap.updateMiniMap(playerPosition, playerRotation, mapScale);
+        if (this.miniMap) {
+            this.miniMap.updateMiniMap(playerPosition, playerRotation, mapScale);
+        }
     }
 
     update(data) {
@@ -723,8 +636,8 @@ class GameUI {
             this.elements.fishing.counter.textContent = `Fish: ${data.fishCount}`;
         }
 
-        // Update mini-map
-        if (data.position && data.heading !== undefined) {
+        // Update mini-map only if it exists (desktop only)
+        if (!isTouchDevice() && data.position && data.heading !== undefined) {
             // First update monster markers if available
             if (data.monsters && this.miniMap) {
                 this.miniMap.updateMonsterMarkers(
@@ -752,14 +665,36 @@ class GameUI {
         // Update FPS counter
         this.updateFPS();
 
-        // Add ability-related updates if needed
+        // Update ability cooldowns based on device type
         if (data.abilityCooldowns) {
-            data.abilityCooldowns.forEach((cooldown, index) => {
-                if (cooldown > 0) {
-                    this.abilitiesBar.startCooldown(index, cooldown);
-                }
-            });
+            if (isTouchDevice() && this.mobileAbilityBar) {
+                data.abilityCooldowns.forEach((cooldown, index) => {
+                    if (cooldown > 0) {
+                        // Use the mobile ability bar's cooldown system
+                        const abilityId = this.getAbilityIdByIndex(index);
+                        if (abilityId) {
+                            this.mobileAbilityBar.startCooldown(abilityId, cooldown);
+                        }
+                    }
+                });
+            } else if (this.abilitiesBar) {
+                data.abilityCooldowns.forEach((cooldown, index) => {
+                    if (cooldown > 0) {
+                        this.abilitiesBar.startCooldown(index, cooldown);
+                    }
+                });
+            }
         }
+    }
+
+    // Helper method to map ability index to ability ID
+    getAbilityIdByIndex(index) {
+        const abilityMap = {
+            0: 'harpoon',
+            1: 'cannon',
+            2: 'ability3'
+        };
+        return abilityMap[index];
     }
 
     getCardinalDirection(degrees) {
