@@ -4,6 +4,9 @@ import { createHugeIsland } from './hugeIsland.js';
 import { createPortal } from '../portals/vibeverse.js';
 import { createNpcShip } from '../entities/npcShip.js';
 
+const urlParams = new URLSearchParams(window.location.search);
+const refParam = urlParams.get('ref');
+
 // Configuration for the spawn area
 const SPAWN_CONFIG = {
     // Distance from center (0,0,0) to place huge island
@@ -34,6 +37,15 @@ const SPAWN_CONFIG = {
             scale: 350.0,
             rotation: { x: 0, y: Math.PI / 2, z: 0 } // Rotate 180 degrees around Y axis
         },
+        {
+            x: 1200, y: 125, z: 600,
+            name: "Back",
+            ref: true,
+            url: "",
+            modelPath: './portal_blue.glb',
+            scale: 350.0,
+            rotation: { x: 0, y: Math.PI / 2, z: 0 } // Rotate 180 degrees around Y axis
+        }
     ],
 
     // NPC ship configuration - expanded with more ships and ship types
@@ -220,6 +232,14 @@ function spawnPortals() {
             portalConfig.y,
             portalConfig.z
         );
+
+        if (portalConfig.ref) {
+            if (!refParam) {
+                return;
+            }
+
+            portalConfig.url = "https://" + refParam;
+        }
 
         const portal = createPortal(
             position,
