@@ -8,6 +8,9 @@ let waterNormals;
 const waterSize = 5000; // Large water plane but not excessive
 const waterSegments = 10; // Reduced from 1000 to improve performance and stability
 let currentWaterStyle = 'realistic'; // Track current water style
+let currentQualityLevel = 'medium'; // Track current quality level
+let updateFrameSkip = 0; // Counter for skipping frames on updates
+const MAX_UPDATE_SKIP = 2; // Skip every N frames for low-end devices
 
 // Create and export waterShader object with wave parameters for other files to access
 export const waterShader = {
@@ -24,8 +27,10 @@ window.waterShader = waterShader;
 
 // Generate a procedural cartoony water normal map
 function generateCartoonyWaterNormals() {
-    const width = 512;
-    const height = 512;
+    // Get texture size based on quality level
+    const textureSize = getQualityBasedTextureSize();
+    const width = textureSize;
+    const height = textureSize;
     const size = width * height;
     const data = new Uint8Array(4 * size);
 
@@ -69,14 +74,59 @@ function generateCartoonyWaterNormals() {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.needsUpdate = true;
 
-
     return texture;
+}
+
+// Get texture size based on quality level
+function getQualityBasedTextureSize() {
+    switch (currentQualityLevel) {
+        case 'low':
+            return 128;
+        case 'medium':
+            return 256;
+        case 'high':
+            return 512;
+        case 'ultra':
+            return 1024;
+        default:
+            return 256;
+    }
+}
+
+// Get water size based on quality level
+function getQualityBasedWaterSize() {
+    switch (currentQualityLevel) {
+        case 'low':
+            return 3000;
+        case 'medium':
+            return 4000;
+        case 'high':
+            return 5000;
+        case 'ultra':
+            return 6000;
+        default:
+            return 4000;
+    }
+}
+
+// Get water segments based on quality level
+function getQualityBasedWaterSegments() {
+    switch (currentQualityLevel) {
+        case 'low':
+            return 8;
+        case 'medium':
+            return 10;
+        case 'high':
+            return 12;
+        case 'ultra':
+            return 16;
+        default:
+            return 10;
+    }
 }
 
 // Initialize the advanced water effect
 export function setupWater(style = 'realistic') {
-
-
     // Set the current style
     currentWaterStyle = style;
 
@@ -95,8 +145,6 @@ export function setupWater(style = 'realistic') {
                 texture.repeat.set(1, 1); // Standard repeats for realistic style
             }
 
-
-
             // If cartoony style and water mesh exists, we can optionally replace with procedural
             if (style === 'cartoony' && waterMesh) {
                 // Uncomment the below line to use procedural normals instead
@@ -106,12 +154,22 @@ export function setupWater(style = 'realistic') {
         },
         undefined,
         function (err) {
-
+            console.error('Error loading water normals');
         }
     );
 
-    // Configure water properties
-    const waterGeometry = new THREE.PlaneGeometry(waterSize, waterSize, waterSegments, waterSegments);
+    // Get quality-based parameters
+    const adaptiveWaterSize = getQualityBasedWaterSize();
+    const adaptiveWaterSegments = getQualityBasedWaterSegments();
+    const textureSize = getQualityBasedTextureSize();
+
+    // Configure water properties - use quality-based parameters
+    const waterGeometry = new THREE.PlaneGeometry(
+        adaptiveWaterSize,
+        adaptiveWaterSize,
+        adaptiveWaterSegments,
+        adaptiveWaterSegments
+    );
 
     // Style-specific water parameters
     let waterColor, distortionScale, alpha;
@@ -140,10 +198,10 @@ export function setupWater(style = 'realistic') {
             break;
     }
 
-    // Base water parameters
+    // Base water parameters - use quality-based texture size
     const waterOptions = {
-        textureWidth: 512,
-        textureHeight: 512,
+        textureWidth: textureSize,
+        textureHeight: textureSize,
         waterNormals: waterNormals,
         sunDirection: new THREE.Vector3(),
         sunColor: 0xffffff,
@@ -166,7 +224,8 @@ export function setupWater(style = 'realistic') {
     waterMesh.rotation.x = -Math.PI / 2;
     waterMesh.position.y = -0.5; // Slightly below sea level for visibility
 
-
+    // Enable frustum culling for performance
+    waterMesh.frustumCulled = true;
 
     // Adjust additional properties based on style
     if (style === 'cartoony') {
@@ -217,9 +276,28 @@ export function setupWater(style = 'realistic') {
 
 // Update water in animation loop
 export function updateWater(deltaTime) {
-    if (!waterMesh) {
+    if (!waterMesh) return;
 
-        return;
+    // Frame skipping for performance - only update on certain frames
+    updateFrameSkip = (updateFrameSkip + 1) % (MAX_UPDATE_SKIP + 1);
+
+    // Skip updates on non-zero frames based on quality setting
+    if (updateFrameSkip !== 0) {
+        // For low quality, skip more updates
+        if (currentQualityLevel === 'low' && updateFrameSkip !== MAX_UPDATE_SKIP) {
+            // Still update position to follow camera
+            waterMesh.position.x = camera.position.x;
+            waterMesh.position.z = camera.position.z;
+            return;
+        }
+
+        // For medium quality, skip some updates
+        if (currentQualityLevel === 'medium' && updateFrameSkip === 1) {
+            // Still update position to follow camera
+            waterMesh.position.x = camera.position.x;
+            waterMesh.position.z = camera.position.z;
+            return;
+        }
     }
 
     // Get current time for wave animation
@@ -242,6 +320,11 @@ export function updateWater(deltaTime) {
             break;
     }
 
+    // Reduce animation speed for low quality
+    if (currentQualityLevel === 'low') {
+        animationSpeed *= 0.7;
+    }
+
     // Update animation time
     waterUniforms.time.value += deltaTime * animationSpeed;
 
@@ -249,78 +332,81 @@ export function updateWater(deltaTime) {
     waterShader.uniforms.time.value = waterUniforms.time.value;
 
     // Get wind data to influence wave direction and intensity
-    const wind = getWindData();
+    // Skip complex wind calculations on low quality
+    if (currentQualityLevel !== 'low') {
+        const wind = getWindData();
 
-    // Wind influence based on style
-    let windStrengthDivisor;
-    if (currentWaterStyle === 'toon') {
-        windStrengthDivisor = 8; // Medium wind influence for toon style
-    } else if (currentWaterStyle === 'cartoony') {
-        windStrengthDivisor = 10; // Less wind influence for cartoony style
-    } else {
-        windStrengthDivisor = 6; // More wind influence for realistic style
+        // Wind influence based on style
+        let windStrengthDivisor;
+        if (currentWaterStyle === 'toon') {
+            windStrengthDivisor = 8; // Medium wind influence for toon style
+        } else if (currentWaterStyle === 'cartoony') {
+            windStrengthDivisor = 10; // Less wind influence for cartoony style
+        } else {
+            windStrengthDivisor = 6; // More wind influence for realistic style
+        }
+
+        const windStrength = wind.speed / windStrengthDivisor;
+
+        // Base distortion and multiplier values based on style
+        let baseDistortion, multiplier;
+
+        switch (currentWaterStyle) {
+            case 'toon':
+                baseDistortion = 3.5;
+                multiplier = 2.0;
+                break;
+            case 'cartoony':
+                baseDistortion = 4.0;
+                multiplier = 1.5;
+                break;
+            default: // 'realistic'
+                baseDistortion = 3.0;
+                multiplier = 3.0;
+                break;
+        }
+
+        // Adjust wave distortion based on wind and style
+        waterUniforms.distortionScale.value = baseDistortion + windStrength * multiplier;
+
+        // Update waterShader's waveHeight based on distortion scale
+        waterShader.uniforms.waveHeight.value = waterUniforms.distortionScale.value * 0.2;
+
+        // Update wave direction based on wind
+        const windDirection = new THREE.Vector3(
+            Math.sin(wind.direction),
+            0,
+            Math.cos(wind.direction)
+        );
+
+        // Apply slight offset to wave direction for natural look
+        // Different styles have different wave uniformity
+        let directionFactor;
+        switch (currentWaterStyle) {
+            case 'toon':
+                directionFactor = 0.25; // Medium uniformity for toon style
+                break;
+            case 'cartoony':
+                directionFactor = 0.2; // More uniform for cartoony style
+                break;
+            default:
+                directionFactor = 0.3; // Less uniform for realistic style
+                break;
+        }
+
+        const waveDirection = new THREE.Vector2(
+            windDirection.x * directionFactor,
+            windDirection.z * directionFactor
+        );
+
+        // Update wave direction in water uniforms
+        if (waterUniforms.flowDirection) {
+            waterUniforms.flowDirection.value.copy(waveDirection);
+        }
+
+        // Update the same in waterShader for boat physics
+        waterShader.uniforms.flowDirection.value.copy(waveDirection);
     }
-
-    const windStrength = wind.speed / windStrengthDivisor;
-
-    // Base distortion and multiplier values based on style
-    let baseDistortion, multiplier;
-
-    switch (currentWaterStyle) {
-        case 'toon':
-            baseDistortion = 3.5;
-            multiplier = 2.0;
-            break;
-        case 'cartoony':
-            baseDistortion = 4.0;
-            multiplier = 1.5;
-            break;
-        default: // 'realistic'
-            baseDistortion = 3.0;
-            multiplier = 3.0;
-            break;
-    }
-
-    // Adjust wave distortion based on wind and style
-    waterUniforms.distortionScale.value = baseDistortion + windStrength * multiplier;
-
-    // Update waterShader's waveHeight based on distortion scale
-    waterShader.uniforms.waveHeight.value = waterUniforms.distortionScale.value * 0.2;
-
-    // Update wave direction based on wind
-    const windDirection = new THREE.Vector3(
-        Math.sin(wind.direction),
-        0,
-        Math.cos(wind.direction)
-    );
-
-    // Apply slight offset to wave direction for natural look
-    // Different styles have different wave uniformity
-    let directionFactor;
-    switch (currentWaterStyle) {
-        case 'toon':
-            directionFactor = 0.25; // Medium uniformity for toon style
-            break;
-        case 'cartoony':
-            directionFactor = 0.2; // More uniform for cartoony style
-            break;
-        default:
-            directionFactor = 0.3; // Less uniform for realistic style
-            break;
-    }
-
-    const waveDirection = new THREE.Vector2(
-        windDirection.x * directionFactor,
-        windDirection.z * directionFactor
-    );
-
-    // Update wave direction in water uniforms
-    if (waterUniforms.flowDirection) {
-        waterUniforms.flowDirection.value.copy(waveDirection);
-    }
-
-    // Update the same in waterShader for boat physics
-    waterShader.uniforms.flowDirection.value.copy(waveDirection);
 
     // Update sun position and color
     if (scene.directionalLight) {
@@ -328,7 +414,9 @@ export function updateWater(deltaTime) {
     }
 
     // Time-based water color animation for stylized water
-    if (currentWaterStyle === 'cartoony' || currentWaterStyle === 'toon') {
+    // Skip color effects on low quality
+    if ((currentWaterStyle === 'cartoony' || currentWaterStyle === 'toon') &&
+        currentQualityLevel !== 'low') {
         let waterColor;
 
         if (currentWaterStyle === 'toon') {
@@ -355,12 +443,15 @@ export function updateWater(deltaTime) {
         waterUniforms.waterColor.value.lerp(waterColor, deltaTime * transitionSpeed);
 
         // Add a slight wobble to the water height for stylized effects
-        const bounceFactor = currentWaterStyle === 'toon' ? 0.01 : 0.02; // Less bounce for toon
-        const bounceSpeed = currentWaterStyle === 'toon' ? 0.6 : 0.8;
-        const bounceHeight = Math.sin(time * bounceSpeed) * bounceFactor;
+        // Skip for low quality settings
+        if (currentQualityLevel !== 'low') {
+            const bounceFactor = currentWaterStyle === 'toon' ? 0.01 : 0.02; // Less bounce for toon
+            const bounceSpeed = currentWaterStyle === 'toon' ? 0.6 : 0.8;
+            const bounceHeight = Math.sin(time * bounceSpeed) * bounceFactor;
 
-        // Apply a subtle bounce but ensure water stays visible
-        waterMesh.position.y = -0.5 + bounceHeight;
+            // Apply a subtle bounce but ensure water stays visible
+            waterMesh.position.y = -0.5 + bounceHeight;
+        }
     }
 
     // Make sure water follows camera on x/z
@@ -370,28 +461,40 @@ export function updateWater(deltaTime) {
 
 // Function to adjust water quality for performance
 export function setWaterQuality(quality) {
-    if (!waterMesh) return;
+    if (quality === currentQualityLevel) return; // No change needed
 
-    // Quality settings: low, medium, high
+    currentQualityLevel = quality;
+
+    // If water is already created, we need to recreate it with new quality settings
+    if (waterMesh) {
+        const currentStyle = currentWaterStyle;
+        scene.remove(waterMesh);
+        waterMesh = null;
+        setupWater(currentStyle);
+    }
+
+    // Update update frequency based on quality
     switch (quality) {
         case 'low':
-            waterMesh.material.uniforms.size.value = 0.5;
+            MAX_UPDATE_SKIP = 3; // Update every 4th frame
             break;
         case 'medium':
-            waterMesh.material.uniforms.size.value = 1.0;
+            MAX_UPDATE_SKIP = 2; // Update every 3rd frame
             break;
         case 'high':
-            waterMesh.material.uniforms.size.value = 2.0;
+            MAX_UPDATE_SKIP = 1; // Update every 2nd frame
             break;
+        case 'ultra':
+            MAX_UPDATE_SKIP = 0; // Update every frame
+            break;
+        default:
+            MAX_UPDATE_SKIP = 2; // Default to medium
     }
 }
 
 // Function to toggle between water styles
 export function setWaterStyle(style = 'realistic') {
-
-
     if (style === currentWaterStyle) {
-
         return; // No change needed
     }
 
@@ -403,6 +506,24 @@ export function setWaterStyle(style = 'realistic') {
 
     // Setup new water with desired style
     setupWater(style);
+}
 
+// Function to optimize water rendering based on distance from camera
+export function optimizeWaterForDistance() {
+    if (!waterMesh) return;
 
+    // Dynamically adjust LOD based on distance
+    const distanceToCamera = camera.position.distanceTo(new THREE.Vector3(0, -0.5, 0));
+
+    // Apply LOD optimizations
+    if (distanceToCamera > 2000) {
+        // Far away - lowest detail
+        waterMesh.material.uniforms.size.value = 0.3;
+    } else if (distanceToCamera > 1000) {
+        // Medium distance - medium detail
+        waterMesh.material.uniforms.size.value = 0.7;
+    } else {
+        // Close to camera - high detail
+        waterMesh.material.uniforms.size.value = 1.0;
+    }
 } 
