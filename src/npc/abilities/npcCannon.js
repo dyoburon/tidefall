@@ -15,12 +15,12 @@ import { createWaterSplashEffect } from '../../effects/playerDamageEffects.js';
  */
 export class NpcCannonSystem {
     constructor() {
-        this.cannonballSpeed = 50;  // Increased speed for better travel
-        this.gravity = 40;         // Reduced gravity so cannonballs travel farther
+        this.cannonballSpeed = 130;  // Increased speed for better travel
+        this.gravity = 80;         // Reduced gravity so cannonballs travel farther
         this.cooldown = 1.0;       // One second cooldown
         this.range = 600;          // Keep original engagement range
         this.damage = 100;         // Damage per hit
-        this.aimInaccuracy = 5.0;  // Randomness in aiming
+        this.aimInaccuracy = 20.0;  // Randomness in aiming
 
         // Default cannon positions relative to ship model
         this.defaultCannonPositions = [
