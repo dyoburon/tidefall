@@ -2,10 +2,14 @@ import * as THREE from 'three';
 import { boat, boatVelocity, keys, getWindData, getTime } from './gameState.js';
 import { checkAllIslandCollisions } from '../world/islands.js';
 import { boatFlyState } from '../commands/boatFlyCommands.js';
+import { initWakeEffect, updateWakeEffect } from '../effects/wakeEffect.js';
 
 // Add this near your other exports
 export let knockbackActive = false;
 export let knockbackTimer = 0;
+
+// Flag to track wake effect initialization
+let wakeEffectInitialized = false;
 
 // Add these variables near the top with other exports
 export const shipSpeedConfig = {
@@ -21,6 +25,14 @@ export function setKnockbackActive(state) {
 
 export function isKnockbackActive() {
     return knockbackActive;
+}
+
+// Function to initialize the wake effect
+export function initializeShipEffects() {
+    if (!wakeEffectInitialized) {
+        initWakeEffect();
+        wakeEffectInitialized = true;
+    }
 }
 
 const SHIP_CONFIG = {
@@ -79,6 +91,11 @@ export function preserveMomentum(fromMultiplier, toMultiplier, decayDuration = 1
 }
 
 export function updateShipMovement(deltaTime) {
+    // Initialize wake effect if not done yet
+    if (!wakeEffectInitialized) {
+        initializeShipEffects();
+    }
+
     // If boat is flying or falling, skip normal ship movement
     if (boatFlyState.isFalling) {
         return boatVelocity; // Return unchanged velocity
@@ -213,6 +230,9 @@ export function updateShipMovement(deltaTime) {
             boatVelocity.multiplyScalar(SHIP_CONFIG.lowSpeedDampingFactor);
         }
     }
+
+    // Update wake effect after ship movement is calculated
+    updateWakeEffect(deltaTime);
 
     // Return calculated velocity
     return boatVelocity;

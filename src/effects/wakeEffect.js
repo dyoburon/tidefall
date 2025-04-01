@@ -1,0 +1,181 @@
+import * as THREE from 'three';
+import { scene, boat, boatVelocity, removeFromScene, addToScene } from '../core/gameState.js';
+
+// Configuration for the wake effect
+const wakeConfig = {
+    speedThreshold: 0.2,      // Minimum speed to show wake
+    maxParticles: 100,         // Maximum number of particles in the pool (doubled)
+    particleSize: 0.4,        // Size of wake particles
+    minSize: 0.3,             // Minimum size of particles
+    maxSize: 0.5,             // Maximum size of particles
+    color: 0xffffff,          // White color
+    opacity: 0.7,             // Semi-transparent
+    verticalOffset: 0.05,     // Slight offset above water to prevent z-fighting
+    maxLifetime: 2.5,         // Maximum lifetime of particles in seconds
+    spawnRate: 0.07,           // Seconds between particle spawns (halved for 2x frequency)
+    spawnAreaWidth: 3.0,      // Width of spawn area behind boat (increased for wider spread)
+    spawnDistanceMin: -3,      // Minimum distance behind boat (increased)
+    spawnDistanceMax: 3,     // Maximum distance behind boat (increased)
+    baseOffset: 0             // Base offset behind the boat before min/max distances are applied
+};
+
+// Store particle system
+let wakeParticles = [];
+let isInitialized = false;
+let timeSinceLastSpawn = 0;
+
+/**
+ * Create the wake effect particles
+ */
+export function initWakeEffect() {
+    if (isInitialized) return;
+
+    // Create material for wake particles
+    const wakeMaterial = new THREE.MeshBasicMaterial({
+        color: wakeConfig.color,
+        transparent: true,
+        opacity: wakeConfig.opacity,
+        side: THREE.DoubleSide,
+        depthWrite: false // Prevents z-fighting with water
+    });
+
+    // Create geometry for wake particles (simple circle)
+    const wakeGeometry = new THREE.CircleGeometry(1, 8);
+    wakeGeometry.rotateX(-Math.PI / 2); // Rotate to be horizontal
+
+    // Create particle pool
+    for (let i = 0; i < wakeConfig.maxParticles; i++) {
+        const particle = new THREE.Mesh(wakeGeometry, wakeMaterial.clone());
+
+        // Initialize with default values
+        particle.position.set(0, wakeConfig.verticalOffset, 0);
+        particle.visible = false;
+        particle.scale.set(wakeConfig.particleSize, wakeConfig.particleSize, wakeConfig.particleSize);
+
+        // Store particle data
+        particle.userData = {
+            lifetime: 0,
+            maxLifetime: 0,
+            active: false
+        };
+
+        // Add to scene and to our array
+        addToScene(particle);
+        wakeParticles.push(particle);
+    }
+
+    isInitialized = true;
+    return wakeParticles;
+}
+
+/**
+ * Spawn a new wake particle
+ */
+function spawnParticle(speed) {
+    // Find an inactive particle to reuse
+    const particle = wakeParticles.find(p => !p.userData.active);
+    if (!particle) return; // No available particles
+
+    // Get boat's forward and right vectors
+    const boatForward = new THREE.Vector3(0, 0, -1).applyQuaternion(boat.quaternion);
+    const boatRight = new THREE.Vector3(1, 0, 0).applyQuaternion(boat.quaternion);
+
+    // Random position behind boat with base offset applied
+    const distanceBehind = wakeConfig.baseOffset + wakeConfig.spawnDistanceMin +
+        Math.random() * (wakeConfig.spawnDistanceMax - wakeConfig.spawnDistanceMin);
+    const sideOffset = (Math.random() * 2 - 1) * wakeConfig.spawnAreaWidth;
+
+    // Calculate spawn position
+    const spawnPosition = boat.position.clone()
+        .sub(boatForward.clone().multiplyScalar(distanceBehind))
+        .add(boatRight.clone().multiplyScalar(sideOffset));
+    spawnPosition.y = wakeConfig.verticalOffset;
+
+    // Set particle properties
+    particle.position.copy(spawnPosition);
+
+    // Random size based on configuration
+    const size = wakeConfig.minSize + Math.random() * (wakeConfig.maxSize - wakeConfig.minSize);
+    particle.scale.set(size, size, size);
+
+    // Set lifetime based on speed and distance (particles farther back live longer)
+    const distanceFactor = distanceBehind / (wakeConfig.baseOffset + wakeConfig.spawnDistanceMax);
+    const maxLifetime = wakeConfig.maxLifetime * (0.7 + 0.3 * Math.random()) * (1 + distanceFactor * 0.5);
+
+    // Set opacity
+    particle.material.opacity = wakeConfig.opacity;
+
+    // Activate particle
+    particle.userData.lifetime = 0;
+    particle.userData.maxLifetime = maxLifetime;
+    particle.userData.active = true;
+    particle.visible = true;
+}
+
+/**
+ * Update the wake effect based on boat movement
+ * @param {number} deltaTime - Time since last frame
+ */
+export function updateWakeEffect(deltaTime) {
+    // Check if wake is initialized
+    if (!isInitialized || wakeParticles.length === 0 || !boat) return;
+
+    // Get boat speed
+    const speed = boatVelocity.length();
+
+    // Only manage particles if over speed threshold
+    if (speed > wakeConfig.speedThreshold) {
+        // Spawn new particles based on speed and time
+        timeSinceLastSpawn += deltaTime;
+        const spawnInterval = wakeConfig.spawnRate / Math.min(speed * 0.8, 5); // Adjusted multiplier for more spawns at higher speeds
+
+        while (timeSinceLastSpawn >= spawnInterval) {
+            // Spawn two particles each iteration for double density
+            spawnParticle(speed);
+            spawnParticle(speed);
+            timeSinceLastSpawn -= spawnInterval;
+        }
+    }
+
+    // Update all active particles
+    wakeParticles.forEach(particle => {
+        if (particle.userData.active) {
+            // Update lifetime
+            particle.userData.lifetime += deltaTime;
+
+            // Check if particle should die
+            if (particle.userData.lifetime >= particle.userData.maxLifetime) {
+                // Deactivate
+                particle.userData.active = false;
+                particle.visible = false;
+            } else {
+                // Update opacity based on lifetime
+                const lifeRatio = particle.userData.lifetime / particle.userData.maxLifetime;
+                particle.material.opacity = wakeConfig.opacity * (1 - lifeRatio * 0.8); // Slower fade out
+
+                // Optional: Make particles sink/shrink as they age
+                particle.position.y = wakeConfig.verticalOffset - lifeRatio * 0.1;
+
+                // Optional: Make particles slightly expand as they age
+                const sizeMultiplier = 1 + lifeRatio * 0.5;
+                const baseSize = particle.userData.baseSize || particle.scale.x;
+                particle.userData.baseSize = baseSize;
+                particle.scale.set(baseSize * sizeMultiplier, baseSize * sizeMultiplier, baseSize * sizeMultiplier);
+            }
+        }
+    });
+}
+
+/**
+ * Clean up wake effect resources
+ */
+export function cleanupWakeEffect() {
+    wakeParticles.forEach(particle => {
+        if (particle) {
+            removeFromScene(particle);
+        }
+    });
+
+    wakeParticles = [];
+    isInitialized = false;
+} 
