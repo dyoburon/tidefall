@@ -22,7 +22,8 @@ const movementJoystickConfig = {
     fadeTime: 0,
     restOpacity: 0.5,
     catchDistance: 100,
-    multitouch: true
+    multitouch: true,
+    identifier: 'movement' // Add identifier for movement joystick
 };
 
 // Configuration for camera joystick
@@ -35,7 +36,8 @@ const cameraJoystickConfig = {
     fadeTime: 0,
     restOpacity: 0.5,
     catchDistance: 100,
-    multitouch: true
+    multitouch: true,
+    identifier: 'camera' // Add identifier for camera joystick
 };
 
 // Initialize touch controls
@@ -89,7 +91,7 @@ export function initTouchControls() {
     cameraJoystick = nipplejs.create(cameraConfig);
 
     // Add visual labels to help users
-    addJoystickLabel(movementContainer, 'STEER');
+    addJoystickLabel(movementContainer, 'MOVE');
     addJoystickLabel(cameraContainer, 'CAMERA');
 
     // Set up event listeners
@@ -98,6 +100,11 @@ export function initTouchControls() {
 
     cameraJoystick.on('move', handleCameraJoystickMove);
     cameraJoystick.on('end', handleCameraJoystickEnd);
+
+    // Add touch event handler for abilities
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
 
     // Disable regular camera controls when touch controls are active
     disableRegularCameraControls();
@@ -232,7 +239,52 @@ function handleCameraJoystickEnd() {
     // Nothing to do, camera stays where it was left
 }
 
-// Clean up joysticks
+// Track touch points for abilities
+let abilityTouchId = null;
+
+// Handle touch start for abilities
+function handleTouchStart(event) {
+    // Don't prevent default here to allow other touch interactions
+
+    // Check if this touch is on an ability button
+    const touch = event.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+
+    if (element && element.closest('#abilities-bar')) {
+        // This is a touch on the abilities bar
+        abilityTouchId = touch.identifier;
+
+        // Don't prevent default to allow the ability click to go through
+        return;
+    }
+}
+
+// Handle touch move for abilities
+function handleTouchMove(event) {
+    if (abilityTouchId !== null) {
+        // Find our tracked touch
+        for (let i = 0; i < event.touches.length; i++) {
+            if (event.touches[i].identifier === abilityTouchId) {
+                // Prevent default only for ability touches to avoid interfering with joysticks
+                event.preventDefault();
+                break;
+            }
+        }
+    }
+}
+
+// Handle touch end for abilities
+function handleTouchEnd(event) {
+    // Check if our tracked ability touch has ended
+    for (let i = 0; i < event.changedTouches.length; i++) {
+        if (event.changedTouches[i].identifier === abilityTouchId) {
+            abilityTouchId = null;
+            break;
+        }
+    }
+}
+
+// Clean up touch controls
 export function destroyTouchControls() {
     if (movementJoystick) {
         movementJoystick.destroy();
@@ -243,6 +295,11 @@ export function destroyTouchControls() {
         cameraJoystick.destroy();
         cameraJoystick = null;
     }
+
+    // Remove touch event listeners
+    document.removeEventListener('touchstart', handleTouchStart);
+    document.removeEventListener('touchmove', handleTouchMove);
+    document.removeEventListener('touchend', handleTouchEnd);
 
     // Remove containers
     removeElementById('movementJoystickContainer');

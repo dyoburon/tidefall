@@ -41,15 +41,39 @@ class CannonShot {
         const { worldPosition: cannonPosition, config: cannonConfig } =
             AimingSystem.getNearestFiringPosition(this.cannonPositions, targetPosition);
 
-        // Calculate direction using the unified aiming system with adaptive trajectory
-        const direction = AimingSystem.calculateFiringDirection(cannonPosition, targetPosition, {
-            adaptiveTrajectory: true,
-            minVerticalAdjust: -0.15,           // CHANGED to allow downward trajectory
-            maxVerticalAdjust: 0.1,             // INCREASED for higher arcs on distant targets
-            minDistance: 5,                     // REDUCED to detect very close clicks
-            maxDistance: 150,                   // REDUCED from 1000 for more reasonable range
-            allowDownwardShots: true            // ADDED to enable downward firing
-        });
+        // Check if we're on mobile and targeting an NPC ship
+        const isMobile = ('ontouchstart' in window);
+        let direction;
+
+        if (isMobile && window.activeNpcShips && window.activeNpcShips.length > 0) {
+            // Calculate direction using the unified aiming system with mobile-specific adjustments
+            direction = AimingSystem.calculateFiringDirection(cannonPosition, targetPosition, {
+                adaptiveTrajectory: true,
+                minVerticalAdjust: -0.1,           // Less downward angle for mobile
+                maxVerticalAdjust: 0.15,           // Higher arc for mobile auto-targeting
+                minDistance: 5,
+                maxDistance: 150,
+                allowDownwardShots: true,
+                mobileAdjustments: {
+                    heightBonus: 2,                // Extra height for better arcing
+                    spreadFactor: 0.05             // Slight spread for more natural feel
+                }
+            });
+
+            // Add slight randomization to direction for more natural feel
+            direction.x += (Math.random() - 0.5) * 0.05;
+            direction.z += (Math.random() - 0.5) * 0.05;
+        } else {
+            // Regular direction calculation for non-mobile or non-NPC targets
+            direction = AimingSystem.calculateFiringDirection(cannonPosition, targetPosition, {
+                adaptiveTrajectory: true,
+                minVerticalAdjust: -0.15,
+                maxVerticalAdjust: 0.1,
+                minDistance: 5,
+                maxDistance: 150,
+                allowDownwardShots: true
+            });
+        }
 
         // Create and fire cannonball
         this.createCannonball(cannonPosition, direction);

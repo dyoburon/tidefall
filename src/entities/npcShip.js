@@ -1162,9 +1162,13 @@ export function createNpcShip(position, options = {}) {
  * @param {number} deltaTime - Time since last update in seconds
  */
 export function updateNpcShips(deltaTime) {
+    // Make active ships available globally for mobile targeting
+    if (typeof window !== 'undefined') {
+        window.activeNpcShips = activeNpcShips;
+    }
+
     // Log the first update call to verify it's running
     if (activeNpcShips.length > 0 && !updateNpcShips.hasLogged) {
-
         updateNpcShips.hasLogged = true;
     }
 

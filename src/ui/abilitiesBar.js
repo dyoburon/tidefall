@@ -62,20 +62,21 @@ class AbilitiesBar {
         // Create the slot container
         const slot = document.createElement('div');
         slot.className = 'ability-slot';
-        slot.style.width = this.isMobile ? '39px' : '60px'; // ~65% size on mobile (was 30px)
-        slot.style.height = this.isMobile ? '39px' : '60px'; // ~65% size on mobile (was 30px)
+        slot.style.width = this.isMobile ? '39px' : '60px';
+        slot.style.height = this.isMobile ? '39px' : '60px';
         slot.style.position = 'relative';
         slot.style.display = 'flex';
         slot.style.justifyContent = 'center';
         slot.style.alignItems = 'center';
         slot.style.borderRadius = this.isMobile ? '4px' : '6px';
-        slot.style.backgroundColor = 'rgba(50, 40, 30, 0.7)'; // Dark wood
-        slot.style.border = this.isMobile ? '0.5px solid #B8860B' : '1px solid #B8860B'; // Thinner border on mobile
+        slot.style.backgroundColor = 'rgba(50, 40, 30, 0.7)';
+        slot.style.border = this.isMobile ? '0.5px solid #B8860B' : '1px solid #B8860B';
         slot.style.boxShadow = this.isMobile ?
             'inset 0 0 5px rgba(20, 15, 10, 0.8)' :
             'inset 0 0 8px rgba(20, 15, 10, 0.8)';
         slot.style.transition = 'all 0.2s ease';
         slot.style.cursor = 'pointer';
+        slot.style.touchAction = 'none'; // Prevent default touch actions
 
         // Add subtle wood grain to slots
         slot.style.backgroundImage = 'linear-gradient(to bottom, rgba(70, 50, 30, 0.5), rgba(40, 30, 20, 0.5))';
@@ -83,14 +84,14 @@ class AbilitiesBar {
         // Element for the ability icon
         const iconPlaceholder = document.createElement('div');
         iconPlaceholder.className = 'ability-icon';
-        iconPlaceholder.style.width = this.isMobile ? '30px' : '46px'; // ~65% size on mobile (was 23px)
-        iconPlaceholder.style.height = this.isMobile ? '30px' : '46px'; // ~65% size on mobile (was 23px)
+        iconPlaceholder.style.width = this.isMobile ? '30px' : '46px';
+        iconPlaceholder.style.height = this.isMobile ? '30px' : '46px';
         iconPlaceholder.style.borderRadius = this.isMobile ? '3px' : '5px';
         iconPlaceholder.style.backgroundSize = 'cover';
         iconPlaceholder.style.backgroundPosition = 'center';
         iconPlaceholder.style.boxShadow = this.isMobile ?
             'inset 0 0 3px rgba(255, 215, 0, 0.2)' :
-            'inset 0 0 5px rgba(255, 215, 0, 0.2)'; // Golden inner glow
+            'inset 0 0 5px rgba(255, 215, 0, 0.2)';
 
         // Add parchment-like texture to icon backgrounds
         iconPlaceholder.style.backgroundImage = 'radial-gradient(circle at center, rgba(225, 205, 170, 0.1) 0%, rgba(200, 180, 150, 0.1) 100%)';
@@ -159,32 +160,43 @@ class AbilitiesBar {
         // Tooltip for ability name
         slot.title = this.abilityNames[index];
 
-        // Interactive effects with nautical highlights
-        slot.addEventListener('mouseover', () => {
-            slot.style.boxShadow = this.isMobile ?
-                'inset 0 0 7px rgba(218, 165, 32, 0.5)' :
-                'inset 0 0 12px rgba(218, 165, 32, 0.5)'; // Golden glow
-            slot.style.transform = 'scale(1.05)';
-        });
+        // Update event listeners for better touch handling
+        if (this.isMobile) {
+            // Touch-specific event handlers
+            slot.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent default to avoid double-firing
+                slot.style.transform = 'scale(0.95)';
+                this.activateAbility(index);
+            }, { passive: false });
 
-        slot.addEventListener('mouseout', () => {
-            slot.style.boxShadow = this.isMobile ?
-                'inset 0 0 5px rgba(20, 15, 10, 0.8)' :
-                'inset 0 0 8px rgba(20, 15, 10, 0.8)';
-            slot.style.transform = 'scale(1)';
-        });
+            slot.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                slot.style.transform = 'scale(1)';
+            }, { passive: false });
+        } else {
+            // Keep existing mouse event handlers for desktop
+            slot.addEventListener('mouseover', () => {
+                slot.style.boxShadow = 'inset 0 0 12px rgba(218, 165, 32, 0.5)';
+                slot.style.transform = 'scale(1.05)';
+            });
 
-        slot.addEventListener('mousedown', () => {
-            slot.style.transform = 'scale(0.95)';
-        });
+            slot.addEventListener('mouseout', () => {
+                slot.style.boxShadow = 'inset 0 0 8px rgba(20, 15, 10, 0.8)';
+                slot.style.transform = 'scale(1)';
+            });
 
-        slot.addEventListener('mouseup', () => {
-            slot.style.transform = 'scale(1.05)';
-        });
+            slot.addEventListener('mousedown', () => {
+                slot.style.transform = 'scale(0.95)';
+            });
 
-        slot.addEventListener('click', () => {
-            this.activateAbility(index);
-        });
+            slot.addEventListener('mouseup', () => {
+                slot.style.transform = 'scale(1.05)';
+            });
+
+            slot.addEventListener('click', () => {
+                this.activateAbility(index);
+            });
+        }
 
         // Assemble the slot components
         slot.appendChild(iconPlaceholder);

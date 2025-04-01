@@ -220,6 +220,33 @@ class AbilityCrosshair {
     }
 
     /**
+     * Gets the target position at the center of the screen
+     * Used for mobile ability targeting
+     * @returns {THREE.Vector3} The target position in world space
+     */
+    getCenterScreenTarget() {
+        // Get the center of the screen
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        // Update screen position to center
+        this.screenPosition = {
+            x: centerX,
+            y: centerY
+        };
+
+        // Update normalized coordinates for center position
+        this.mousePosition.x = 0; // Center is 0 in normalized coordinates
+        this.mousePosition.y = 0;
+
+        // Force an accurate raycast for the center position
+        this.updateTargetPosition(true);
+
+        // Return the target position
+        return this.targetPosition.clone();
+    }
+
+    /**
      * Main update function called each frame
      */
     update() {
