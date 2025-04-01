@@ -717,13 +717,18 @@ class NpcShip {
         const position = this.position.clone();
         position.y += 1; // Raise explosion slightly above water
 
+        // Hide the ship model immediately
+        if (this.shipGroup) {
+            this.shipGroup.visible = false;
+        }
+
         // Create destruction visual effects
         this.createDestructionEffect(position);
 
-        // Remove the ship after a short delay
+        // Remove the ship from game logic after effects have time to play
         setTimeout(() => {
             this.dispose();
-        }, 1000);
+        }, 3000); // Extended to match the longest effect duration (debris is 3 seconds)
 
         // Increment player stats for destroying an NPC ship
         if (source === 'player_cannon') {
