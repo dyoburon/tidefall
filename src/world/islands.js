@@ -50,8 +50,8 @@ const SPAWN_CONTROLS = {
     enableRandomSpawning: false,  // Enable random spawning (was false)
     smugglersHideout: false,
     pirateTavern: false,
-    pirateTavern2: true,  // Changed to true to enable spawning
-    treehouseTavern: true,
+    pirateTavern2: false,  // Disabled
+    treehouseTavern: true,  // Enable Treehouse Tavern
     blockCave: false,
 };
 
@@ -364,9 +364,7 @@ function createIsland(x, z, seed, chunkGroup) {
     }
 
     // Add the Smuggler's Hideout (with a certain probability or on specific islands)
-    if (random() < 1.0) {  // Changed to 1.0 for 100% chance
-
-
+    if (random() < 0.0) {  // Changed to 0% chance for Pirate Tavern 2
         // Find a good spot on the island
         const angle = random() * Math.PI * 2;
         const distance = 35; // Slightly closer to center
@@ -387,9 +385,7 @@ function createIsland(x, z, seed, chunkGroup) {
         });
     }
 
-    if (SPAWN_CONTROLS.treehouseTavern && random() < 0.4) {  // Only spawn if enabled, with 40% chance
-
-
+    if (SPAWN_CONTROLS.treehouseTavern && random() < 1.0) {  // 100% chance for Treehouse Tavern
         // Find a spot with trees on the island
         const angle = random() * Math.PI * 2;
         const distance = 20 + random() * 15; // Position it among the trees
