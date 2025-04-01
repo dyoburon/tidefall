@@ -4,7 +4,7 @@ import { zoomOutForSpeed, resetZoom } from '../controls/cameraControls.js';
 
 /**
  * Sprint - Ability that temporarily boosts the ship's movement speed
- * Activated by pressing Shift, deactivated by pressing Shift again or after duration expires
+ * Activated by pressing Shift, deactivated by releasing Shift
  */
 class Sprint {
     constructor() {
@@ -15,12 +15,8 @@ class Sprint {
         this.isActive = false;
 
         // Sprint configuration
-        this.speedMultiplier = 25.0;
+        this.speedMultiplier = 2.5;
         this.originalMultiplier = 1.0;
-
-        // Duration settings
-        this.duration = 3.0;      // Active duration in seconds
-        this.activeTimer = 0;     // Tracks how long sprint has been active
 
         // Visual effect properties
         this.effectTimer = 0;
@@ -43,16 +39,12 @@ class Sprint {
         // Create the fast ship effect - now using the simplified constructor
         this.speedEffect = new FastShipEffect();
         this.effectInitialized = true;
-
-
     }
 
     /**
      * Called when ability aiming starts
      */
     onAimStart(crosshair) {
-
-
         // Hide the crosshair since this ability doesn't need aiming
         crosshair.stopAiming();
 
@@ -67,9 +59,8 @@ class Sprint {
         // Apply speed boost
         shipSpeedConfig.speedMultiplier = this.originalMultiplier * this.speedMultiplier;
 
-        // Set active state and reset active timer
+        // Set active state
         this.isActive = true;
-        this.activeTimer = 0;
 
         // Reset effect timer
         this.effectTimer = this.effectDuration;
@@ -99,11 +90,10 @@ class Sprint {
     }
 
     /**
-     * Called when ability is manually canceled
+     * Called when ability is manually canceled (when Shift is released)
      */
     onCancel() {
         if (!this.isActive) return true;
-
 
         this.deactivateSprint();
         return true;
@@ -111,7 +101,6 @@ class Sprint {
 
     /**
      * Internal method to handle sprint deactivation
-     * Called both from manual cancel and auto-timeout
      */
     deactivateSprint() {
         // Preserve momentum instead of immediately resetting speed
@@ -126,45 +115,25 @@ class Sprint {
             this.speedEffect.deactivate();
         }
 
-        // Reset camera zoom back to default - but with a slight delay to match momentum
-        // This creates a more natural feel where the camera stays zoomed out briefly
-        // as the ship maintains momentum
+        // Reset camera zoom back to default with a slight delay to match momentum
         setTimeout(() => {
             resetZoom();
         }, this.momentumDuration * 500); // Half the momentum duration in milliseconds
-
-
     }
 
     /**
      * Update function called every frame
      */
     update(deltaTime) {
-        // Handle active sprint duration
         if (this.isActive) {
-            // Increment active timer
-            this.activeTimer += deltaTime;
+            // Update visual effect timer
+            if (this.effectTimer > 0) {
+                this.effectTimer -= deltaTime;
 
-            // Check if sprint duration has expired
-            if (this.activeTimer >= this.duration) {
-
-                this.deactivateSprint();
-            } else {
-                // Update visual effect timer
-                if (this.effectTimer > 0) {
-                    this.effectTimer -= deltaTime;
-
-                    // Periodic visual effect while sprinting
-                    if (this.effectTimer <= 0 && window.showSpeedBoostEffect) {
-                        window.showSpeedBoostEffect(this.speedMultiplier * 0.5);
-                        this.effectTimer = this.effectDuration;
-                    }
-                }
-
-                // Show remaining duration as console feedback
-                if (Math.floor(this.activeTimer * 10) % 10 === 0) {
-                    const remaining = (this.duration - this.activeTimer).toFixed(1);
-
+                // Periodic visual effect while sprinting
+                if (this.effectTimer <= 0 && window.showSpeedBoostEffect) {
+                    window.showSpeedBoostEffect(this.speedMultiplier * 0.5);
+                    this.effectTimer = this.effectDuration;
                 }
             }
         }
