@@ -150,7 +150,7 @@ export function spawnMonstersInChunk(chunkKey, chunkX, chunkZ, options = {}) {
         spawnChance: 0.15,
         minCount: 0,
         maxCount: 1,
-        chunkSize: 500,
+        chunkSize: 1000,
         depth: -20,
         typeWeights: { 'yellowBeast': 1.0 }
     };

@@ -18,7 +18,7 @@ import { createHugeIsland, getHugeIslandColliders } from '../world/hugeIsland.js
 
 export const OPEN_FOG_CONFIG = {
     color: 0xADD8E6,
-    density: 0.0005,            // Appropriate density for exponential fog
+    density: 0.0000,            // Appropriate density for exponential fog
     enableWindEffect: true,    // Whether wind affects fog color
     windEffectColor: 0xADD8E6, // Custom color for wind effect
     windEffectStrength: 0.4    // Strength of wind color effect (0-1)
@@ -120,12 +120,14 @@ class OpenBiome extends BiomeInterface {
 
         const spawnedInThisChunk = [];
 
-        const spawnHugeIsland = Math.random() < 0.5; // 100% probability
+        const spawnHugeIsland = Math.random() < 0.7; // 100% probability
 
         if (spawnHugeIsland) {
-            // Position at center of the chunk
-            const posX = worldX + chunkSize * 0.5;
-            const posZ = worldZ + chunkSize * 0.5;
+            // Instead of placing at exact center, add randomness to position
+            // Use 70% of chunk size as the range for random placement to avoid edge spawning
+            const randomOffset = chunkSize * 0.7;
+            const posX = worldX + (Math.random() * randomOffset) + (chunkSize - randomOffset) * 0.5;
+            const posZ = worldZ + (Math.random() * randomOffset) + (chunkSize - randomOffset) * 0.5;
 
             // Check if too close to player spawn at (0,0)
             const distanceToSpawn = Math.sqrt(posX * posX + posZ * posZ);
@@ -135,8 +137,24 @@ class OpenBiome extends BiomeInterface {
                 // Make sure we don't spawn too close to other islands
                 const position = new THREE.Vector3(posX, 0, posZ);
 
-                // Use larger collision radius for the huge island
-                if (!checkAllIslandCollisions(position, 800)) {
+                // DRASTICALLY increase the minimum spacing between huge islands
+                const hugeIslandMinimumSpacing = 8000; // Very large minimum distance
+
+                // Get all huge island colliders for detailed distance check
+                const hugeColliders = getHugeIslandColliders();
+                let tooCloseToExistingIsland = false;
+
+                // First check against existing huge islands specifically
+                for (const collider of hugeColliders) {
+                    const distance = position.distanceTo(collider.center);
+                    if (distance < hugeIslandMinimumSpacing) {
+                        tooCloseToExistingIsland = true;
+                        break;
+                    }
+                }
+
+                // Only proceed if not too close to other huge islands
+                if (!tooCloseToExistingIsland && !checkAllIslandCollisions(position, 1200)) {
                     const hugeIslandSeed = Math.floor(Math.random() * 1000000);
                     const hugeIsland = createHugeIsland(posX, posZ, hugeIslandSeed, chunkGroup);
 

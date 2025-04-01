@@ -8,7 +8,7 @@ import { OPEN_FOG_CONFIG } from '../biomes/openbiome.js';
 // Configuration parameters with defaults (for exponential fog)
 export const DEFAULT_FOG_CONFIG = {
     color: 0xD3D3D3,           // Red fog
-    density: 0.0003,            // Appropriate density for exponential fog
+    density: 0.0000,            // Appropriate density for exponential fog
     enableWindEffect: true,    // Whether wind affects fog color
     windEffectColor: 0xD3D3D3, // Custom color for wind effect
     windEffectStrength: 0.4    // Strength of wind color effect (0-1)

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createShoreEffect } from './shores.js';
 import { applyOutline } from '../theme/outlineStyles.js';
 import { scene } from '../core/gameState.js';
+import { loadBrightenedModel } from '../utils/islandLoader.js';
 // Constants for island generation
 const ISLAND_SIZE_MULTIPLIER = 2.0; // Makes islands 2x bigger than regular islands
 const MAX_ROCKS_PER_ISLAND = 25;

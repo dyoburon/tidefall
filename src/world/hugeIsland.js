@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { applyOutline } from '../theme/outlineStyles.js';
 import { scene } from '../core/gameState.js';
-import { loadGLBModel } from '../utils/glbLoader.js';
+import { loadBrightenedModel } from '../utils/islandLoader.js';
 import { applyGLBOutline, updateOutlineSettings } from '../utils/glbOutlineEffects.js';
 import { visibleDistance } from './chunkControl.js';
 
@@ -54,14 +54,14 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
     // Create island collider with larger radius
     const collider = {
         center: new THREE.Vector3(x, 0, z),
-        radius: baseRadius * 3,
+        radius: baseRadius * 4,
         id: islandId
     };
     hugeIslandColliders.push(collider);
 
     // Make the scale even larger for better visibility
-    const scaleValue = 3000.0 + random() * 100.0; // Huge scale for better visibility
-    const yOffset = 970;
+    const scaleValue = 3500.0 + random() * 500.0; // Significantly increased scale
+    const yOffset = 700;
 
     console.log(`Loading island model with scale ${scaleValue} at position [0, ${yOffset}, 0]`);
 
@@ -82,8 +82,8 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
         const islandModel = random() < 0.5 ? '/island1.glb' : '/island2.glb';
         console.log(`Selected model: ${islandModel} for island ${islandId}`);
 
-        // Load the GLB model with modified settings
-        loadGLBModel(island, {
+        // Load the GLB model with modified settings using the brightened model loader
+        loadBrightenedModel(island, {
             modelId: islandId,
             modelUrl: islandModel,
             scaleValue: scaleValue,
@@ -147,24 +147,6 @@ export function createHugeIsland(x, z, seed, chunkGroup) {
                     if (child.isMesh) {
                         child.frustumCulled = false;
                         child.renderOrder = 1;
-
-                        // Enhance materials without animation
-                        if (child.material) {
-                            const materials = Array.isArray(child.material) ?
-                                child.material : [child.material];
-
-                            materials.forEach(mat => {
-                                mat.needsUpdate = true;
-                                mat.depthWrite = true;
-                                mat.depthTest = true;
-
-                                // Make it glow a bit
-                                if (mat.color) {
-                                    mat.emissive = mat.color.clone();
-                                    mat.emissiveIntensity = 0.3;
-                                }
-                            });
-                        }
                     }
                 });
 
