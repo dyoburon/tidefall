@@ -84,12 +84,12 @@ export function loadGLBModel(targetGroup, config, onComplete) {
             // Use visibleDistance from chunkControl.js to match view distance
             lod.addLevel(simplifiedModel, visibleDistance * 0.5);  // Medium detail at half visible distance
 
-            // For huge islands, we don't want the tiny box representation at all
-            if (modelId && modelId.includes('huge_island')) {
-                // For huge islands, don't add the box level - keep detailed model visible from all distances
-                // This ensures huge islands are always visible when their chunk is loaded
+            // For huge islands or portals, we don't want the tiny box representation at all
+            if (modelId && (modelId.includes('huge_island') || modelId.includes('portal'))) {
+                // For huge islands and portals, don't add the box level - keep detailed model visible from all distances
+                // This ensures they are always visible when their chunk is loaded
 
-                // Also disable frustum culling for huge islands to ensure visibility
+                // Also disable frustum culling to ensure visibility
                 model.traverse(child => {
                     if (child.isMesh) {
                         child.frustumCulled = false;

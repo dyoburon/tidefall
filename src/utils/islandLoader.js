@@ -9,8 +9,21 @@ import { loadGLBModel } from './glbLoader.js';
  * @returns {Promise} Promise that resolves when the model is loaded
  */
 export function loadBrightenedModel(parent, options, onComplete) {
+    // Ensure we have valid options
+    if (!options || !options.modelUrl) {
+        console.error('Invalid options provided to loadBrightenedModel. Must include modelUrl.');
+        if (onComplete) onComplete(false);
+        return;
+    }
+
     // Use the original loadGLBModel with original options
-    return loadGLBModel(parent, options, (success) => {
+    return loadGLBModel(parent, {
+        modelId: options.modelId || `brightened_${Date.now()}`,
+        modelUrl: options.modelUrl,
+        scaleValue: options.scaleValue || 1.0,
+        position: options.position || [0, 0, 0],
+        rotation: options.rotation || [0, 0, 0]
+    }, (success) => {
         if (success) {
             // Apply brightness enhancement to all meshes after successful load
             parent.traverse(child => {
@@ -48,16 +61,11 @@ export function loadBrightenedModel(parent, options, onComplete) {
                             child.material = newMaterial;
                         }
                     });
-
-
                 }
             });
-
         }
 
-        // Call onComplete callback if provided
-        if (onComplete && typeof onComplete === 'function') {
-            onComplete(success);
-        }
+        // Call the completion callback
+        if (onComplete) onComplete(success);
     });
 } 

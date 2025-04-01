@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { scene, addToScene, getPlayerInfo } from '../core/gameState.js';
 import { createFloatingText } from '../effects/floatingText.js';
 import { applyOutline } from '../theme/outlineStyles';
+import { loadBrightenedModel } from '../utils/islandLoader.js';
 
 // Portal properties
 const PORTAL_RADIUS = 100;
@@ -18,82 +19,31 @@ const PORTAL_COLLISION_RADIUS = 100; // How close the player needs to be to trig
 const portals = [];
 
 /**
- * Creates an arch-shaped portal mesh with glowing effect
+ * Creates a portal using a GLB model with enhanced brightness
  * @param {Object} options Custom options for the portal
- * @returns {THREE.Group} Portal group containing the main mesh and glow effect
+ * @returns {THREE.Group} Portal group containing the GLB model and effects
  */
 function createVibeversePortal(options = {}) {
     // Create a group to hold all portal elements
     const portalGroup = new THREE.Group();
 
-    // Define arch dimensions
-    const width = PORTAL_WIDTH;
-    const height = PORTAL_HEIGHT;
-    const thickness = PORTAL_THICKNESS;
-
-    // Create a simple arch using primitive shapes
-
-    // Left pillar
-    const leftPillarGeometry = new THREE.BoxGeometry(thickness, height * 0.7, thickness);
-
-    // Create material - either textured or solid color
-    let portalMaterial;
-
-    if (options.useTexture && options.textureUrl) {
-        // Create textured material
-        const textureLoader = new THREE.TextureLoader();
-        const texture = textureLoader.load(options.textureUrl);
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(2, 2); // Repeat values for pattern
-
-        // Use MeshBasicMaterial which ignores lighting and is always fully bright
-        portalMaterial = new THREE.MeshBasicMaterial({
-            map: texture,
-            color: 0xffffff, // White color to show texture true colors
-            transparent: false,
-            opacity: 1.0,
-            side: THREE.DoubleSide // Make sure both sides are visible
-        });
-
-        console.log('Loading texture from:', options.textureUrl);
-    } else {
-        // Create default solid color material
-        portalMaterial = new THREE.MeshStandardMaterial({
-            color: PORTAL_COLOR,
-            emissive: PORTAL_COLOR,
-            emissiveIntensity: 0.8,
-            transparent: true,
-            opacity: 0.8
-        });
-    }
-
-    // Top arch - use half torus
-    const archRadius = width / 2;
-    const archGeometry = new THREE.TorusGeometry(
-        archRadius,      // radius
-        thickness / 2,     // tube radius
-        16,              // radial segments
-        32,              // tubular segments
-        Math.PI          // arc angle (half circle)
-    );
-
-    const arch = new THREE.Mesh(archGeometry, portalMaterial);
-    arch.rotation.x = Math.PI / 2;
-    arch.rotation.y = Math.PI / 2;
-    arch.position.set(0, height * 0.7, 0);
-    portalGroup.add(arch);
-
-    // Add simple glow using a plane with transparent material
-    const glowGeometry = new THREE.PlaneGeometry(width - thickness, height * 0.65);
-    const glowMaterial = new THREE.MeshBasicMaterial({
-        color: PORTAL_GLOW_COLOR,
-        transparent: true,
-        opacity: 0.3,
-        side: THREE.DoubleSide
+    // Load the GLB model using the brightened loader
+    loadBrightenedModel(portalGroup, {
+        modelId: `portal_${options.name || Date.now()}`, // Include 'portal' in the ID
+        modelUrl: options.modelPath,
+        scaleValue: options.scale || 1.0,
+        position: [0, 0, 0],
+        rotation: Array.isArray(options.rotation) ? options.rotation :
+            options.rotation ? [options.rotation.x || 0, options.rotation.y || 0, options.rotation.z || 0] : [0, 0, 0]
+    }, (success) => {
+        if (success) {
+            console.log('Portal model loaded successfully');
+            applyOutline(portalGroup);
+        } else {
+            console.error('Failed to load portal model');
+        }
     });
 
-    applyOutline(portalGroup);
     return portalGroup;
 }
 
@@ -101,27 +51,25 @@ function createVibeversePortal(options = {}) {
  * Creates a new portal and places it in the world
  * @param {THREE.Vector3} position The world position for the portal
  * @param {String} text The text to display above the portal
+ * @param {String} url The URL to navigate to when entering the portal
  * @param {Object} options Additional options for portal placement
  * @returns {Object} The portal object with its properties and instance
  */
 export function createPortal(position, text, url, options = {}) {
-    // Check if this is a Metaverse portal (to use the image texture)
-    const portalOptions = {};
+    // Configure portal options based on type
+    const portalOptions = {
+        modelPath: options.modelPath || './models/portal.glb', // Default portal model
+        scale: options.scale || 1.0
+    };
 
-    if (text === "Metaverse") {
-        // Use the provided image as a texture
-        // You'll need to provide the path to your image
-        portalOptions.useTexture = true;
-        portalOptions.textureUrl = './zuck.jpg'; // Replace with your actual image path
-    }
-
+    // Create the portal with the GLB model
     const portal = createVibeversePortal(portalOptions);
 
     // Set the portal position
     portal.position.copy(position);
 
-    // Set default orientation (vertical)
-    portal.rotation.x = -Math.PI / 2; // Make it parallel to the ground
+    // Set default orientation (adjust based on your GLB model's default orientation)
+    portal.rotation.y = Math.PI; // Rotate to face the player
 
     // Apply any custom rotation if specified
     if (options.rotation) {
@@ -132,17 +80,17 @@ export function createPortal(position, text, url, options = {}) {
 
     // Add a simple floating text above the portal
     const textPosition = position.clone();
-    textPosition.y += 86; // Position above the arch
+    textPosition.y += 250; // Position above the portal model
     textPosition.z -= 100;
 
     const textObj = createFloatingText({
         text: text,
         position: textPosition,
-        color: 0xFFFFFF, // Brighter red
-        size: 400, // Larger size
-        duration: 100.0, // Longer duration
+        color: 0xFFFFFF,
+        size: 500,
+        duration: 100.0,
         disappear: false,
-        riseFactor: 0.0, // Slower rise
+        riseFactor: 0.0,
         fadeOut: false
     });
 

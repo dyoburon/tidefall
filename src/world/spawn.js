@@ -18,8 +18,22 @@ const SPAWN_CONFIG = {
 
     // Portal configuration
     portalPositions: [
-        { x: -500, y: 0, z: 0, name: "Vibeverse", url: "https://portal.pieter.com" },
-        { x: -500, y: 0, z: 600, name: "Jetski", url: "https://jetski.cemilsevim.com/" },
+        {
+            x: -500, y: 125, z: 0,
+            name: "Vibeverse",
+            url: "https://portal.pieter.com",
+            modelPath: './portal_green.glb',
+            scale: 350.0,
+            rotation: { x: 0, y: Math.PI / 2, z: 0 } // Rotate 180 degrees around Y axis
+        },
+        {
+            x: -500, y: 125, z: 600,
+            name: "Jetski",
+            url: "https://jetski.cemilsevim.com/",
+            modelPath: './portal_blue.glb',
+            scale: 350.0,
+            rotation: { x: 0, y: Math.PI / 2, z: 0 } // Rotate 180 degrees around Y axis
+        },
     ],
 
     // NPC ship configuration - expanded with more ships and ship types
@@ -210,7 +224,12 @@ function spawnPortals() {
         const portal = createPortal(
             position,
             portalConfig.name,
-            portalConfig.url
+            portalConfig.url,
+            {
+                modelPath: portalConfig.modelPath,
+                scale: portalConfig.scale,
+                rotation: portalConfig.rotation
+            }
         );
 
         spawnedElements.portals.push(portal);
