@@ -364,7 +364,7 @@ function createIsland(x, z, seed, chunkGroup) {
     }
 
     // Add the Smuggler's Hideout (with a certain probability or on specific islands)
-    if (random() < 0.0) {  // Changed to 0% chance for Pirate Tavern 2
+    if (SPAWN_CONTROLS.pirateTavern2 && random() < 0.0) {  // Only spawn if enabled in SPAWN_CONTROLS and passes random check
         // Find a good spot on the island
         const angle = random() * Math.PI * 2;
         const distance = 35; // Slightly closer to center
