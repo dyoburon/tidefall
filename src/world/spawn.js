@@ -16,7 +16,7 @@ const SPAWN_CONFIG = {
     hugeIslandSeed: 42424242,
 
     // Respawn configuration
-    respawnTime: 5, // Time in seconds before a destroyed ship respawns
+    respawnTime: 15, // Time in seconds before a destroyed ship respawns
     respawnEnabled: true, // Whether respawning is enabled
 
     // Portal configuration
