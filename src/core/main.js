@@ -262,6 +262,9 @@ async function initializeFirebaseAuth() {
     // Show Firebase auth popup
     Firebase.showAuthPopup((user) => {
         // For mobile devices, skip the login process
+        onAuthAndLoginComplete(user);
+        return;
+
         if (isTouchDevice()) {
             onAuthAndLoginComplete(user);
             return;
@@ -296,10 +299,7 @@ async function initializeFirebaseAuth() {
         }
     });
 
-    // For mobile devices, skip the login check
-    if (isTouchDevice()) {
-        return;
-    }
+    return;
 
     if (!localStorage.getItem('playerName') || !localStorage.getItem('playerBoat')) {
         showLoginScreen(() => {
