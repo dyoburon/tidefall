@@ -258,7 +258,7 @@ class GameUI {
             fishingContainer.style.fontSize = '9px';  // Smaller font for mobile
         } else {
             fishingContainer.style.width = '180px';
-            fishingContainer.style.height = '170px';
+            fishingContainer.style.height = '203px';
             fishingContainer.style.fontSize = '12px';
         }
         fishingContainer.style.backgroundColor = '#3A2616';
@@ -527,7 +527,175 @@ class GameUI {
         // Store references in elements
         this.elements.inventory = inventory;
 
+        // Add controls section for desktop only
+        if (!isTouchDevice()) {
+            this.createControlsSection();
+        }
+
         return inventory;
+    }
+
+    createControlsSection() {
+        // Create controls container with ornate styling
+        const controlsContainer = document.createElement('div');
+        controlsContainer.id = 'controls-ui';
+        controlsContainer.style.position = 'fixed';
+        controlsContainer.style.bottom = '20px'; // Match fishing station's bottom position
+        controlsContainer.style.left = '220px';  // 20px (fishing station left) + 180px (fishing width) + 20px (gap)
+        controlsContainer.style.width = '500px';
+        controlsContainer.style.backgroundColor = '#3A2616';
+        controlsContainer.style.padding = '0';
+        controlsContainer.style.borderRadius = '8px';
+        controlsContainer.style.border = '2px solid #DAA520';
+        controlsContainer.style.boxShadow = '0 0 15px rgba(0, 0, 0, 0.7), inset 0 0 5px rgba(0, 0, 0, 0.3)';
+        controlsContainer.style.overflow = 'hidden';
+        controlsContainer.style.pointerEvents = 'auto';
+        controlsContainer.style.zIndex = '999';
+        document.body.appendChild(controlsContainer);
+
+        // Create header bar
+        const headerBar = document.createElement('div');
+        headerBar.style.backgroundColor = '#4A2D17';
+        headerBar.style.padding = '6px 10px'; // Reduced padding
+        headerBar.style.borderBottom = '2px solid #DAA520';
+        headerBar.style.textAlign = 'center';
+        headerBar.style.position = 'relative';
+        headerBar.style.backgroundImage = 'linear-gradient(to bottom, #5A3D27, #4A2D17)';
+        controlsContainer.appendChild(headerBar);
+
+        // Controls label
+        const controlsLabel = document.createElement('div');
+        controlsLabel.textContent = 'SHIP CONTROLS';
+        controlsLabel.style.color = '#FFD700';
+        controlsLabel.style.fontFamily = 'serif';
+        controlsLabel.style.fontWeight = 'bold';
+        controlsLabel.style.fontSize = '14px'; // Reduced font size
+        controlsLabel.style.letterSpacing = '2px';
+        controlsLabel.style.textShadow = '0 2px 4px rgba(0,0,0,0.8)';
+        headerBar.appendChild(controlsLabel);
+
+        // Content container
+        const contentContainer = document.createElement('div');
+        contentContainer.style.padding = '10px'; // Reduced padding
+        contentContainer.style.backgroundColor = '#3A2616';
+        contentContainer.style.backgroundImage = 'radial-gradient(circle at center, #3A2616 0%, #2A1606 100%)';
+        contentContainer.style.display = 'grid';
+        contentContainer.style.gridTemplateColumns = '1fr 1fr'; // Two columns
+        contentContainer.style.gap = '10px';
+        controlsContainer.appendChild(contentContainer);
+
+        // Create control sections with updated content
+        const sections = [
+            {
+                title: 'Navigation',
+                controls: [
+                    { key: 'W / ↑', action: 'Forward' },
+                    { key: 'S / ↓', action: 'Backward' },
+                    { key: 'A / ←', action: 'Turn Left' },
+                    { key: 'D / →', action: 'Turn Right' },
+                    { key: 'L', action: 'Camera Lock' }
+                ]
+            },
+            {
+                title: 'Combat',
+                controls: [
+                    { key: 'Q', action: 'Cannon Shot' },
+                    { key: 'R', action: 'Harpoon' },
+                    { key: 'T', action: 'Scatter Shot' },
+                    { key: 'SHIFT', action: 'Sprint' },
+                    { key: '`', action: 'Terminal' }
+                ]
+            }
+        ];
+
+        sections.forEach((section, index) => {
+            const sectionContainer = document.createElement('div');
+
+            // Section title
+            const sectionTitle = document.createElement('div');
+            sectionTitle.textContent = section.title;
+            sectionTitle.style.color = '#FFD700';
+            sectionTitle.style.fontWeight = 'bold';
+            sectionTitle.style.fontSize = '12px'; // Reduced font size
+            sectionTitle.style.marginBottom = '8px';
+            sectionTitle.style.borderBottom = '1px solid rgba(218, 165, 32, 0.3)';
+            sectionTitle.style.paddingBottom = '4px';
+            sectionContainer.appendChild(sectionTitle);
+
+            // Controls grid
+            const controlsGrid = document.createElement('div');
+            controlsGrid.style.display = 'grid';
+            controlsGrid.style.gridTemplateColumns = '70px 1fr'; // Reduced key column width
+            controlsGrid.style.gap = '4px'; // Reduced gap
+            controlsGrid.style.fontSize = '11px'; // Reduced font size
+            sectionContainer.appendChild(controlsGrid);
+
+            section.controls.forEach(control => {
+                // Key element
+                const keyElement = document.createElement('div');
+                keyElement.textContent = control.key;
+                keyElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+                keyElement.style.padding = '4px 6px'; // Reduced padding
+                keyElement.style.borderRadius = '4px';
+                keyElement.style.color = '#FFD700';
+                keyElement.style.fontFamily = 'monospace';
+                keyElement.style.textAlign = 'center';
+                keyElement.style.border = '1px solid rgba(218, 165, 32, 0.5)';
+                keyElement.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.2)';
+                controlsGrid.appendChild(keyElement);
+
+                // Action element
+                const actionElement = document.createElement('div');
+                actionElement.textContent = control.action;
+                actionElement.style.padding = '4px 6px'; // Reduced padding
+                actionElement.style.color = '#E6C68A';
+                actionElement.style.display = 'flex';
+                actionElement.style.alignItems = 'center';
+                actionElement.style.fontSize = '11px'; // Reduced font size
+                controlsGrid.appendChild(actionElement);
+            });
+
+            contentContainer.appendChild(sectionContainer);
+        });
+
+        // Add minimize button
+        const minimizeButton = document.createElement('button');
+        minimizeButton.textContent = '▼';
+        minimizeButton.style.position = 'absolute';
+        minimizeButton.style.right = '10px';
+        minimizeButton.style.top = '50%';
+        minimizeButton.style.transform = 'translateY(-50%)';
+        minimizeButton.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+        minimizeButton.style.border = '1px solid #DAA520';
+        minimizeButton.style.borderRadius = '4px';
+        minimizeButton.style.color = '#FFD700';
+        minimizeButton.style.cursor = 'pointer';
+        minimizeButton.style.fontSize = '12px';
+        minimizeButton.style.padding = '2px 6px';
+        minimizeButton.style.transition = 'all 0.2s ease';
+        headerBar.appendChild(minimizeButton);
+
+        // Add hover effect to minimize button
+        minimizeButton.addEventListener('mouseover', () => {
+            minimizeButton.style.backgroundColor = 'rgba(218, 165, 32, 0.2)';
+        });
+        minimizeButton.addEventListener('mouseout', () => {
+            minimizeButton.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+        });
+
+        let isMinimized = false;
+        minimizeButton.addEventListener('click', () => {
+            if (isMinimized) {
+                contentContainer.style.display = 'grid'; // Changed to grid to maintain layout
+                minimizeButton.textContent = '▼';
+            } else {
+                contentContainer.style.display = 'none';
+                minimizeButton.textContent = '▲';
+            }
+            isMinimized = !isMinimized;
+        });
+
+        return controlsContainer;
     }
 
     updateInventoryContent() {
