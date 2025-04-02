@@ -385,7 +385,7 @@ function createIsland(x, z, seed, chunkGroup) {
         });
     }
 
-    if (SPAWN_CONTROLS.treehouseTavern && random() < 1.0) {  // 100% chance for Treehouse Tavern
+    if (SPAWN_CONTROLS.treehouseTavern && random() < 0.0) {  // 100% chance for Treehouse Tavern
         // Find a spot with trees on the island
         const angle = random() * Math.PI * 2;
         const distance = 20 + random() * 15; // Position it among the trees
