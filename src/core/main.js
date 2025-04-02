@@ -1560,10 +1560,10 @@ function onAuthAndLoginComplete(user) {
     // Check if MOTD should be shown based on localStorage
     if (shouldShowMessageOfDay()) {
 
-        showMessageOfDay(() => {
+        /*showMessageOfDay(() => {
 
             initializeGameAfterLogin(user);
-        });
+        });*/
     } else {
 
         // Proceed directly to game initialization
