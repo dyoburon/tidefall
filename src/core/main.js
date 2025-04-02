@@ -141,14 +141,15 @@ const effectsComposer = initGLBOutlineEffects(scene, camera, renderer, {
 
 // Add sky setup here
 setupSky();
-// Enable realistic sky with clouds and stars
 
-
+// Initialize touch controls first on mobile devices
 if (isTouchDevice()) {
     initTouchControls();
-
+} else {
+    // Only initialize music automatically on desktop
+    MusicSystem.playMusic();
+    MusicSystem.playOceanSound();
 }
-
 
 // Force removal of any existing sky before toggling
 if (window.realisticSkyMesh) {
@@ -183,7 +184,6 @@ if (window.realisticSkyMesh) {
 }
 
 requestLeaderboard();
-MusicSystem.playMusic();
 MusicSystem.setVolume(0.1); // 30% volume
 
 // Test Rocky Islands - set to true to create test islands

@@ -1,6 +1,7 @@
 import nipplejs from 'nipplejs';
 import { keys, boat, boatVelocity } from '../core/gameState.js';
 import * as THREE from 'three';
+import MusicSystem from '../audio/music.js';
 
 // Get access to camera controls
 let cameraOrbitPosition;
@@ -140,7 +141,15 @@ function createJoystickContainer(id, leftPos, bottomPos) {
 }
 
 // Handle movement joystick (controls both forward/backward AND rotation)
+let firstJoystickInteraction = true;
 function handleMovementJoystickMove(event, data) {
+    // Initialize music on first joystick interaction
+    if (firstJoystickInteraction) {
+        firstJoystickInteraction = false;
+        MusicSystem.playMusic();
+        MusicSystem.playOceanSound();
+    }
+
     // Get direction vector and force
     const angle = data.angle.radian;
     const force = Math.min(1, data.force);
