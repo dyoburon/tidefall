@@ -258,7 +258,7 @@ class GameUI {
             fishingContainer.style.fontSize = '9px';  // Smaller font for mobile
         } else {
             fishingContainer.style.width = '180px';
-            fishingContainer.style.height = '203px';
+            fishingContainer.style.height = '214px';
             fishingContainer.style.fontSize = '12px';
         }
         fishingContainer.style.backgroundColor = '#3A2616';
