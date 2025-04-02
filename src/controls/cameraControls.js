@@ -449,6 +449,10 @@ export function resetZoom() {
 
 // Function to zoom out for fast movement
 export function zoomOutForSpeed() {
+    // Skip zoom out on mobile devices
+    if (touchControlsActive) {
+        return;
+    }
     return zoomCameraTo(120); // Zoom out to see more when moving fast
 }
 
