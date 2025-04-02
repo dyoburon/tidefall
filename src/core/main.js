@@ -1564,11 +1564,11 @@ function onAuthAndLoginComplete(user) {
 
             initializeGameAfterLogin(user);
         });*/
-    } else {
-
-        // Proceed directly to game initialization
-        initializeGameAfterLogin(user);
     }
+
+    // Proceed directly to game initialization
+    initializeGameAfterLogin(user);
+
 }
 
 /**
