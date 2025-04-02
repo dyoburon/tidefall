@@ -18,7 +18,7 @@ const PORTAL_COLORS = {
     default: 0x00ff66 // Default fallback color
 };
 const PORTAL_GLOW_COLOR = 0x66ffaa;
-const PORTAL_COLLISION_RADIUS = 100; // How close the player needs to be to trigger the portal
+const PORTAL_COLLISION_RADIUS = 200; // How close the player needs to be to trigger the portal
 
 // Array to track all portals in the game
 const portals = [];
