@@ -169,7 +169,7 @@ export const respawnManager = {
      */
     getRespawnPosition() {
         // Default to origin if no other logic is available
-        return new THREE.Vector3(750, 0.5, 527);
+        return new THREE.Vector3(1000, 0.5, 200);
 
         // In the future, could implement more complex logic:
         // - Spawn near teammates

@@ -345,7 +345,7 @@ export function createBoat(scene) {
     loadShipFromPlayerSelection(boat);
 
     // Position the boat
-    boat.position.set(750, 0.5, 527);
+    boat.position.set(1000, 0.5, 200);
 
     // Set initial rotation (in radians)
     // Parameters are (x, y, z) where:

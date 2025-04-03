@@ -106,7 +106,7 @@ export function createPortal(position, text, url, options = {}) {
 
     // Add a huge floating text above the portal
     const textPosition = position.clone();
-    textPosition.y += 250;
+    textPosition.y += 150;
     textPosition.z += 0;
 
     const textObj = createHugeFloatingText({

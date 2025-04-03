@@ -23,19 +23,27 @@ const SPAWN_CONFIG = {
     // Portal configuration
     portalPositions: [
         {
-            x: -500, y: 125, z: 0,
+            x: -500, y: 60, z: 0,
             name: "Vibeverse",
             url: "https://portal.pieter.com",
             modelPath: './portal_green.glb',
-            scale: 350.0,
+            scale: 175.0,
             rotation: { x: 0, y: Math.PI / 2, z: 0 } // Rotate 180 degrees around Y axis
         },
         {
-            x: -500, y: 125, z: 600,
+            x: -500, y: 60, z: -600,
+            name: "Metaverse",
+            url: "https://thevibemetaverse.com",
+            modelPath: './portal_blue.glb',
+            scale: 175.0,
+            rotation: { x: 0, y: Math.PI / 2, z: 0 } // Rotate 180 degrees around Y axis
+        },
+        {
+            x: -500, y: 60, z: 600,
             name: "Jetski",
             url: "https://jetski.cemilsevim.com/",
             modelPath: './portal_blue.glb',
-            scale: 350.0,
+            scale: 175.0,
             rotation: { x: 0, y: Math.PI / 2, z: 0 } // Rotate 180 degrees around Y axis
         },
         {
