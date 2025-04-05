@@ -6,6 +6,9 @@ import { touchControlsActive } from './touchControls.js';
 const DEFAULT_DISTANCE = 261;
 const DEFAULT_PHI = 0.74; // Vertical angle
 const DEFAULT_THETA = 1.7; // Horizontal angle
+const MIN_DISTANCE = 120; // Minimum zoom distance
+const MAX_DISTANCE = 400; // Maximum zoom distance
+const ZOOM_SPEED = 15; // Zoom speed factor
 
 // MOBA camera state
 let cameraLocked = true; // Default to locked
@@ -24,13 +27,82 @@ export function initMOBACamera() {
     // Set initial camera position
     updateCameraPosition();
 
-    // No event listeners needed as we're locking the camera
+    // Add mouse wheel event listener for zooming
+    window.addEventListener('wheel', handleMouseWheel, false);
+
+    // Add touch pinch zoom handler if touch controls are active
+    if (touchControlsActive) {
+        let initialTouchDistance = 0;
+        let currentDistance = window.cameraOrbitPosition.distance;
+
+        window.addEventListener('touchstart', (event) => {
+            if (event.touches.length === 2) {
+                initialTouchDistance = getTouchDistance(event.touches[0], event.touches[1]);
+                currentDistance = window.cameraOrbitPosition.distance;
+            }
+        }, false);
+
+        window.addEventListener('touchmove', (event) => {
+            if (event.touches.length === 2) {
+                const currentTouchDistance = getTouchDistance(event.touches[0], event.touches[1]);
+                const scale = initialTouchDistance / currentTouchDistance;
+
+                // Adjust zoom based on pinch gesture
+                window.cameraOrbitPosition.distance = clampDistance(currentDistance * scale);
+                updateCameraPosition();
+
+                event.preventDefault(); // Prevent default browser pinch zoom
+            }
+        }, false);
+    }
 
     // Expose camera lock function to window
     window.toggleCameraLock = toggleCameraLock;
     window.updateMOBACamera = updateCameraPosition;
 
     return cameraLocked;
+}
+
+/**
+ * Handle mouse wheel events for zooming
+ * @param {WheelEvent} event - Mouse wheel event
+ */
+function handleMouseWheel(event) {
+    // Determine zoom direction based on wheel delta
+    const zoomDirection = Math.sign(event.deltaY);
+
+    // Adjust distance based on zoom direction and speed
+    window.cameraOrbitPosition.distance += zoomDirection * ZOOM_SPEED;
+
+    // Clamp distance to min/max values
+    window.cameraOrbitPosition.distance = clampDistance(window.cameraOrbitPosition.distance);
+
+    // Update camera position with new distance
+    updateCameraPosition();
+
+    // Prevent default browser behavior
+    event.preventDefault();
+}
+
+/**
+ * Clamp distance between minimum and maximum values
+ * @param {number} distance - Distance to clamp
+ * @returns {number} - Clamped distance
+ */
+function clampDistance(distance) {
+    return Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, distance));
+}
+
+/**
+ * Calculate distance between two touch points
+ * @param {Touch} touch1 - First touch point
+ * @param {Touch} touch2 - Second touch point
+ * @returns {number} - Distance between touch points
+ */
+function getTouchDistance(touch1, touch2) {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 /**
@@ -153,4 +225,4 @@ export function notifyAbilityUsed() {
 }
 
 // Make this function available globally so ability manager can call it
-window.notifyCameraAbilityUsed = notifyAbilityUsed; 
+window.notifyCameraAbilityUsed = notifyAbilityUsed;
