@@ -4,6 +4,13 @@ import { checkAllIslandCollisions } from '../world/islands.js';
 import { boatFlyState } from '../commands/boatFlyCommands.js';
 import { initWakeEffect, updateWakeEffect } from '../effects/wakeEffect.js';
 
+// Navigation variables for click-based movement
+export let targetDestination = null;
+export let isNavigatingToDestination = false;
+export const navigationTolerance = 5.0; // Distance threshold to consider destination reached
+export const maxNavigationTime = 60.0; // Safety timeout (in seconds)
+export let navigationStartTime = 0;
+
 // Add this near your other exports
 export let knockbackActive = false;
 export let knockbackTimer = 0;

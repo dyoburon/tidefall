@@ -1,120 +1,43 @@
-<<<<<<< HEAD
-Step 1.1: Setup Harpoon Handler Structure & Initialization
-Task: Create the basic file structure and initialize the handler within the main application.
-File: api/harpoon_handler.py
-Create the file.
-Add basic imports (time, math, logging, emit, player_handler, simulations).
-Define module-level constants: HARPOON_SPEED, HARPOON_LIFETIME, HARPOON_COOLDOWN, HARPOON_HIT_RADIUS.
-Define empty module-level dictionaries: harpoons = {}, player_harpoon_cooldowns = {}.
-Define placeholder module-level variables: socketio = None, players = None.
-Implement the init_socketio(socketio_instance, players_reference) function:
-Assign socketio_instance and players_reference to the module-level variables.
-Add logging to indicate initialization.
-Register the event listener: socketio.on_event('harpoon_fire', handle_harpoon_fire). (The handler function itself will be implemented later).
-File: api/app.py
-Import the harpoon_handler module.
-After initializing player_handler and obtaining the players reference, call harpoon_handler.init_socketio(socketio, players).
-Step 1.2: Implement Harpoon Firing Logic (handle_harpoon_fire)
-Task: Handle incoming requests from clients to fire a harpoon, perform validation and cooldown checks, create a server-side representation of the projectile, and notify clients.
-File: api/harpoon_handler.py
-Implement the handle_harpoon_fire(data) function.
-Inside the function:
-Extract player_id, position, direction from data. Log received data.
-Validation:
-Check if player_id exists in the players dictionary. Log warning and return if not found.
-Check if position and direction are dictionaries with 'x', 'y', 'z' keys. Log error and return if format is invalid.
-Cooldown Check:
-Get current_time = time.time().
-Check if player_id is in player_harpoon_cooldowns and if current_time - player_harpoon_cooldowns[player_id] < HARPOON_COOLDOWN.
-If on cooldown, log info and return. (Optional: Emit a 'cooldown' message back to the specific player using their SID from player_handler).
-Create Projectile:
-Update player_harpoon_cooldowns[player_id] = current_time.
-Generate a unique harpoon_id (e.g., f"harpoon_{player_id}_{current_time}").
-Create harpoon_data dictionary: { 'id', 'owner', 'position', 'direction', 'created_at', 'expires_at' }.
-Store harpoon_data in the global harpoons dictionary: harpoons[harpoon_id] = harpoon_data.
-Emit Events:
-Emit harpoon_fired_broadcast to all other clients (broadcast=True, include_self=False) with harpoon_id, owner_id, position, direction, speed.
-(Optional but recommended) Look up the firing player's SID using player_handler.get_player_sid(player_id). If found, emit harpoon_fired_confirmed back to only that player (room=player_sid) with the harpoon_id.
-Step 1.3: Implement Harpoon Projectile Update Loop
-Task: Create the background task that periodically updates the position of active harpoons and removes expired ones.
-File: api/harpoon_handler.py
-Implement the update_harpoon_positions() function.
-Inside the function:
-Get current_time.
-Create an empty list expired_harpoons.
-Iterate through a copy of harpoons.items().
-For each harpoon_id, harpoon:
-Check for expiry: If current_time >= harpoon['expires_at'], add harpoon_id to expired_harpoons and continue.
-Calculate time_elapsed = current_time - harpoon['created_at'].
-Calculate the new position: new_pos_x = harpoon['direction']['x'] * HARPOON_SPEED * time_elapsed + initial_x, etc. (Simple linear motion for now). Update harpoon['position'].
-Call hit_detected = check_harpoon_collisions(harpoon_id, harpoon) (Function implemented in next step).
-If hit_detected is True, add harpoon_id to expired_harpoons.
-After the loop, iterate through expired_harpoons and del harpoons[harpoon_id] for each ID found. Log how many were cleaned up.
-Implement the start_harpoon_update_loop(socketio_instance) function.
-Inside the function:
-Define a nested function _harpoon_update_task().
-Inside _harpoon_update_task(): Use a while True loop. Inside the loop, call update_harpoon_positions(), then socketio_instance.sleep(0.05) (or desired interval). Include basic try...except logging for errors within the loop.
-Start the background task: socketio_instance.start_background_task(_harpoon_update_task).
-Log that the loop has started.
-Modify init_socketio to call start_harpoon_update_loop(socketio_instance) at the end.
-Step 1.4: Implement Player Collision Detection & Hit Handling
-Task: Check each moving harpoon against player positions and handle the consequences of a successful hit by updating server state and emitting confirmation events.
-File: api/harpoon_handler.py
-Implement the check_harpoon_collisions(harpoon_id, harpoon) function.
-Inside the function:
-Get harpoon_pos = harpoon['position'] and owner_id = harpoon['owner'].
-Iterate through the global players.items().
-For each player_id, player_data:
-Skip self-hit: if player_id == owner_id: continue.
-Skip inactive/invalid targets: Check player_data.get('active', False) and potentially other conditions like health > 0.
-Get player_pos = player_data.get('position'). Ensure it's valid.
-Calculate distance using simulations.calculate_distance(harpoon_pos, player_pos) or direct math.
-Check collision: if distance <= HARPOON_HIT_RADIUS: (or use simulations.check_collision).
-If collision:
-Call handle_harpoon_player_hit(harpoon, player_id, player_data).
-Return True (signals the harpoon is done and should be removed by the update loop).
-If loop completes without collision, return False.
-Implement the handle_harpoon_player_hit(harpoon, hit_player_id, hit_player_data) function.
-Inside the function:
-Log the successful hit: f"Harpoon {harpoon['id']} from {harpoon['owner']} hit player {hit_player_id}".
-Update Hit Player State: Modify the hit_player_data dictionary on the server. Add a key to indicate they are harpooned, e.g., hit_player_data['harpooned_by'] = harpoon['owner']. (The exact structure depends on how player state/effects are managed. If using a list/dict for effects: hit_player_data.setdefault('status_effects', {})['is_harpooned_by'] = harpoon['owner']).
-Emit Confirmation to Shooter:
-Look up shooter's SID: shooter_sid = player_handler.get_player_sid(harpoon['owner']).
-If shooter_sid: emit('harpoon_hit_confirmed', {'harpoon_id': harpoon['id'], 'hit_player_id': hit_player_id}, room=shooter_sid).
-Emit Notification to Target:
-Look up target's SID: target_sid = player_handler.get_player_sid(hit_player_id).
-If target_sid: emit('player_harpooned', {'harpoon_id': harpoon['id'], 'reeled_by_id': harpoon['owner']}, room=target_sid). (Using player_harpooned as the event name for clarity in this phase).
-=======
-Step 1: Create Portal Structure and Visual Components
-File: /Users/dylanburton/Desktop/game/src/portals/vibeverse.js (new file)
-Create a createVibeversePortal function that will:
-Generate a circular green portal mesh (as shown in the image)
-Set up portal animation effects (glow, rotation)
-Create a placePortalInWorld function to position the portal in a designated location
-Step 2: Implement Reusable Portal Collision Logic
-File: /Users/dylanburton/Desktop/game/src/portals/vibeverse.js
-Create a generic checkPortalCollision function that:
-Takes portal position and player/boat position as parameters
-Calculates distance and determines if a collision occurred
-Returns boolean indicating collision status
-Export this function so it can be reused with other portals
-Create a handlePortalEntry function that will:
-Generate the portal URL with the required parameters
-Handle the redirection to "http://portal.pieter.com" with:
-ref=tidefall.io
-username parameter from player data
-No other parameters for now as specified
-Step 3: Integrate Portal with Game State
-File: /Users/dylanburton/Desktop/game/src/core/gameState.js
-Add portal object to the exported objects
-Import the Vibeverse portal module
-Add a function to initialize the portal in the game world
-Add a portal activation state to track when a player has entered the portal
-Step 4: Connect Portal to the Main Game Loop
-File: /Users/dylanburton/Desktop/game/src/main.js
-Import the portal collision detection function from vibeverse.js
-Get the boat position from gameState
-Add portal collision check to the update cycle using boat position
-Ensure portal visual effects are updated each frame
-Handle transition/redirection when a player enters the portal
->>>>>>> parent of 18ec5ce (Merge branch 'newradar')
+Step 1: Implement Click-Based Navigation System
+File: src/core/shipController.js
+
+Add new navigation variables:
+targetDestination - Vector3 position representing click destination
+isNavigatingToDestination - Boolean flag for auto-navigation state
+navigationTolerance - Distance threshold to consider destination reached
+maxNavigationTime - Safety timeout for navigation attempts
+navigationStartTime - To track time spent navigating to a destination
+File: src/core/main.js
+
+Remove the existing keyboard event listeners for ship movement (WASD controls)
+Implement a new click event listener that:
+Uses the existing worldRaycaster.screenToWorld() function to get the world position
+Sets the navigation target in the ship controller
+Creates a visual marker at the click location
+Keep keyboard listeners for non-movement commands (inventory, abilities, etc.)
+Step 2: Enhance Ship Movement Logic
+File: src/core/shipController.js
+
+Add a new function navigateToDestination(destination) to:
+Set the target destination
+Enable navigation mode
+Reset navigation timers
+Modify updateShipMovement() to:
+Check if navigation is active
+Calculate direction to target
+Set appropriate virtual "key" states based on navigation needs
+Handle reaching the destination or timing out
+Add a function to cancel navigation (for manual override)
+Maintain the existing physics model for consistent ship handling
+Step 3: Visual Feedback & UI Integration
+File: src/core/main.js and potentially a new visual effect file
+
+Create visual indicators for destination and path:
+Add a marker mesh at the click location
+Implement a fading effect for the marker
+Optionally add a line or particle effect showing the path
+Add visual feedback when:
+Destination is set (confirmation)
+Destination is reached
+Navigation is canceled
+Ensure mouse cursor changes to indicate clickable water areas

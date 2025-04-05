@@ -25,7 +25,7 @@ import {
     checkIslandCollision
 } from '../world/islandManager.js';
 import MusicSystem from '../audio/music.js';
-import { initCameraControls, updateCameraPosition } from '../controls/cameraControls.js';
+import { initMOBACamera, updateCameraPosition, setInitialCameraPosition } from '../controls/mobaCameraControls.js';
 import { setupWater, updateWater } from '../environment/water.js';
 import { initDiagnostics, updateDiagnosticsDisplay, ENABLE_DIAGNOSTICS } from '../ui/diagnostics.js';
 import * as Firebase from './firebase.js';
@@ -122,8 +122,23 @@ camera.far = 50000;
 camera.updateProjectionMatrix();
 
 
-initCameraControls();
+initMOBACamera();
 
+// --- Set Explicit Initial Camera Position ---
+const boatSpawnPos = new THREE.Vector3(1000, 0.5, 200);
+const initialDistance = 261;
+const initialPhi = 0.74;
+const initialTheta = Math.PI - Math.PI / 12; // PI puts it behind, -PI/12 shifts it to the left
+
+setInitialCameraPosition(boatSpawnPos);
+
+// Add this line to ensure the camera is initially positioned correctly
+window.cameraOrbitPosition = {
+    distance: initialDistance,
+    phi: initialPhi,
+    theta: initialTheta
+};
+updateCameraPosition();
 
 let playerState = {
     mode: 'boat', // Default to boat mode
@@ -1201,6 +1216,12 @@ function animate() {
 
     // Update camera - now updateCameraPosition handles zooming internally
     updateCameraPosition();
+
+    // Add this line right below it to force a proper camera update
+    camera.updateProjectionMatrix();
+
+    // --- DEBUG LOG --- Log camera position to console
+    //console.log(`Camera Position: X=${camera.position.x.toFixed(2)}, Y=${camera.position.y.toFixed(2)}, Z=${camera.position.z.toFixed(2)}`);
 
     // Network and UI updates
     Network.updatePlayerPosition();

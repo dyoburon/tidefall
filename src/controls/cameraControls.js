@@ -8,21 +8,20 @@ const MIN_POLAR_ANGLE = 0.1; // Minimum angle (don't go completely overhead)
 const MAX_POLAR_ANGLE = Math.PI / 2 - 0.1; // Maximum angle (don't go below horizon)
 const MIN_DISTANCE = 5; // Minimum distance from boat
 const MAX_DISTANCE = 350; // Increased maximum distance (was 250)
-const DEFAULT_DISTANCE = 80; // Increased default distance (was 50)
+const DEFAULT_DISTANCE = 261; // Updated default distance to match initial offset
 
 // Camera state
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
 
 // Track camera lock state - NEW
-let cameraLocked = true; // Default to locked
-let lastBoatRotation = 0; // Store last boat rotation to detect changes
+let cameraLocked = false; // Default to unlocked to respect initial position
 
 // Expose camera orbit position to window so it's accessible by touch controls
 window.cameraOrbitPosition = {
     distance: DEFAULT_DISTANCE,
-    phi: Math.PI / 5, // Lower angle to position camera a bit lower (was Math.PI/4)
-    theta: Math.PI // Azimuthal angle (left/right)
+    phi: 0.74,
+    theta: 2.3
 };
 
 // Track if we're currently in a zoom transition
@@ -40,11 +39,6 @@ function toggleCameraLock(forceLock = null) {
         cameraLocked = forceLock;
     } else {
         cameraLocked = !cameraLocked;
-    }
-
-    // If locking, store the current boat rotation
-    if (cameraLocked && boat) {
-        lastBoatRotation = getBoatRotationY();
     }
 
     // Display feedback message
@@ -313,13 +307,11 @@ export function initCameraControls() {
     // NEW: Add keyboard listener for lock toggle
     document.addEventListener('keydown', onKeyDown);
 
-    // Set initial camera position behind the boat
+    // Set initial camera position based on default orbit values
     updateCameraPosition();
 
-    // Initialize with camera locked to boat
-    lastBoatRotation = getBoatRotationY();
-
-
+    // Initialize with camera unlocked - lastBoatRotation will be set if user locks it
+    // lastBoatRotation = getBoatRotationY(); // REMOVED
 }
 
 // Update camera position around the boat
@@ -333,69 +325,64 @@ export function updateCameraPosition() {
 
     // If camera is locked, align directly with boat orientation
     if (cameraLocked) {
-        // SIMPLIFIED 180-DEGREE APPROACH:
-        // Instead of using forward/backward vectors, use the boat's forward direction
-        // and simply flip it 180 degrees
+        // Get boat's forward direction (projected onto XZ plane)
+        const shipForwardLocal = new THREE.Vector3(0, 0, -1);
+        const shipForwardWorld = shipForwardLocal.clone().applyQuaternion(boat.quaternion);
+        shipForwardWorld.y = 0;
+        shipForwardWorld.normalize();
 
-        // Start with the boat's local front direction
-        const shipForwardLocal = new THREE.Vector3(0, 0, -1); // Local front direction
+        // Calculate the desired theta angle behind the boat
+        const targetTheta = Math.atan2(shipForwardWorld.x, shipForwardWorld.z) + Math.PI;
 
-        // Convert to world space direction
-        const shipForwardWorld = shipForwardLocal.clone();
-        shipForwardWorld.applyQuaternion(boat.quaternion);
+        let distance, phi, theta;
 
-        // Flip 180 degrees (multiply by -1) to get the opposite direction
-        // This guarantees we're on the opposite side of the ship
-        const cameraDirection = shipForwardWorld.clone().multiplyScalar(10);
+        if (!touchControlsActive) { // --- DESKTOP LOCKED VIEW ---
+            distance = window.cameraOrbitPosition.distance;
+            phi = 0.15; // Fixed high angle
+            theta = targetTheta;
+            window.cameraOrbitPosition.phi = phi;
+            window.cameraOrbitPosition.theta = theta;
+        } else { // --- MOBILE LOCKED VIEW ---
+            distance = window.cameraOrbitPosition.distance;
+            phi = window.cameraOrbitPosition.phi;
+            theta = targetTheta;
+            window.cameraOrbitPosition.theta = theta;
+        }
 
-        // Ensure we're level with the water (zero Y component)
-        cameraDirection.y = 0;
-        cameraDirection.normalize();
-
-        // Calculate distance components
-        const distance = window.cameraOrbitPosition.distance + 40;
-        const phi = window.cameraOrbitPosition.phi;
-        const horizontalDistance = distance * Math.cos(phi);
-        const height = distance * Math.sin(phi) - 40;
-
-        // Position camera opposite the ship's forward direction
-        const cameraPosition = new THREE.Vector3();
-        cameraPosition.copy(boat.position);
-        cameraPosition.addScaledVector(cameraDirection, horizontalDistance);
-        cameraPosition.y += height;
+        // Calculate position offset
+        const offsetX = distance * Math.sin(phi) * Math.sin(theta);
+        const offsetY = distance * Math.cos(phi);
+        const offsetZ = distance * Math.sin(phi) * Math.cos(theta);
+        const cameraPosition = boat.position.clone().add(new THREE.Vector3(offsetX, offsetY, offsetZ));
 
         // Update camera position
         camera.position.copy(cameraPosition);
 
-        // Look at the boat (slightly above)
+        // Look at the boat
         const targetOffset = new THREE.Vector3(0, 1, 0);
         const lookTarget = boat.position.clone().add(targetOffset);
         camera.lookAt(lookTarget);
 
-        // Update theta for when camera is unlocked
-        const dx = camera.position.x - boat.position.x;
-        const dz = camera.position.z - boat.position.z;
-        window.cameraOrbitPosition.theta = Math.atan2(dz, dx) + Math.PI / 2;
+    } else { // --- UNLOCKED CAMERA VIEW ---
+        // Use the standard free-orbit calculation based on user-controlled orbit parameters
+        const phi = window.cameraOrbitPosition.phi;
+        const theta = window.cameraOrbitPosition.theta;
+        const distance = window.cameraOrbitPosition.distance;
 
-        return;
+        // Calculate position based purely on orbit parameters relative to the boat
+        // Assumes Y-up, phi from +Y axis, theta from +Z axis
+        const x = boat.position.x + distance * Math.sin(phi) * Math.sin(theta);
+        const y = boat.position.y + distance * Math.cos(phi);
+        const z = boat.position.z + distance * Math.sin(phi) * Math.cos(theta);
+
+        // Update camera position
+        camera.position.set(x, y, z);
+
+        // Look at the boat with the same offset as in locked mode
+        const targetOffset = new THREE.Vector3(0, 1, 0);
+        const lookTarget = boat.position.clone().add(targetOffset);
+        camera.lookAt(lookTarget);
     }
-
-    // Only used when camera is unlocked - standard spherical calculation
-    const phi = window.cameraOrbitPosition.phi;
-    const theta = window.cameraOrbitPosition.theta;
-    const distance = window.cameraOrbitPosition.distance;
-
-    const x = boat.position.x + distance * Math.sin(phi) * Math.cos(theta);
-    const y = boat.position.y + distance * Math.cos(phi);
-    const z = boat.position.z + distance * Math.sin(phi) * Math.sin(theta);
-
-    // Update camera position
-    camera.position.set(x, y, z);
-
-    // Look at the boat with the same offset as in locked mode
-    const targetOffset = new THREE.Vector3(0, 1, 0);
-    const lookTarget = boat.position.clone().add(targetOffset);
-    camera.lookAt(lookTarget);
 }
 
 // Function that handles camera zoom in a single frame
@@ -421,18 +408,16 @@ function handleCameraZoom() {
 
 // Reset camera to default position - updated with new values
 export function resetCameraPosition() {
-    // Reset to initial values
+    // Reset to initial calculated offset values
     window.cameraOrbitPosition.distance = DEFAULT_DISTANCE;
-    window.cameraOrbitPosition.phi = Math.PI / 5; // Updated angle
-    window.cameraOrbitPosition.theta = Math.PI; // Behind boat
+    window.cameraOrbitPosition.phi = 0.74; // Default vertical angle
+    window.cameraOrbitPosition.theta = 2.3;  // Default horizontal angle (match initial)
 
     // Update camera immediately
     updateCameraPosition();
 
     // Lock camera after reset
     toggleCameraLock(true);
-
-
 }
 
 // Function to smoothly zoom camera to a specific distance
