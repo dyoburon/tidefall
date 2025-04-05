@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { boat, boatVelocity, keys, getWindData, getTime } from './gameState.js';
 import { checkAllIslandCollisions } from '../world/islands.js';
 import { boatFlyState } from '../commands/boatFlyCommands.js';
+import worldRaycaster from './worldRaycaster.js';
 import { initWakeEffect, updateWakeEffect } from '../effects/wakeEffect.js';
+import { createDestinationMarker } from '../effects/navigationEffects.js'
 
 // Navigation variables for click-based movement
 export let targetDestination = null;
@@ -20,7 +22,7 @@ let wakeEffectInitialized = false;
 
 // Add these variables near the top with other exports
 export const shipSpeedConfig = {
-    basePlayerSpeed: 0.5,     // Normal max speed when player is controlling
+    basePlayerSpeed: 0.9,     // Normal max speed when player is controlling
     baseKnockbackSpeed: 2,   // Max speed when not player-controlled (like knockbacks)
     speedMultiplier: 1.0       // Multiplier that can be adjusted by /speed command
 };
@@ -40,6 +42,54 @@ export function initializeShipEffects() {
         initWakeEffect();
         wakeEffectInitialized = true;
     }
+}
+
+
+export function initializeShipController() {
+    // Mouse click for navigation
+    document.addEventListener('mousedown', (event) => {
+        // Debug log to verify abilityManager access
+        console.log('Click detected, abilityManager exists:', !!window.abilityManager);
+
+        // Check if an ability with crosshair is active - do this first
+        if (window.abilityManager && window.abilityManager.crosshair) {
+            const isAiming = window.abilityManager.crosshair.isAimingActive();
+            console.log('Crosshair aiming active:', isAiming);
+            if (isAiming) {
+                console.log('Navigation prevented due to active crosshair');
+                return; // Don't navigate when in crosshair/aiming mode
+            }
+        }
+
+        // Skip if chat or any text input is focused
+        if (window.chatInputActive ||
+            (document.activeElement &&
+                (document.activeElement.tagName === 'INPUT' ||
+                    document.activeElement.tagName === 'TEXTAREA' ||
+                    document.activeElement.isContentEditable))) {
+            return;
+        }
+
+        // Get mouse position
+        const mouseX = event.clientX;
+        const mouseY = event.clientY;
+
+        // Convert screen position to world position
+        const worldPosition = worldRaycaster.screenToWorld(mouseX, mouseY);
+
+        // Check if the position is on the water (y near 0)
+        if (Math.abs(worldPosition.y) < 2.0) {
+            // Set the navigation target in the ship controller
+            import('./shipController.js').then(shipController => {
+                shipController.navigateToDestination(worldPosition);
+            }).catch(error => {
+                console.error('Error importing shipController:', error);
+            });
+
+            // Create a visual marker at the click location
+            createDestinationMarker(worldPosition);
+        }
+    });
 }
 
 const SHIP_CONFIG = {

@@ -61,7 +61,7 @@ class AbilityManager {
 
         // Only add mouse handlers if not on mobile
         if (!this.isMobile) {
-            document.addEventListener('mousedown', this.handleMouseDown);
+            document.addEventListener('click', this.handleMouseDown);
         }
     }
 

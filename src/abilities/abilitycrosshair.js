@@ -252,6 +252,14 @@ class AbilityCrosshair {
     update() {
         // No per-frame updates needed - we update on mouse movement instead
     }
+
+    /**
+     * Returns whether the crosshair is currently active
+     * @returns {boolean} True if in aiming/crosshair mode
+     */
+    isAimingActive() {
+        return this.isActive;
+    }
 }
 
 export default AbilityCrosshair; 

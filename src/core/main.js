@@ -1,9 +1,4 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { ColorCorrectionShader } from 'three/examples/jsm/shaders/ColorCorrectionShader.js';
 import * as Network from './network.js';
 import { gameUI } from '../ui/ui.js';
 import { scene, camera, renderer, updateTime, getTime, boat, getWindData, boatVelocity, boatSpeed, rotationSpeed, keys, updateAllPlayers, getAllPlayers } from './gameState.js';
@@ -14,44 +9,34 @@ import { setupSeaMonsters, updateSeaMonsters, getMonsters, updateLurkingMonster,
 import { initFishing, updateFishing, getFishCount } from '../gameplay/fishing.js';
 //import { initCannons, updateCannons } from '../gameplay/cannons.js';
 import { animateSail } from '../animations/animations.js';
-import worldRaycaster from './worldRaycaster.js';
 import { applyWindInfluence, updateBoatRocking } from '../entities/character.js';
 import { initLeaderboard, updateLeaderboardData } from '../ui/leaderboard.js';
 import { requestLeaderboard, setPlayerName, setPlayerColor } from './network.js';
-import { updateVillagers } from '../entities/villagers.js';
 import {
-    updateVisibleIslands,
     getAllIslandColliders,
-    findNearestIsland,
     checkIslandCollision
 } from '../world/islandManager.js';
 import MusicSystem from '../audio/music.js';
 import { initMOBACamera, updateCameraPosition, setInitialCameraPosition } from '../controls/mobaCameraControls.js';
 import { setupWater, updateWater } from '../environment/water.js';
-import { initDiagnostics, updateDiagnosticsDisplay, ENABLE_DIAGNOSTICS } from '../ui/diagnostics.js';
+import { initDiagnostics, updateDiagnosticsDisplay } from '../ui/diagnostics.js';
 import * as Firebase from './firebase.js';
 import {
-    islandColliders,
     activeIslands,
-    activeWaterChunks,
     updateIslandEffects,
     findNearestAnyIsland,
     spawnCoastalCliffScene,
-    spawnMassiveIsland,
 } from '../world/islands.js';
-import { updateAllIslandVisibility, initializeChunkSystem, updateChunkSystem } from '../world/chunkControl.js';
+import { initializeChunkSystem, updateChunkSystem } from '../world/chunkControl.js';
 //import { createTestRockyIsland, createTestRockyIslandCluster } from '../world/testRockyIslands.js';
-import { showMessageOfDay, shouldShowMessageOfDay, forceShowMessageOfDay } from '../ui/motd.js';
-import { startScreenSequence, resetScreenSequence } from '../ui/messages.js';
+import { showMessageOfDay, shouldShowMessageOfDay } from '../ui/motd.js';
+import { startScreenSequence } from '../ui/messages.js';
 import { getCurrentUser } from '../ui/auth.js';
 import { getPlayerInfo } from '../ui/login.js';
 import { setupFog, updateFog, toggleFog, setFogColor } from '../environment/fog.js';
 import { getTimeOfDay } from '../environment/skybox.js';
-import { updateShipMovement } from './shipController.js';
+import { updateShipMovement, initializeShipController } from './shipController.js';
 import { initCollisionResponse, updateCollisionResponse, isBoatAirborne } from '../controls/islandCollisionResponse.js';
-import { getPlayerInventory, playerHasItem } from './network.js';
-import SpatialAudioSystem from '../audio/spatialAudio.js';
-import { dissipateFog, updateFogEffects } from '../environment/fog.js';
 import AbilityManager from '../abilities/abilitymanager.js';
 import { updateAllEntityChunks } from '../world/chunkEntityController.js';
 import { initMonsterManager, updateAllMonsters } from '../entities/monsterManager.js';
@@ -61,7 +46,7 @@ import { updateDragEffects, updateWaterDragEffects } from '../animations/monster
 import { initGLBOutlineEffects, render as renderWithEffects, updateSize as updateEffectsSize } from '../utils/glbOutlineEffects.js';
 import { checkBoatIslandCollision, updateDirectKnockback } from './gameState.js';
 import { updateHarpoonTension } from '../abilities/harpoonTensionSystem.js';
-import { updatePortals, createPortal } from '../portals/vibeverse.js';
+import { updatePortals } from '../portals/vibeverse.js';
 import { setupSpawnArea } from '../world/spawn.js';
 import { updateNpcShips } from '../entities/npcShip.js';
 //import { updateChatBubblePositions } from '../effects/chatBubbleEffect.js';
@@ -1420,94 +1405,7 @@ window.addEventListener('beforeunload', () => {
     Network.disconnect();
 });
 
-// Mouse click for navigation
-document.addEventListener('click', (event) => {
-    // Skip if chat or any text input is focused
-    if (window.chatInputActive ||
-        (document.activeElement &&
-            (document.activeElement.tagName === 'INPUT' ||
-                document.activeElement.tagName === 'TEXTAREA' ||
-                document.activeElement.isContentEditable))) {
-        return;
-    }
-
-    // Get mouse position
-    const mouseX = event.clientX;
-    const mouseY = event.clientY;
-
-    // Convert screen position to world position
-    const worldPosition = worldRaycaster.screenToWorld(mouseX, mouseY);
-
-    // Check if the position is on the water (y near 0)
-    if (Math.abs(worldPosition.y) < 2.0) {
-        // Set the navigation target in the ship controller
-        import('./shipController.js').then(shipController => {
-            shipController.navigateToDestination(worldPosition);
-        }).catch(error => {
-            console.error('Error importing shipController:', error);
-        });
-
-        // Create a visual marker at the click location
-        createDestinationMarker(worldPosition);
-    }
-});
-
-// Function to create a visual marker at the destination point
-function createDestinationMarker(position) {
-    // Remove any existing marker
-    if (window.destinationMarker) {
-        scene.remove(window.destinationMarker);
-    }
-
-    // Create a simple marker (3x larger than before)
-    const markerGeometry = new THREE.CylinderGeometry(1.5, 0, 6, 8);
-    const markerMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
-
-    // Position the marker at the click location (slightly above water)
-    marker.position.set(position.x, 0.1, position.z);
-
-    // Store the marker for later removal
-    window.destinationMarker = marker;
-
-    // Add to scene
-    scene.add(marker);
-
-    // Add a fading effect
-    fadeOutMarker(marker);
-}
-
-// Function to fade out the marker over time
-function fadeOutMarker(marker) {
-    const startTime = Date.now();
-    const duration = 3000; // 3 seconds
-
-    function animate() {
-        const elapsedTime = Date.now() - startTime;
-        const progress = elapsedTime / duration;
-
-        if (progress < 1.0) {
-            // Fade out the opacity
-            marker.material.opacity = 1.0 - progress;
-
-            // Continue animation
-            requestAnimationFrame(animate);
-        } else {
-            // Remove the marker when animation is complete
-            scene.remove(marker);
-            if (window.destinationMarker === marker) {
-                window.destinationMarker = null;
-            }
-        }
-    }
-
-    // Set material to allow transparency
-    marker.material.transparent = true;
-
-    // Start the animation
-    animate();
-}
-
+initializeShipController();
 // Add these functions to your init and animate functions
 // In your initialization:
 setupSkybox();
