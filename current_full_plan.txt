@@ -28,7 +28,6 @@ Calculate direction to target
 Set appropriate virtual "key" states based on navigation needs
 Handle reaching the destination or timing out
 Add a function to cancel navigation (for manual override)
-Maintain the existing physics model for consistent ship handling
 Step 3: Visual Feedback & UI Integration
 File: src/core/main.js and potentially a new visual effect file
 

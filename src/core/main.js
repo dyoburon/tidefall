@@ -14,6 +14,7 @@ import { setupSeaMonsters, updateSeaMonsters, getMonsters, updateLurkingMonster,
 import { initFishing, updateFishing, getFishCount } from '../gameplay/fishing.js';
 //import { initCannons, updateCannons } from '../gameplay/cannons.js';
 import { animateSail } from '../animations/animations.js';
+import worldRaycaster from './worldRaycaster.js';
 import { applyWindInfluence, updateBoatRocking } from '../entities/character.js';
 import { initLeaderboard, updateLeaderboardData } from '../ui/leaderboard.js';
 import { requestLeaderboard, setPlayerName, setPlayerColor } from './network.js';
@@ -974,22 +975,7 @@ const keydownHandler = (event) => {
     }
 
     switch (event.key) {
-        case 'w': case 'W': case 'ArrowUp':
-            keys.forward = true;
 
-            break;
-        case 's': case 'S': case 'ArrowDown':
-            keys.backward = true;
-
-            break;
-        case 'a': case 'A': case 'ArrowLeft':
-            keys.left = true;
-
-            break;
-        case 'd': case 'D': case 'ArrowRight':
-            keys.right = true;
-
-            break;
         // Toggle mouse camera control with 'c' key
         case 'c': mouseControl.isEnabled = !mouseControl.isEnabled; break;
         // Add hotkey for firing cannons (space bar)
@@ -1001,17 +987,24 @@ const keydownHandler = (event) => {
             break;
         // Press 'T' to toggle sky system
         case 't': case 'T':
-
             toggleSkySystem();
             break;
         case 'f': case 'F':
-
             const fogEnabled = toggleFog(scene);
-
-            /*dissipateFog({
-                duration: 5000,
-                onComplete: () => 
-            });*/
+            break;
+        // Add a key to cancel navigation
+        case 'Escape':
+            import('./shipController.js').then(shipController => {
+                if (shipController.isNavigatingToDestination) {
+                    shipController.cancelNavigation();
+                    if (window.destinationMarker) {
+                        scene.remove(window.destinationMarker);
+                        window.destinationMarker = null;
+                    }
+                }
+            }).catch(error => {
+                console.error('Error importing shipController:', error);
+            });
             break;
     }
 };
@@ -1027,22 +1020,19 @@ const keyupHandler = (event) => {
     }
 
     switch (event.key) {
-        case 'w': case 'W': case 'ArrowUp':
-            keys.forward = false;
-
-            break;
-        case 's': case 'S': case 'ArrowDown':
-            keys.backward = false;
-
-            break;
-        case 'a': case 'A': case 'ArrowLeft':
-            keys.left = false;
-
-            break;
-        case 'd': case 'D': case 'ArrowRight':
-            keys.right = false;
-
-            break;
+        // Remove WASD and arrow keys for movement as they're replaced by click navigation
+        // case 'w': case 'W': case 'ArrowUp':
+        //     keys.forward = false;
+        //     break;
+        // case 's': case 'S': case 'ArrowDown':
+        //     keys.backward = false;
+        //     break;
+        // case 'a': case 'A': case 'ArrowLeft':
+        //     keys.left = false;
+        //     break;
+        // case 'd': case 'D': case 'ArrowRight':
+        //     keys.right = false;
+        //     break;
     }
 };
 
@@ -1430,10 +1420,93 @@ window.addEventListener('beforeunload', () => {
     Network.disconnect();
 });
 
+// Mouse click for navigation
+document.addEventListener('click', (event) => {
+    // Skip if chat or any text input is focused
+    if (window.chatInputActive ||
+        (document.activeElement &&
+            (document.activeElement.tagName === 'INPUT' ||
+                document.activeElement.tagName === 'TEXTAREA' ||
+                document.activeElement.isContentEditable))) {
+        return;
+    }
 
-// Add gentle rocking motion based on boat speed and waves
+    // Get mouse position
+    const mouseX = event.clientX;
+    const mouseY = event.clientY;
 
-// Create and add a simple blue skybox that changes with time of day
+    // Convert screen position to world position
+    const worldPosition = worldRaycaster.screenToWorld(mouseX, mouseY);
+
+    // Check if the position is on the water (y near 0)
+    if (Math.abs(worldPosition.y) < 2.0) {
+        // Set the navigation target in the ship controller
+        import('./shipController.js').then(shipController => {
+            shipController.navigateToDestination(worldPosition);
+        }).catch(error => {
+            console.error('Error importing shipController:', error);
+        });
+
+        // Create a visual marker at the click location
+        createDestinationMarker(worldPosition);
+    }
+});
+
+// Function to create a visual marker at the destination point
+function createDestinationMarker(position) {
+    // Remove any existing marker
+    if (window.destinationMarker) {
+        scene.remove(window.destinationMarker);
+    }
+
+    // Create a simple marker (3x larger than before)
+    const markerGeometry = new THREE.CylinderGeometry(1.5, 0, 6, 8);
+    const markerMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+
+    // Position the marker at the click location (slightly above water)
+    marker.position.set(position.x, 0.1, position.z);
+
+    // Store the marker for later removal
+    window.destinationMarker = marker;
+
+    // Add to scene
+    scene.add(marker);
+
+    // Add a fading effect
+    fadeOutMarker(marker);
+}
+
+// Function to fade out the marker over time
+function fadeOutMarker(marker) {
+    const startTime = Date.now();
+    const duration = 3000; // 3 seconds
+
+    function animate() {
+        const elapsedTime = Date.now() - startTime;
+        const progress = elapsedTime / duration;
+
+        if (progress < 1.0) {
+            // Fade out the opacity
+            marker.material.opacity = 1.0 - progress;
+
+            // Continue animation
+            requestAnimationFrame(animate);
+        } else {
+            // Remove the marker when animation is complete
+            scene.remove(marker);
+            if (window.destinationMarker === marker) {
+                window.destinationMarker = null;
+            }
+        }
+    }
+
+    // Set material to allow transparency
+    marker.material.transparent = true;
+
+    // Start the animation
+    animate();
+}
 
 // Add these functions to your init and animate functions
 // In your initialization:

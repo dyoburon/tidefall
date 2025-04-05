@@ -93,8 +93,40 @@ export function preserveMomentum(fromMultiplier, toMultiplier, decayDuration = 1
 
     // Activate momentum preservation
     momentumActive = true;
+}
 
+/**
+ * Set a new destination for the ship and start navigation
+ * @param {THREE.Vector3} destination - Target world position to navigate to
+ */
+export function navigateToDestination(destination) {
+    // Create a new Vector3 to avoid reference issues
+    targetDestination = new THREE.Vector3(destination.x, 0, destination.z);
 
+    // Enable navigation mode
+    isNavigatingToDestination = true;
+
+    // Reset navigation timer
+    navigationStartTime = getTime();
+
+    console.log(`Navigating to destination: ${targetDestination.x.toFixed(2)}, ${targetDestination.z.toFixed(2)}`);
+}
+
+/**
+ * Cancel the current navigation
+ */
+export function cancelNavigation() {
+    if (isNavigatingToDestination) {
+        console.log('Navigation canceled');
+        isNavigatingToDestination = false;
+        targetDestination = null;
+
+        // Reset virtual key states
+        keys.forward = false;
+        keys.backward = false;
+        keys.left = false;
+        keys.right = false;
+    }
 }
 
 export function updateShipMovement(deltaTime) {
@@ -107,11 +139,68 @@ export function updateShipMovement(deltaTime) {
     if (boatFlyState.isFalling) {
         return boatVelocity; // Return unchanged velocity
     }
+
+    // Handle navigation to destination if active
+    if (isNavigatingToDestination && targetDestination) {
+        const currentTime = getTime();
+
+        // Check if navigation has timed out
+        if (currentTime - navigationStartTime > maxNavigationTime) {
+            console.log('Navigation timed out');
+            cancelNavigation();
+        } else {
+            // Calculate distance to destination
+            const shipPosition = new THREE.Vector3(boat.position.x, 0, boat.position.z);
+            const distanceToTarget = shipPosition.distanceTo(targetDestination);
+
+            // Check if we've reached the destination
+            if (distanceToTarget <= navigationTolerance) {
+                console.log('Destination reached');
+                cancelNavigation();
+            } else {
+                // Calculate direction to target
+                const directionToTarget = new THREE.Vector3()
+                    .subVectors(targetDestination, shipPosition)
+                    .normalize();
+
+                // Get ship's current heading
+                const shipHeading = new THREE.Vector3(0, 0, 1)
+                    .applyAxisAngle(new THREE.Vector3(0, 1, 0), boat.rotation.y)
+                    .normalize();
+
+                // Calculate angle between current heading and target direction
+                const angleToTarget = shipHeading.angleTo(directionToTarget);
+
+                // Determine if we need to turn left or right
+                // Using cross product to determine direction (positive y means turn left)
+                const crossProduct = new THREE.Vector3()
+                    .crossVectors(shipHeading, directionToTarget);
+
+                // Set appropriate virtual key states based on navigation needs
+                keys.forward = true; // Always move forward during navigation
+
+                // Only turn if the angle is significant
+                if (angleToTarget > 0.1) { // About 5.7 degrees
+                    if (crossProduct.y > 0) {
+                        keys.left = true;
+                        keys.right = false;
+                    } else {
+                        keys.left = false;
+                        keys.right = true;
+                    }
+                } else {
+                    // If we're pointing in roughly the right direction, stop turning
+                    keys.left = false;
+                    keys.right = false;
+                }
+            }
+        }
+    }
+
     // Get wind info for sailing mechanics
     const windData = getWindData();
     const windDirection = windData.direction;
     const windSpeed = windData.speed;
-
 
     checkAndHandleIslandCollisions();
 
@@ -208,7 +297,6 @@ export function updateShipMovement(deltaTime) {
         // Hard cap at maximum speed
         boatVelocity.normalize().multiplyScalar(maxSpeed);
 
-
         if (shipSpeedConfig.speedMultiplier > 1.0 && window.showSpeedBoostEffect) {
             window.showSpeedBoostEffect(shipSpeedConfig.speedMultiplier);
         }
@@ -245,7 +333,12 @@ export function updateShipMovement(deltaTime) {
     return boatVelocity;
 }
 
-
+/**
+ * Apply a knockback force to the ship
+ * @param {THREE.Vector3} direction - Direction of the knockback force
+ * @param {number} force - Strength of the knockback force
+ * @param {object} options - Optional parameters for knockback behavior
+ */
 export function applyShipKnockback(direction, force = 1.0, options = {}) {
     console.log('applyShipKnockback', direction, force, options);
     // Default options
@@ -293,11 +386,8 @@ export function applyShipKnockback(direction, force = 1.0, options = {}) {
     knockbackActive = true;
     knockbackTimer = settings.knockbackDuration;
 
-
-
     return boatVelocity.clone(); // Return the new velocity for reference
 }
-
 
 // Add this with your other global variables
 let lastIslandCollisionTime = 0;
@@ -322,8 +412,6 @@ export function checkAndHandleIslandCollisions() {
 
     // Check for collision with any islands (add extra radius for early detection)
     if (checkAllIslandCollisions(shipPosition, 2)) {
-
-
         // Calculate direction vector away from island
         // Since we don't have the exact island center, use the negative of current velocity 
         // and add significant upward component to create "flying" effect
