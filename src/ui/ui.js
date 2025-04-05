@@ -1,6 +1,6 @@
 // Enhanced UI system for the boat game
 import * as THREE from 'three';
-import { initChat, initMiniMap } from './chat.js';
+import { initChat } from './chat.js';
 import { initShop, updateShopAvailability } from '../gameplay/shop.js';
 import InventoryUI from './inventoryUI.js';
 import { getDiagnosticsData, ENABLE_DIAGNOSTICS, isBraveBrowser } from './diagnostics.js';
@@ -20,7 +20,7 @@ import { signOutUser } from '../core/firebase.js';
 class GameUI {
     constructor() {
         // Initialize inventory UI first, before trying to use it
-        this.inventoryUI = new InventoryUI();
+        //this.inventoryUI = new InventoryUI();
 
         // Create main container
         this.container = document.createElement('div');
@@ -67,15 +67,16 @@ class GameUI {
         this.elements.playerCount = this.createUIElement('Players: 0');
         this.elements.connectionStatus = this.createUIElement('Status: Connecting...');
         //this.elements.speedometer = this.createSpeedometer();
-        this.elements.fishing = this.createFishingUI();
+        //this.elements.fishing = this.createFishingUI();
         //this.elements.cannon = this.createCannonUI();
-        this.elements.inventory = this.createInventory();
+        //this.elements.inventory = this.createInventory();
 
         // Initialize player markers and island markers
         this.islandMarkers = new Map();
         this.playerMarkers = new Map();
 
         // Create player marker (self)
+        /*
         this.selfMarker = document.createElement('div');
         this.selfMarker.style.position = 'absolute';
         this.selfMarker.style.width = '8px';
@@ -84,6 +85,7 @@ class GameUI {
         this.selfMarker.style.borderRadius = '50%';
         this.selfMarker.style.transform = 'translate(-50%, -50%)';
         //this.miniMapContainer.appendChild(this.selfMarker);
+        */
 
         // Initialize abilities based on device type
         if (isTouchDevice()) {
@@ -106,8 +108,8 @@ class GameUI {
             });
 
             // Initialize the mini map and connect it to the chat system
-            this.miniMap = initMiniMap();
-            this.miniMap.setChatSystem(this.chat);
+            // this.miniMap = initMiniMap();
+            // this.miniMap.setChatSystem(this.chat);
         }
 
         // Initialize the shop UI
@@ -517,25 +519,26 @@ class GameUI {
 
     createInventory() {
         // Create the inventory using the dedicated InventoryUI class
-        const inventory = this.inventoryUI.createInventory();
+        //const inventory = this.inventoryUI.createInventory();
 
         // Override the updateContent method to use our data
-        this.inventoryUI.updateContent = () => {
-            this.updateInventoryContent();
-        };
+        //this.inventoryUI.updateContent = () => {
+        //    this.updateInventoryContent();
+        //};
 
         // Store references in elements
-        this.elements.inventory = inventory;
+        //this.elements.inventory = inventory;
 
         // Add controls section for desktop only
         if (!isTouchDevice()) {
-            this.createControlsSection();
+            //this.createControlsSection();
         }
 
-        return inventory;
+        //return inventory;
     }
 
     createControlsSection() {
+        /*
         // Create controls container with ornate styling
         const controlsContainer = document.createElement('div');
         controlsContainer.id = 'controls-ui';
@@ -695,7 +698,7 @@ class GameUI {
             isMinimized = !isMinimized;
         });
 
-        return controlsContainer;
+        return controlsContainer;*/
     }
 
     updateInventoryContent() {
@@ -728,27 +731,27 @@ class GameUI {
     }
 
     addIslandMarker(id, position, radius) {
-        if (this.miniMap) {
-            this.miniMap.addIslandMarker(id, position, radius);
-        }
+        //if (this.miniMap) {
+        //    this.miniMap.addIslandMarker(id, position, radius);
+        //}
     }
 
     addPlayerMarker(id, position, color) {
-        if (this.miniMap) {
-            this.miniMap.addPlayerMarker(id, position, color);
-        }
+        //if (this.miniMap) {
+        //    this.miniMap.addPlayerMarker(id, position, color);
+        //}
     }
 
     removePlayerMarker(id) {
-        if (this.miniMap) {
-            this.miniMap.removePlayerMarker(id);
-        }
+        //if (this.miniMap) {
+        //    this.miniMap.removePlayerMarker(id);
+        //}
     }
 
     updateMiniMap(playerPosition, playerRotation, mapScale) {
-        if (this.miniMap) {
-            this.miniMap.updateMiniMap(playerPosition, playerRotation, mapScale);
-        }
+        //if (this.miniMap) {
+        //    this.miniMap.updateMiniMap(playerPosition, playerRotation, mapScale);
+        //}
     }
 
     update(data) {
@@ -802,13 +805,15 @@ class GameUI {
         }
 
         // Update fish count
+        /*
         if (data.fishCount !== undefined && this.elements.fishing && this.elements.fishing.counter) {
             this.elements.fishing.counter.textContent = `Fish: ${data.fishCount}`;
-        }
+        }*/
 
         // Update mini-map only if it exists (desktop only)
         if (!isTouchDevice() && data.position && data.heading !== undefined) {
             // First update monster markers if available
+            /*
             if (data.monsters && this.miniMap) {
                 this.miniMap.updateMonsterMarkers(
                     data.monsters,
@@ -817,9 +822,10 @@ class GameUI {
                     data.mapScale || 200
                 );
             }
+            */
 
             // Then update the overall minimap with positions
-            this.updateMiniMap(data.position, data.heading, data.mapScale || 200);
+            //this.updateMiniMap(data.position, data.heading, data.mapScale || 200);
         }
 
         // Update player stats if requested
@@ -914,7 +920,7 @@ class GameUI {
 
     updateInventory(fishInventory) {
         // Use the inventory UI to update the display
-        this.inventoryUI.updateInventory(fishInventory);
+        //this.inventoryUI.updateInventory(fishInventory);
     }
 
     createFPSCounter() {

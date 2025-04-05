@@ -41,16 +41,16 @@ const sampleLeaderboardData = {
 // Initialize the leaderboard system
 export function initLeaderboard() {
     // Create the leaderboard UI in gameUI
-    createLeaderboardUI();
+    //createLeaderboardUI();
 
     // Set up initial leaderboard data
-    updateLeaderboardData(sampleLeaderboardData);
+    //updateLeaderboardData(sampleLeaderboardData);
 
     // Update player stats section in the diary
-    updatePlayerStatsInLeaderboard();
+    //updatePlayerStatsInLeaderboard();
 
     // Make this function available globally so network.js can call it
-    window.updateLeaderboardData = updateLeaderboardData;
+    //window.updateLeaderboardData = updateLeaderboardData;
 }
 
 // Update the leaderboard with new data

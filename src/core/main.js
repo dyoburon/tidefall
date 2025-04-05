@@ -1225,7 +1225,7 @@ function animate() {
     updateAllEntityChunks();
 
     // Update fishing
-    updateFishing();
+    //updateFishing();
 
     updateAllMonsters(deltaTime);
 
@@ -1428,7 +1428,7 @@ const birds = setupBirds(activeIslands, boat);
 //const seaMonsters = setupSeaMonsters(boat);
 
 // Initialize fishing system
-initFishing(boat);
+//initFishing(boat);
 
 // Initialize cannon system
 //initCannons(boat, seaMonsters);
