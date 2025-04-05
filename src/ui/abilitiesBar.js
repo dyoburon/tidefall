@@ -17,8 +17,8 @@ class AbilitiesBar {
         this.container.style.bottom = this.isMobile ? '10px' : '20px';
         this.container.style.left = '50%';
         this.container.style.transform = 'translateX(-50%)';
-        this.container.style.width = this.isMobile ? '360px' : '550px'; // ~65% width on mobile (was 275px)
-        this.container.style.height = this.isMobile ? '52px' : '80px'; // ~65% height on mobile (was 40px)
+        this.container.style.width = this.isMobile ? '468px' : '715px'; // Increased by 30% (was 360px/550px)
+        this.container.style.height = this.isMobile ? '68px' : '104px'; // Increased by 30% (was 52px/80px)
         this.container.style.backgroundColor = 'rgba(30, 25, 20, 0.9)'; // Darker brown background
         this.container.style.borderRadius = this.isMobile ? '5px' : '8px';
         this.container.style.border = this.isMobile ? '1px solid #8B4513' : '2px solid #8B4513'; // Thinner border on mobile
@@ -62,8 +62,8 @@ class AbilitiesBar {
         // Create the slot container
         const slot = document.createElement('div');
         slot.className = 'ability-slot';
-        slot.style.width = this.isMobile ? '39px' : '60px';
-        slot.style.height = this.isMobile ? '39px' : '60px';
+        slot.style.width = this.isMobile ? '51px' : '78px'; // Increased by 30% (was 39px/60px)
+        slot.style.height = this.isMobile ? '51px' : '78px'; // Increased by 30% (was 39px/60px)
         slot.style.position = 'relative';
         slot.style.display = 'flex';
         slot.style.justifyContent = 'center';
@@ -84,8 +84,8 @@ class AbilitiesBar {
         // Element for the ability icon
         const iconPlaceholder = document.createElement('div');
         iconPlaceholder.className = 'ability-icon';
-        iconPlaceholder.style.width = this.isMobile ? '30px' : '46px';
-        iconPlaceholder.style.height = this.isMobile ? '30px' : '46px';
+        iconPlaceholder.style.width = this.isMobile ? '39px' : '60px'; // Increased by 30% (was 30px/46px)
+        iconPlaceholder.style.height = this.isMobile ? '39px' : '60px'; // Increased by 30% (was 30px/46px)
         iconPlaceholder.style.borderRadius = this.isMobile ? '3px' : '5px';
         iconPlaceholder.style.backgroundSize = 'cover';
         iconPlaceholder.style.backgroundPosition = 'center';
@@ -311,8 +311,8 @@ class AbilitiesBar {
 
             // Update container
             this.container.style.bottom = isMobile ? '10px' : '20px';
-            this.container.style.width = isMobile ? '360px' : '550px'; // ~65% width on mobile
-            this.container.style.height = isMobile ? '52px' : '80px'; // ~65% height on mobile
+            this.container.style.width = isMobile ? '468px' : '715px'; // Increased by 30% (was 360px/550px)
+            this.container.style.height = isMobile ? '68px' : '104px'; // Increased by 30% (was 52px/80px)
             this.container.style.borderRadius = isMobile ? '5px' : '8px';
             this.container.style.border = isMobile ? '1px solid #8B4513' : '2px solid #8B4513';
             this.container.style.boxShadow = isMobile ?
@@ -323,8 +323,8 @@ class AbilitiesBar {
             // Update each ability slot
             this.abilitySlots.forEach(slot => {
                 // Update container
-                slot.container.style.width = isMobile ? '39px' : '60px';
-                slot.container.style.height = isMobile ? '39px' : '60px';
+                slot.container.style.width = isMobile ? '51px' : '78px'; // Increased by 30% (was 39px/60px)
+                slot.container.style.height = isMobile ? '51px' : '78px'; // Increased by 30% (was 39px/60px)
                 slot.container.style.borderRadius = isMobile ? '4px' : '6px';
                 slot.container.style.border = isMobile ? '0.5px solid #B8860B' : '1px solid #B8860B';
                 slot.container.style.boxShadow = isMobile ?
@@ -332,8 +332,8 @@ class AbilitiesBar {
                     'inset 0 0 8px rgba(20, 15, 10, 0.8)';
 
                 // Update icon
-                slot.icon.style.width = isMobile ? '30px' : '46px';
-                slot.icon.style.height = isMobile ? '30px' : '46px';
+                slot.icon.style.width = isMobile ? '39px' : '60px'; // Increased by 30% (was 30px/46px)
+                slot.icon.style.height = isMobile ? '39px' : '60px'; // Increased by 30% (was 30px/46px)
                 slot.icon.style.borderRadius = isMobile ? '3px' : '5px';
                 slot.icon.style.boxShadow = isMobile ?
                     'inset 0 0 3px rgba(255, 215, 0, 0.2)' :
