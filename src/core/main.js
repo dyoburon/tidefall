@@ -81,8 +81,8 @@ const fogColorKeyframes = [
 const water = setupWater('cartoony');
 
 // Initialize biome
-initializeChunkSystem();
-initMonsterManager();
+//initializeChunkSystem();
+//initMonsterManager();
 initDamageSystem();
 
 
@@ -1213,22 +1213,22 @@ function animate() {
     updateBirds(deltaTime);
 
     // Update sea monsters with delta time
-    updateSeaMonsters(deltaTime);
+    //updateSeaMonsters(deltaTime);
 
     // Update NPC ships
     updateNpcShips(deltaTime);
 
-    updateAllEntityChunks();
+    //updateAllEntityChunks();
 
     // Update fishing
     //updateFishing();
 
-    updateAllMonsters(deltaTime);
+    //updateAllMonsters(deltaTime);
 
     updateProjectileCollisions();
 
     // Update chunks
-    updateChunkSystem(deltaTime);
+    //    updateChunkSystem(deltaTime);
 
     // Update sail animation
     animateSail(deltaTime);
