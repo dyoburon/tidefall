@@ -134,8 +134,8 @@ class ScatterShot {
     }
 
     fireScatterProjectile(position, direction, targetPosition) {
-        // Create a smaller cannonball
-        const cannonballGeometry = new THREE.SphereGeometry(0.4, 12, 12); // Smaller size
+        // Create a smaller cannonball, increased size by 15% (0.4 * 1.15)
+        const cannonballGeometry = new THREE.SphereGeometry(0.46, 12, 12); // Smaller size, increased by 15%
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
         const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
         cannonball.position.copy(position);
@@ -180,7 +180,8 @@ class ScatterShot {
             mesh: cannonball,
             data: {
                 damage: 300, // Less damage per projectile
-                hitRadius: 6.0 // Smaller hit radius
+                // Increased hit radius by 15% (6.0 * 1.15)
+                hitRadius: 6.9 // Smaller hit radius, increased by 15%
             },
             prevPosition: position.clone(),
             onHit: (hitData) => {
@@ -227,7 +228,8 @@ class ScatterShot {
                         // Create a new collision sphere for this ship
                         npcShipCollisionSpheres.set(
                             npcShip.id,
-                            new THREE.Sphere(new THREE.Vector3(), 8.0) // Same collision radius as cannonshot
+                            // Increased radius by 15% (8.0 * 1.15)
+                            new THREE.Sphere(new THREE.Vector3(), 9.2) // Same collision radius as cannonshot, increased by 15%
                         );
                     }
 
@@ -243,7 +245,7 @@ class ScatterShot {
                     if (distanceToCenter <= collisionSphere.radius + 0.5) {
                         // Hit the NPC ship!
                         // Apply damage to the NPC ship - less damage per projectile than cannonshot
-                        const damage = 10; // Half the damage of cannonshot since we fire multiple projectiles
+                        const damage = 5; // Half the damage of cannonshot since we fire multiple projectiles
                         if (npcShip.takeDamage) {
                             npcShip.takeDamage(damage, 'player_scatter');
                         }

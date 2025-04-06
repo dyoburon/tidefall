@@ -126,7 +126,8 @@ class CannonShot {
     }
 
     createCannonball(position, direction) {
-        const cannonballGeometry = new THREE.SphereGeometry(2.0 / 3, 16, 16);
+        // Increased radius by ~30% (2.0/3 * 1.3)
+        const cannonballGeometry = new THREE.SphereGeometry(0.866, 16, 16);
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
         const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
         cannonball.position.copy(position);
@@ -154,12 +155,12 @@ class CannonShot {
         // Create collision spheres for NPC ships
         const npcShipCollisionSpheres = new Map();
 
-        // Register with more reasonable hit radius (reduced from 100)
+        // Increased hit radius by 30% (15.0 * 1.3)
         registerProjectile(cannonballId, {
             mesh: cannonball,
             data: {
                 damage: 1000, // Extremely high damage to guarantee kill
-                hitRadius: 15.0 // Very generous hit radius
+                hitRadius: 19.5 // Very generous hit radius, increased by 30%
             },
             prevPosition: position.clone(),
             onHit: (hitData) => {
@@ -209,7 +210,8 @@ class CannonShot {
                         // Create a new collision sphere for this ship
                         npcShipCollisionSpheres.set(
                             npcShip.id,
-                            new THREE.Sphere(new THREE.Vector3(), 8.0) // Larger collision radius
+                            // Increased radius by 30% (8.0 * 1.3)
+                            new THREE.Sphere(new THREE.Vector3(), 10.4) // Larger collision radius, increased by 30%
                         );
                     }
 
@@ -617,8 +619,8 @@ class CannonShot {
      */
     static createRemoteCannonball(position, direction, cannon_id, playerBoat, cannon_position_name = 'default') {
 
-        // Create the cannonball mesh
-        const cannonballGeometry = new THREE.SphereGeometry(2.0 / 3, 16, 16);
+        // Increased radius by ~30% (2.0/3 * 1.3)
+        const cannonballGeometry = new THREE.SphereGeometry(0.866, 16, 16);
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
         const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
         cannonball.position.copy(position);
@@ -650,12 +652,13 @@ class CannonShot {
         // Create collision spheres for NPC ships
         const npcShipCollisionSpheres = new Map();
 
-        // Register the projectile for hit detection
+        // Increased hit radius by 30% (15.0 * 1.3)
         registerProjectile(cannon_id, {
             mesh: cannonball,
             data: {
                 damage: 1000, // Same damage as local cannonballs
-                hitRadius: 15.0 // Same hit radius as local cannonballs
+                // Increased hit radius by 30% (15.0 * 1.3)
+                hitRadius: 19.5 // Same hit radius as local cannonballs, increased by 30%
             },
             prevPosition: position.clone(),
             onHit: (hitData) => {
@@ -704,7 +707,8 @@ class CannonShot {
                         // Create a new collision sphere for this ship
                         npcShipCollisionSpheres.set(
                             npcShip.id,
-                            new THREE.Sphere(new THREE.Vector3(), 8.0) // Larger collision radius
+                            // Increased radius by 30% (8.0 * 1.3)
+                            new THREE.Sphere(new THREE.Vector3(), 10.4) // Larger collision radius, increased by 30%
                         );
                     }
 

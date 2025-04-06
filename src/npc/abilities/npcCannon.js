@@ -225,7 +225,8 @@ export class NpcCannonSystem {
      * @param {THREE.Vector3} direction - Direction vector
      */
     createCannonball(position, direction) {
-        const cannonballGeometry = new THREE.SphereGeometry(0.66, 16, 16);
+        // Increased radius by ~30% (0.66 * 1.3)
+        const cannonballGeometry = new THREE.SphereGeometry(0.866, 16, 16);
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
         const cannonball = new THREE.Mesh(cannonballGeometry, cannonballMaterial);
         cannonball.position.copy(position);
@@ -246,7 +247,8 @@ export class NpcCannonSystem {
         const cannonballId = `npc-cannonball-${startTime}`;
 
         // Create a bounding sphere for player collision detection
-        const playerCollisionSphere = new THREE.Sphere(new THREE.Vector3(), 5.0);
+        // Increased radius by 30% (5.0 * 1.3)
+        const playerCollisionSphere = new THREE.Sphere(new THREE.Vector3(), 6.5);
 
         // Register projectile with damage system
         registerProjectile(cannonballId, {
@@ -254,7 +256,8 @@ export class NpcCannonSystem {
             isFromNPC: true,
             data: {
                 damage: this.damage,
-                hitRadius: 5.0
+                // Increased hit radius by 30% (5.0 * 1.3)
+                hitRadius: 6.5
             },
             prevPosition: position.clone(),
             onHit: (hitData) => {
