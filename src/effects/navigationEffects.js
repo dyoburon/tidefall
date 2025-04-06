@@ -4,14 +4,19 @@ import { scene } from '../core/gameState.js';
 
 // Track marker state
 let destinationMarker = null;
+let attackMarker = null;
 let markerStartTime = 0;
 const markerDuration = 3000; // 3 seconds
 
 // Function to create a visual marker at the destination point
 export function createDestinationMarker(position) {
-    // Remove any existing marker
+    // Remove any existing markers
     if (window.destinationMarker) {
         scene.remove(window.destinationMarker);
+    }
+    if (window.attackMarker) {
+        scene.remove(window.attackMarker);
+        window.attackMarker = null;
     }
 
     // Create a simple marker (3x larger than before)
@@ -24,6 +29,35 @@ export function createDestinationMarker(position) {
 
     // Store the marker for later removal
     window.destinationMarker = marker;
+
+    // Add to scene
+    scene.add(marker);
+
+    // Add a fading effect
+    fadeOutMarker(marker);
+}
+
+// Function to create a visual attack marker (red) at the target point
+export function createAttackMarker(position) {
+    // Remove any existing markers
+    if (window.attackMarker) {
+        scene.remove(window.attackMarker);
+    }
+    if (window.destinationMarker) {
+        scene.remove(window.destinationMarker);
+        window.destinationMarker = null;
+    }
+
+    // Create a simple marker similar to destination marker but in red
+    const markerGeometry = new THREE.CylinderGeometry(1.5, 0, 6, 8);
+    const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Red color for attack
+    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+
+    // Position the marker at the click location (slightly above water)
+    marker.position.set(position.x, 0.1, position.z);
+
+    // Store the marker for later removal
+    window.attackMarker = marker;
 
     // Add to scene
     scene.add(marker);
@@ -76,6 +110,8 @@ function fadeOutMarker(marker) {
             scene.remove(marker);
             if (window.destinationMarker === marker) {
                 window.destinationMarker = null;
+            } else if (window.attackMarker === marker) {
+                window.attackMarker = null;
             }
         }
     }

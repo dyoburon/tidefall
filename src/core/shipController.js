@@ -4,14 +4,33 @@ import { checkAllIslandCollisions } from '../world/islands.js';
 import { boatFlyState } from '../commands/boatFlyCommands.js';
 import worldRaycaster from './worldRaycaster.js';
 import { initWakeEffect, updateWakeEffect } from '../effects/wakeEffect.js';
-import { createDestinationMarker } from '../effects/navigationEffects.js'
+import { createDestinationMarker, createAttackMarker } from '../effects/navigationEffects.js'
 
 // Navigation variables for click-based movement
 export let targetDestination = null;
 export let isNavigatingToDestination = false;
-export const navigationTolerance = 5.0; // Distance threshold to consider destination reached
+export const navigationTolerance = 15.0; // Distance threshold to consider destination reached
 export const maxNavigationTime = 60.0; // Safety timeout (in seconds)
 export let navigationStartTime = 0;
+
+// Navigation mode tracking
+export const NavigationMode = {
+    MOVEMENT: 'movement',
+    ATTACK: 'attack'
+};
+export let currentNavigationMode = NavigationMode.MOVEMENT;
+
+// Function to get the current navigation mode
+export function getCurrentNavigationMode() {
+    return currentNavigationMode;
+}
+
+// Function to set the navigation mode
+export function setNavigationMode(mode) {
+    if (Object.values(NavigationMode).includes(mode)) {
+        currentNavigationMode = mode;
+    }
+}
 
 // Add this near your other exports
 export let knockbackActive = false;
@@ -46,8 +65,11 @@ export function initializeShipEffects() {
 
 
 export function initializeShipController() {
-    // Mouse click for navigation
+    // Mouse click for navigation (left click = movement)
     document.addEventListener('mousedown', (event) => {
+        // Only handle left click (button 0)
+        if (event.button !== 0) return;
+
         // Debug log to verify abilityManager access
         console.log('Click detected, abilityManager exists:', !!window.abilityManager);
 
@@ -77,6 +99,9 @@ export function initializeShipController() {
         // Convert screen position to world position
         const worldPosition = worldRaycaster.screenToWorld(mouseX, mouseY);
 
+        // Set navigation mode to movement
+        setNavigationMode(NavigationMode.MOVEMENT);
+
         // Check if the position is on the water (y near 0)
         if (Math.abs(worldPosition.y) < 2.0) {
             // Set the navigation target in the ship controller
@@ -88,6 +113,52 @@ export function initializeShipController() {
 
             // Create a visual marker at the click location
             createDestinationMarker(worldPosition);
+        }
+    });
+
+    // Right click for attack mode
+    document.addEventListener('contextmenu', (event) => {
+        // Prevent default right-click menu
+        event.preventDefault();
+
+        // Skip if chat or any text input is focused
+        if (window.chatInputActive ||
+            (document.activeElement &&
+                (document.activeElement.tagName === 'INPUT' ||
+                    document.activeElement.tagName === 'TEXTAREA' ||
+                    document.activeElement.isContentEditable))) {
+            return;
+        }
+
+        // Check if an ability with crosshair is active
+        if (window.abilityManager && window.abilityManager.crosshair) {
+            const isAiming = window.abilityManager.crosshair.isAimingActive();
+            if (isAiming) {
+                return; // Don't navigate when in crosshair/aiming mode
+            }
+        }
+
+        // Get mouse position
+        const mouseX = event.clientX;
+        const mouseY = event.clientY;
+
+        // Convert screen position to world position
+        const worldPosition = worldRaycaster.screenToWorld(mouseX, mouseY);
+
+        // Set navigation mode to attack
+        setNavigationMode(NavigationMode.ATTACK);
+
+        // Check if the position is on the water (y near 0)
+        if (Math.abs(worldPosition.y) < 2.0) {
+            // Set the navigation target in the ship controller
+            import('./shipController.js').then(shipController => {
+                shipController.navigateToDestination(worldPosition);
+            }).catch(error => {
+                console.error('Error importing shipController:', error);
+            });
+
+            // Create a visual attack marker (red) at the click location
+            createAttackMarker(worldPosition);
         }
     });
 }
@@ -230,7 +301,7 @@ export function updateShipMovement(deltaTime) {
                 keys.forward = true; // Always move forward during navigation
 
                 // Only turn if the angle is significant
-                if (angleToTarget > 0.1) { // About 5.7 degrees
+                if (angleToTarget > 0.0001) { // About 5.7 degrees
                     if (crossProduct.y > 0) {
                         keys.left = true;
                         keys.right = false;

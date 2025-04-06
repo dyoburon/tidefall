@@ -146,7 +146,7 @@ export function showDamageNumber(position, amount) {
         text: damageText,
         position: offsetPosition,
         color: 0xff0000, // Brighter red
-        size: 70 * DAMAGE_NUMBER_SCALE, // Larger size
+        size: 200 * DAMAGE_NUMBER_SCALE, // Larger size
         duration: 1.0, // Longer duration
         disappear: false,
         riseFactor: 5.0, // Slower rise
