@@ -30,10 +30,10 @@ class ShipAutoFireSystem {
 
         // Default cannon positions relative to ship model
         this.cannonPositions = [
-            { name: 'leftFront', x: -2.5, y: 1.5, z: -3 },
-            { name: 'leftRear', x: -2.5, y: 1.5, z: 3 },
-            { name: 'rightFront', x: 2.5, y: 1.5, z: -3 },
-            { name: 'rightRear', x: 2.5, y: 1.5, z: 3 }
+            { name: 'leftFront', x: -3.5, y: 1.5, z: -5 },
+            { name: 'leftRear', x: -3.5, y: 1.5, z: 5 },
+            { name: 'rightFront', x: 3.5, y: 1.5, z: -5 },
+            { name: 'rightRear', x: 3.5, y: 1.5, z: 5 }
         ];
 
         console.log('ShipAutoFire system initialized');
@@ -130,11 +130,9 @@ class ShipAutoFireSystem {
         const randomizedTarget = this.addRandomnessToTarget(targetPosition, distanceToTarget);
 
         // Determine which side of the ship the target is on
-        const shipRotation = boat.rotation.y;
-        const shipForward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), shipRotation);
-        const targetDirection = new THREE.Vector3().subVectors(targetPosition, shipPosition).normalize();
-        const crossProduct = new THREE.Vector3().crossVectors(shipForward, targetDirection);
-        const isTargetOnLeft = crossProduct.y > 0;
+        const localTarget = targetPosition.clone().sub(shipPosition);
+        localTarget.applyAxisAngle(new THREE.Vector3(0, 1, 0), -boat.rotation.y);
+        const isTargetOnLeft = localTarget.x < 0;
 
         // Get all cannons on the side facing the target
         let potentialCannons = this.cannonPositions.filter(cannon => {
@@ -161,24 +159,24 @@ class ShipAutoFireSystem {
         // Transform cannon position to world space
         const cannonPosition = cannonLocalPos.clone().applyMatrix4(shipMatrix);
 
-        // Use aiming system to calculate trajectory
-        const distanceFactor = Math.min(distanceToTarget / this.range, 1.0);
+        // Use aiming system to calculate trajectory with perfect accuracy
         const direction = AimingSystem.calculateFiringDirection(
             cannonPosition,
             randomizedTarget,
             {
                 adaptiveTrajectory: true,
-                minVerticalAdjust: 0.2,
-                maxVerticalAdjust: 0.6,
+                minVerticalAdjust: 0.4,    // Use a fixed, reliable vertical adjustment
+                maxVerticalAdjust: 0.4,    // Same value to ensure consistent trajectory
                 minDistance: 5,
                 maxDistance: this.range,
-                allowDownwardShots: false
+                allowDownwardShots: false,
+                perfectAim: true           // Add this if the AimingSystem supports it
             }
         );
 
         // Fire!
         this.createCannonball(cannonPosition, direction);
-        this.createCannonSmoke(boat, selectedCannon.name);
+        this.createCannonSmoke(boat, selectedCannon);
 
         // Set cooldown with fixed range to match NPC system
         this.cooldownTimer = this.minCooldown + Math.random() * (this.maxCooldown - this.minCooldown);
@@ -197,6 +195,11 @@ class ShipAutoFireSystem {
      * @returns {THREE.Vector3} Randomized target position
      */
     addRandomnessToTarget(targetPosition, distance) {
+        // Simply return a clone of the original position without any randomness
+        return targetPosition.clone();
+
+        // The original randomized code is commented out below:
+        /*
         // Create a clone so we don't modify the original
         const randomized = targetPosition.clone();
 
@@ -212,6 +215,7 @@ class ShipAutoFireSystem {
         randomized.y += (Math.random() * 2 - 1) * 2;
 
         return randomized;
+        */
     }
 
     /**
@@ -370,15 +374,11 @@ class ShipAutoFireSystem {
     /**
      * Create cannon smoke effect
      * @param {THREE.Object3D} ship - The player ship
-     * @param {string} cannonPosition - Name of the cannon position
+     * @param {Object} cannon - Cannon position data
      */
-    createCannonSmoke(ship, cannonPosition) {
-        // Find the cannon's local position data
-        const cannonData = this.cannonPositions.find(c => c.name === cannonPosition);
-        if (!cannonData) return;
-
+    createCannonSmoke(ship, cannon) {
         // Create local position
-        const smokeLocalPos = new THREE.Vector3(cannonData.x, cannonData.y, cannonData.z);
+        const smokeLocalPos = new THREE.Vector3(cannon.x, cannon.y, cannon.z);
 
         // Create matrix for conversion
         const shipMatrix = new THREE.Matrix4();
@@ -388,43 +388,86 @@ class ShipAutoFireSystem {
         // Get world position
         const smokePosition = smokeLocalPos.clone().applyMatrix4(shipMatrix);
 
-        // Create smoke particles
-        const smokeGeometry = new THREE.SphereGeometry(0.5, 8, 8);
-        const smokeMaterial = new THREE.MeshBasicMaterial({
-            color: 0xdddddd,
-            transparent: true,
-            opacity: 0.7
-        });
+        // Create multiple smoke particles for a more realistic effect
+        const particleCount = 10;
+        const particles = [];
 
-        const smoke = new THREE.Mesh(smokeGeometry, smokeMaterial);
-        smoke.position.copy(smokePosition);
-        scene.add(smoke);
+        for (let i = 0; i < particleCount; i++) {
+            const smokeGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+            const smokeMaterial = new THREE.MeshBasicMaterial({
+                color: 0x888888,
+                transparent: true,
+                opacity: 0.7
+            });
+
+            const smoke = new THREE.Mesh(smokeGeometry, smokeMaterial);
+            smoke.position.copy(smokePosition);
+
+            // Random velocity
+            smoke.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                Math.random() * 2,
+                (Math.random() - 0.5) * 2
+            );
+
+            scene.add(smoke);
+            particles.push(smoke);
+        }
 
         const startTime = getTime();
-        let animationId;
+        let animationFrameId;
 
         const animateSmoke = () => {
             const elapsedTime = (getTime() - startTime) / 1000;
 
-            if (elapsedTime >= 1.5) {
-                scene.remove(smoke);
-                cancelAnimationFrame(animationId);
+            if (elapsedTime >= 2.0) {
+                // Clean up all particles
+                particles.forEach(particle => {
+                    if (particle.parent) {
+                        scene.remove(particle);
+                    }
+                });
+
+                // Cancel the animation frame to stop the loop
+                cancelAnimationFrame(animationFrameId);
                 return;
             }
 
-            // Gradually grow and fade the smoke
-            const scale = 1.0 + elapsedTime * 2.0;
-            smoke.scale.set(scale, scale, scale);
-            smoke.material.opacity = 0.7 * (1.0 - elapsedTime / 1.5);
+            particles.forEach(particle => {
+                // Move particle
+                particle.position.x += particle.velocity.x * 0.016;
+                particle.position.y += particle.velocity.y * 0.016;
+                particle.position.z += particle.velocity.z * 0.016;
 
-            // Make smoke rise slightly
-            smoke.position.y += 0.02;
+                // Slow down
+                particle.velocity.multiplyScalar(0.98);
 
-            animationId = requestAnimationFrame(animateSmoke);
+                // Grow and fade
+                const scale = 1.0 + elapsedTime * 2.0;
+                particle.scale.set(scale, scale, scale);
+                particle.material.opacity = 0.7 * (1.0 - elapsedTime / 2.0);
+            });
+
+            animationFrameId = requestAnimationFrame(animateSmoke);
         };
 
         // Start animation
-        animationId = requestAnimationFrame(animateSmoke);
+        animationFrameId = requestAnimationFrame(animateSmoke);
+
+        // Backup cleanup timeout to ensure particles are removed
+        setTimeout(() => {
+            // Cancel animation frame if it's still running
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            // Remove any remaining particles
+            particles.forEach(particle => {
+                if (particle.parent) {
+                    scene.remove(particle);
+                }
+            });
+        }, 2100);
     }
 
     /**

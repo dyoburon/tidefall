@@ -6,11 +6,9 @@ import {
     unregisterProjectile,
     applyCannonballSplash
 } from './damageSystem.js';
-import { getAllMonsters } from '../entities/monsterManager.js';
 import { activeNpcShips } from '../entities/npcShip.js'; // Import active NPC ships
 import AimingSystem from './aimingSystem.js';
 import { fireCannon } from '../core/network.js'; // Import network function for cannon events
-import { showDamageEffect, createWaterSplashEffect } from '../effects/playerDamageEffects.js'; // Import damage effects
 
 /**
  * Cannon Shot ability - Fires a single cannonball towards the target location.
