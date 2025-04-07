@@ -14,8 +14,8 @@ import { createWaterSplashEffect } from '../effects/playerDamageEffects.js';
 class ShipAutoFireSystem {
     constructor() {
         // Configuration
-        this.cannonballSpeed = 150;      // Faster than NPC cannons
-        this.gravity = 80;               // Same as NPC system
+        this.cannonballSpeed = 150;      // Higher base speed
+        this.gravity = 70;               // Lower gravity for longer arcs
         this.minCooldown = 1.0;          // Match NPC cooldown
         this.maxCooldown = 2.0;          // Match NPC cooldown
         this.range = 200;                // Firing range
@@ -119,14 +119,14 @@ class ShipAutoFireSystem {
         const shipPosition = boat.position.clone();
         const targetPosition = target.position.clone();
 
-        // Calculate distance for debugging
+        // Calculate distance for debugging and trajectory adjustments
         const distanceToTarget = shipPosition.distanceTo(targetPosition);
 
         if (this.debugEnabled) {
             console.log(`Attempting fire at target ${target.id} at distance ${distanceToTarget.toFixed(1)}`);
         }
 
-        // Add randomness to target position for inaccuracy
+        // Add distance-based targeting compensation
         const randomizedTarget = this.addRandomnessToTarget(targetPosition, distanceToTarget);
 
         // Determine which side of the ship the target is on
@@ -159,23 +159,35 @@ class ShipAutoFireSystem {
         // Transform cannon position to world space
         const cannonPosition = cannonLocalPos.clone().applyMatrix4(shipMatrix);
 
-        // Use aiming system to calculate trajectory with perfect accuracy
+        // Calculate adaptive trajectory parameters based on distance
+        const distanceFactor = distanceToTarget / this.range; // 0 to 1 based on distance
+
+        // Calculate adaptive vertical adjustment - more arc for longer distances
+        const verticalMin = 0.05 + (distanceFactor * 0.15); // 0.05 to 0.20 based on distance
+        const verticalMax = 0.25 + (distanceFactor * 0.15); // 0.25 to 0.40 based on distance
+
+        // Calculate adaptive speed multiplier - faster for longer distances
+        const speedMultiplier = 1.0 + (distanceFactor * 0.5); // 1.0 to 1.5 based on distance
+
+        // Use aiming system with distance-adaptive parameters
         const direction = AimingSystem.calculateFiringDirection(
             cannonPosition,
             randomizedTarget,
             {
                 adaptiveTrajectory: true,
-                minVerticalAdjust: 0.4,    // Use a fixed, reliable vertical adjustment
-                maxVerticalAdjust: 0.4,    // Same value to ensure consistent trajectory
+                minVerticalAdjust: verticalMin,
+                maxVerticalAdjust: verticalMax,
                 minDistance: 5,
                 maxDistance: this.range,
-                allowDownwardShots: false,
-                perfectAim: true           // Add this if the AimingSystem supports it
+                allowDownwardShots: false
             }
         );
 
-        // Fire!
-        this.createCannonball(cannonPosition, direction);
+        // Apply distance-based velocity adjustment
+        const velocity = direction.clone().multiplyScalar(this.cannonballSpeed * speedMultiplier);
+
+        // Fire with the adjusted velocity
+        this.createCannonball(cannonPosition, direction, velocity);
         this.createCannonSmoke(boat, selectedCannon);
 
         // Set cooldown with fixed range to match NPC system
@@ -222,8 +234,9 @@ class ShipAutoFireSystem {
      * Create a cannonball projectile
      * @param {THREE.Vector3} position - Starting position
      * @param {THREE.Vector3} direction - Direction vector
+     * @param {THREE.Vector3} initialVelocity - Optional custom initial velocity
      */
-    createCannonball(position, direction) {
+    createCannonball(position, direction, initialVelocity = null) {
         // Create cannonball geometry and material
         const cannonballGeometry = new THREE.SphereGeometry(0.866, 16, 16);
         const cannonballMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
@@ -235,8 +248,8 @@ class ShipAutoFireSystem {
         // Create muzzle flash
         this.createMuzzleFlash(position, direction);
 
-        // Set velocity from direction
-        const velocity = direction.clone().multiplyScalar(this.cannonballSpeed);
+        // Set velocity from direction or use custom initial velocity
+        const velocity = initialVelocity || direction.clone().multiplyScalar(this.cannonballSpeed);
 
         const startTime = getTime();
         const maxDistance = 1200; // Match NPC max travel distance
@@ -245,8 +258,8 @@ class ShipAutoFireSystem {
         // Generate a unique ID for this cannonball
         const cannonballId = `player-cannonball-${startTime}`;
 
-        // Create collision sphere
-        const playerCollisionSphere = new THREE.Sphere(new THREE.Vector3(), 6.5);
+        // Create collision spheres for NPC ships
+        const npcShipCollisionSpheres = new Map();
 
         // Register projectile with damage system
         registerProjectile(cannonballId, {
@@ -258,9 +271,6 @@ class ShipAutoFireSystem {
             },
             prevPosition: position.clone(),
             onHit: (hitData) => {
-                // Create hit effect
-                // this.createHitEffect(hitData.point);
-
                 // Log hit information if debug enabled
                 if (this.debugEnabled) {
                     console.log(`Player cannonball hit: ${hitData.targetType}`);
@@ -297,6 +307,50 @@ class ShipAutoFireSystem {
             // Add rotation for visual effect
             cannonball.rotation.x += 0.02;
             cannonball.rotation.z += 0.02;
+
+            // Check for NPC ship collisions
+            if (activeNpcShips && activeNpcShips.length > 0) {
+                // For each NPC ship, check for collision
+                for (const npcShip of activeNpcShips) {
+                    // Skip if ship is already destroyed
+                    if (npcShip.isDestroyed) continue;
+
+                    // Get or create collision sphere for this NPC ship
+                    if (!npcShipCollisionSpheres.has(npcShip.id)) {
+                        // Create a new collision sphere for this ship
+                        npcShipCollisionSpheres.set(
+                            npcShip.id,
+                            new THREE.Sphere(new THREE.Vector3(), 10.4) // Match the collision radius from cannonshot.js
+                        );
+                    }
+
+                    const collisionSphere = npcShipCollisionSpheres.get(npcShip.id);
+
+                    // Update collision sphere center to match ship position
+                    collisionSphere.center.copy(npcShip.position);
+
+                    // Calculate distance to center of ship
+                    const distanceToCenter = cannonball.position.distanceTo(collisionSphere.center);
+
+                    // Check if cannonball is inside or very close to the ship's collision sphere
+                    if (distanceToCenter <= collisionSphere.radius + 0.5) {
+                        // Hit the NPC ship!
+                        if (this.debugEnabled) {
+                            console.log(`Auto-fire cannonball hit NPC ship: ${npcShip.id}`);
+                        }
+
+                        // Apply damage to the NPC ship
+                        if (npcShip.takeDamage) {
+                            npcShip.takeDamage(this.damage, 'player_auto_cannon');
+                        }
+
+                        // Remove cannonball
+                        unregisterProjectile(cannonballId);
+                        scene.remove(cannonball);
+                        return;
+                    }
+                }
+            }
 
             // Check for water impact
             if (cannonball.position.y <= 0) {
