@@ -1,6 +1,1 @@
-we are going to be modifying the controls of the ship to be clicking on the map instead of W A S D, lets plan how we are going to do this first.
-
-What will be steps, what files will we modify, will we use raycasting? @worldRaycaster.js 
-
-
-@shipController.js @main.js 
+We want to implement a ship auto fire similar to the npc ship 

@@ -13,6 +13,15 @@ export const navigationTolerance = 15.0; // Distance threshold to consider desti
 export const maxNavigationTime = 60.0; // Safety timeout (in seconds)
 export let navigationStartTime = 0;
 
+export function getNpcShipModule() {
+    return import('../entities/npcShip.js');
+}
+
+// Function to lazy load the shipAutoFire module
+export function getShipAutoFireModule() {
+    return import('../gameplay/shipAutoFire.js');
+}
+
 // Navigation mode tracking
 export const NavigationMode = {
     MOVEMENT: 'movement',
@@ -65,6 +74,13 @@ export function initializeShipEffects() {
 
 
 export function initializeShipController() {
+    getNpcShipModule();
+    // Initialize the auto-fire system using dynamic import
+    getShipAutoFireModule().then(module => {
+        module.initShipAutoFire();
+    }).catch(error => {
+        console.error('Error importing shipAutoFire:', error);
+    });
     // Mouse click for navigation (left click = movement)
     document.addEventListener('mousedown', (event) => {
         // Only handle left click (button 0)
@@ -260,6 +276,13 @@ export function updateShipMovement(deltaTime) {
     if (boatFlyState.isFalling) {
         return boatVelocity; // Return unchanged velocity
     }
+
+    // Update auto-fire system using dynamic import
+    getShipAutoFireModule().then(module => {
+        module.updateShipAutoFire(deltaTime);
+    }).catch(error => {
+        // Silent catch to avoid console spam
+    });
 
     // Handle navigation to destination if active
     if (isNavigatingToDestination && targetDestination) {

@@ -933,10 +933,6 @@ export function testFireCannonball() {
         Math.random() * 2 - 1
     ).normalize();
 
-    // Log test info
-
-
-
     // Use the cannonball system directly
     npcCannonSystem.createCannonball(position, direction);
     playCannonSound();
