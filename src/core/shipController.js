@@ -9,7 +9,7 @@ import { createDestinationMarker, createAttackMarker } from '../effects/navigati
 // Navigation variables for click-based movement
 export let targetDestination = null;
 export let isNavigatingToDestination = false;
-export const navigationTolerance = 15.0; // Distance threshold to consider destination reached
+export const navigationTolerance = 25.0; // Increased from 15.0 - Distance threshold to consider destination reached
 export const maxNavigationTime = 60.0; // Safety timeout (in seconds)
 export let navigationStartTime = 0;
 
@@ -188,9 +188,10 @@ const SHIP_CONFIG = {
     backwardPowerRatio: 0.6,        // Moderate backwards
 
     // TURNING
-    baseRudderPower: 1.1,           // Modest turning - focused on speed
-    turnSpeedMultiplier: 1.0,       // Slower rotation - not for cornering
-    turnConsistencyFactor: 50,       // Poor turning at high speeds
+    baseRudderPower: 1.8,           // Slightly reduced from 2.2 to prevent overshooting
+    turnSpeedMultiplier: 2.0,       // Slightly reduced from 2.5 to prevent oscillation
+    turnConsistencyFactor: 30,      // Reduced for better high-speed turning (was 50)
+    turnSmoothingFactor: 0.7,       // Added smoothing factor to reduce jitter (0-1)
 
     // RESISTANCE & FRICTION
     waterResistance: 0.3,           // Low resistance for speed
@@ -231,6 +232,10 @@ export function preserveMomentum(fromMultiplier, toMultiplier, decayDuration = 1
     // Activate momentum preservation
     momentumActive = true;
 }
+
+// Add this near other top variable declarations
+let targetRotation = 0;
+let currentTurnDirection = 0; // -1 for right, 0 for none, 1 for left
 
 /**
  * Set a new destination for the ship and start navigation
@@ -323,19 +328,42 @@ export function updateShipMovement(deltaTime) {
                 // Set appropriate virtual key states based on navigation needs
                 keys.forward = true; // Always move forward during navigation
 
+                // Calculate target rotation to face the destination
+                targetRotation = Math.atan2(directionToTarget.x, directionToTarget.z);
+
+                // Dead zone: much wider angle threshold to reduce jittery turning
+                const turnDeadZone = 0.12; // About 7 degrees of dead zone, up from 1.7
+
+                // Distance-based turning thresholds - more precise at distance, more forgiving when close
+                const distanceScaling = Math.min(1.0, distanceToTarget / 100);
+                const effectiveDeadZone = turnDeadZone + (1 - distanceScaling) * 0.15; // Up to ~15 degrees when close
+
                 // Only turn if the angle is significant
-                if (angleToTarget > 0.0001) { // About 5.7 degrees
-                    if (crossProduct.y > 0) {
+                if (angleToTarget > effectiveDeadZone) {
+                    // Determine turn direction and gradually change it for smooth transitions
+                    const desiredTurnDirection = crossProduct.y > 0 ? 1 : -1;
+
+                    // Smoothly change turn direction using the smoothing factor
+                    currentTurnDirection += (desiredTurnDirection - currentTurnDirection) *
+                        SHIP_CONFIG.turnSmoothingFactor;
+
+                    // Apply turn direction based on the smoothed value with wider transition zone
+                    if (currentTurnDirection > 0.3) {
                         keys.left = true;
                         keys.right = false;
-                    } else {
+                    } else if (currentTurnDirection < -0.3) {
                         keys.left = false;
                         keys.right = true;
+                    } else {
+                        // In transition zone, stop turning momentarily
+                        keys.left = false;
+                        keys.right = false;
                     }
                 } else {
-                    // If we're pointing in roughly the right direction, stop turning
+                    // If angle is small, stop turning and reset turn direction
                     keys.left = false;
                     keys.right = false;
+                    currentTurnDirection = 0;
                 }
             }
         }
@@ -380,8 +408,8 @@ export function updateShipMovement(deltaTime) {
     // DRAMATICALLY IMPROVED TURNING MECHANICS
     let turnEffect = 0;
 
-    // More consistent turning at all speeds
-    const speedFactor = Math.max(0.2, Math.min(1, currentSpeed / SHIP_CONFIG.turnConsistencyFactor));
+    // More consistent turning at all speeds - with improved responsiveness
+    const speedFactor = Math.max(0.1, Math.min(0.8, currentSpeed / SHIP_CONFIG.turnConsistencyFactor));
     const turnPower = SHIP_CONFIG.baseRudderPower / speedFactor;
 
     if (keys.left) {
