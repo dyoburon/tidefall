@@ -129,6 +129,7 @@ export class ChatSystem {
         this.messageInput.style.fontStyle = 'italic';
         this.messageInput.style.height = isTouchDevice() ? '14px' : 'auto';
         this.messageInput.style.fontSize = isTouchDevice() ? '8px' : '14px'; // Original: 7/12 -> 20% increase (Assuming same as messagesArea)
+        this.messageInput.style.caretColor = '#3D1C00'; // Set text cursor color
         inputArea.appendChild(this.messageInput);
 
         // Send button (styled as a wax seal)
@@ -181,11 +182,21 @@ export class ChatSystem {
         this.messageInput.addEventListener('focus', () => {
             // Set a global flag that can be checked by other handlers
             window.chatInputActive = true;
+
+            // Add visual focus indicator
+            this.messageInput.style.boxShadow = '0 0 5px #DAA520';
+            this.messageInput.style.borderColor = '#DAA520'; // Gold border when focused
+            this.messageInput.style.outline = 'none'; // Remove default browser outline
+            this.messageInput.style.caretColor = '#3D1C00'; // Ensure text cursor is visible
         });
 
         this.messageInput.addEventListener('blur', () => {
             // Clear the global flag
             window.chatInputActive = false;
+
+            // Remove focus indicator
+            this.messageInput.style.boxShadow = 'none';
+            this.messageInput.style.borderColor = '#8B4513'; // Restore original border color
         });
     }
 

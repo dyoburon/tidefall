@@ -390,7 +390,7 @@ function loadMainMap() {
         modelId: 'main_map',
         modelUrl: './Map.glb',
         scaleValue: 15.0,
-        position: [-400, -40, -400],
+        position: [-300, -40, -700],
         rotation: [0, 0, 0]
     }, success => {
         if (success) {
