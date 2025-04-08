@@ -4,6 +4,8 @@ import { createHugeIsland } from './hugeIsland.js';
 import { createPortal } from '../portals/vibeverse.js';
 import { createNpcShip } from '../entities/npcShip.js';
 import { createIsland } from './islands.js';
+import { loadGLBModel } from '../utils/glbLoader.js';
+import { loadBrightenedModel } from '../utils/islandLoader.js';
 
 const urlParams = new URLSearchParams(window.location.search);
 const refParam = urlParams.get('ref');
@@ -178,7 +180,8 @@ const spawnedElements = {
     hugeIsland: null,
     portals: [],
     npcShips: [],
-    destroyedShips: [] // Track destroyed ships for respawning
+    destroyedShips: [], // Track destroyed ships for respawning
+    mainMap: null
 };
 
 /**
@@ -188,6 +191,9 @@ const spawnedElements = {
 export function setupSpawnArea() {
     // Clear any existing destroyed ships tracking
     spawnedElements.destroyedShips = [];
+
+    // Load main map
+    loadMainMap();
 
     // Spawn huge island near the spawn point
     spawnHugeIslandNearSpawn();
@@ -283,7 +289,7 @@ function spawnPortals() {
             portalConfig.url = "https://" + refParam;
         }
 
-        const portal = createPortal(
+        /*const portal = createPortal(
             position,
             portalConfig.name,
             portalConfig.url,
@@ -292,12 +298,12 @@ function spawnPortals() {
                 scale: portalConfig.scale,
                 rotation: portalConfig.rotation
             }
-        );
+        );*/
 
-        spawnedElements.portals.push(portal);
+        //spawnedElements.portals.push(portal);
     });
 
-    return spawnedElements.portals;
+    //return spawnedElements.portals;
 }
 
 /**
@@ -370,6 +376,46 @@ export function trackDestroyedShip(shipConfig) {
 }
 
 /**
+ * Load the main map at the world origin
+ */
+function loadMainMap() {
+    const mapGroup = new THREE.Group();
+
+    // Ensure the map group is never frustum culled
+    mapGroup.frustumCulled = false;
+
+    scene.add(mapGroup);
+
+    loadBrightenedModel(mapGroup, {
+        modelId: 'main_map',
+        modelUrl: './Map.glb',
+        scaleValue: 15.0,
+        position: [-400, -40, -400],
+        rotation: [0, 0, 0]
+    }, success => {
+        if (success) {
+            // After loading, ensure all map components remain visible from any distance
+            mapGroup.traverse(child => {
+                // Disable frustum culling on everything
+                child.frustumCulled = false;
+
+                // If it's a mesh, ensure its material ignores fog
+                if (child.isMesh && child.material) {
+                    const materials = Array.isArray(child.material) ? child.material : [child.material];
+                    materials.forEach(material => {
+                        if (material) {
+                            material.fog = false;
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    spawnedElements.mainMap = mapGroup;
+}
+
+/**
  * Clear all spawned elements from the scene
  */
 export function clearSpawnArea() {
@@ -377,4 +423,5 @@ export function clearSpawnArea() {
     spawnedElements.hugeIsland = null;
     spawnedElements.portals = [];
     spawnedElements.npcShips = [];
+    spawnedElements.mainMap = null;
 } 

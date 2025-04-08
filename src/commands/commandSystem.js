@@ -10,6 +10,7 @@ import { clanCommands } from './clanCommands.js';
 import { birdCommands } from './birdCommands.js';
 import { weatherCommands } from './weatherCommands.js';
 import { boatFlyCommands } from './boatFlyCommands.js';
+import { toggleCameraLock, updateCameraPosition as updateMOBACamera } from '../controls/mobaCameraControls.js';
 
 // Create a global variable to track fly mode state
 // This will be checked by the updateCameraPosition function
@@ -103,8 +104,16 @@ const state = {
         isDragging: false,
         lastX: 0,
         lastY: 0,
-        sensitivity: 0.002
-    }
+        sensitivity: 0.002,
+        pitchObject: null,  // Will hold pitch rotation
+        yawObject: null,    // Will hold yaw rotation
+        debugElement: null  // Element for on-screen debugging
+    },
+    originalMOBACameraState: {
+        wasCameraLocked: true,
+        orbitPosition: null
+    },
+    originalUpdateMOBACamera: null
 };
 
 // Reference to the imported updateCameraPosition function
@@ -269,6 +278,50 @@ function flyCommand(args, chatSystem) {
                 return;
             }
         }
+
+        // Add debug command to diagnose camera issues
+        if (subcommand === 'debug') {
+            // Log camera and fly mode state
+            console.log('--- FLY MODE DEBUG INFO ---');
+            console.log(`state.flyMode: ${state.flyMode}`);
+            console.log(`window.flyModeEnabled: ${window.flyModeEnabled}`);
+            console.log(`window.cameraLocked: ${window.cameraLocked}`);
+            console.log(`state.originalMOBACameraState:`, state.originalMOBACameraState);
+
+            if (window.cameraOrbitPosition) {
+                console.log('window.cameraOrbitPosition:', {
+                    distance: window.cameraOrbitPosition.distance,
+                    phi: window.cameraOrbitPosition.phi,
+                    theta: window.cameraOrbitPosition.theta
+                });
+            }
+
+            if (typeof window.toggleCameraLock === 'function') {
+                console.log('window.toggleCameraLock is available');
+            } else {
+                console.log('window.toggleCameraLock is NOT available');
+            }
+
+            if (typeof window.updateMOBACamera === 'function') {
+                console.log('window.updateMOBACamera is available');
+            } else {
+                console.log('window.updateMOBACamera is NOT available');
+            }
+
+            chatSystem.addSystemMessage('Fly mode debug info logged to console.');
+            return;
+        }
+
+        // Add reset command to force unlock camera
+        if (subcommand === 'reset') {
+            if (typeof window.toggleCameraLock === 'function') {
+                window.toggleCameraLock(false);
+                chatSystem.addSystemMessage('Camera lock has been forcibly reset.');
+            } else {
+                chatSystem.addSystemMessage('Cannot reset camera - toggleCameraLock not available.');
+            }
+            return;
+        }
     }
 
     // Regular fly command behavior (toggle fly mode)
@@ -312,9 +365,26 @@ function enableFlyMode(speed = 1.0) {
     // Check if already in fly mode
     if (state.flyMode) return;
 
+    console.log('[FLY] Enabling fly mode');
+
     // Remember current camera position and rotation
     state.cameraPosition = camera.position.clone();
     state.cameraRotation = camera.rotation.clone();
+
+    // Store the MOBA camera state - use window.cameraLocked since that's what the module exposes
+    state.originalMOBACameraState = {
+        wasCameraLocked: window.cameraLocked,
+        orbitPosition: window.cameraOrbitPosition ? { ...window.cameraOrbitPosition } : null
+    };
+
+    // Force unlock the camera for fly mode - call the global function that's exported by mobaCameraControls
+    if (typeof window.toggleCameraLock === 'function') {
+        window.toggleCameraLock(false); // Unlock the camera
+        console.log('[FLY] Unlocking camera for fly mode');
+    }
+
+    // CRITICAL: Disable all other camera control event listeners
+    disableAllOtherCameraControls();
 
     // Set fly speed
     state.flySpeed = speed;
@@ -341,30 +411,19 @@ function enableFlyMode(speed = 1.0) {
     document.addEventListener('keydown', handleFlyModeKeyDown);
     document.addEventListener('keyup', handleFlyModeKeyUp);
 
+    // Initialize the camera rotation system using pitch/yaw objects
+    setupCameraRotationSystem();
+
     // Add mouse handlers
     document.addEventListener('mousemove', handleFlyModeMouseMove);
     document.addEventListener('mousedown', handleFlyModeMouseDown);
     document.addEventListener('mouseup', handleFlyModeMouseUp);
-
-    // Set up mouse look
-    state.mouseLook = {
-        isLocked: false,
-        isDragging: false,
-        lastX: 0,
-        lastY: 0,
-        sensitivity: 0.002
-    };
-
-    // Request pointer lock on click (disabled - now using click and drag instead)
-    // document.addEventListener('click', requestPointerLock);
-    // document.addEventListener('pointerlockchange', handlePointerLockChange);
 
     // Set fly mode state
     state.flyMode = true;
     window.flyModeEnabled = true; // Set the global state
 
     // Ensure the updateCamera function is properly overridden
-    // This is a backup in case the early patchAnimationLoop didn't work
     if (typeof window.updateCamera === 'function' && window.updateCamera !== state.originalUpdateCamera) {
         state.originalUpdateCamera = window.updateCamera;
 
@@ -382,6 +441,28 @@ function enableFlyMode(speed = 1.0) {
         window.updateCamera = state.updateCameraWrapper;
     }
 
+    // Override the MOBA camera update function to prevent it from running during fly mode
+    if (typeof window.updateMOBACamera === 'function' && !state.originalUpdateMOBACamera) {
+        state.originalUpdateMOBACamera = window.updateMOBACamera;
+        window.updateMOBACamera = function () {
+            if (window.flyModeEnabled) return;
+            if (state.originalUpdateMOBACamera) {
+                return state.originalUpdateMOBACamera.apply(this, arguments);
+            }
+        };
+    }
+
+    // Override standard camera controls updateCameraPosition function
+    if (typeof window.updateCameraPosition === 'function' && !state.originalUpdateCameraPosition) {
+        state.originalUpdateCameraPosition = window.updateCameraPosition;
+        window.updateCameraPosition = function () {
+            if (window.flyModeEnabled) return;
+            if (state.originalUpdateCameraPosition) {
+                return state.originalUpdateCameraPosition.apply(this, arguments);
+            }
+        };
+    }
+
     // Setup animation loop for fly mode
     state.prevTime = performance.now();
 
@@ -391,133 +472,124 @@ function enableFlyMode(speed = 1.0) {
     // Make sure we remove focus from any text inputs
     document.activeElement?.blur();
 
-    // Force camera orientation if needed
-    // This ensures the camera is correctly oriented for free flight
+    // Force camera to have correct orientation and rotation order for fly mode
+    camera.rotation.order = 'YXZ'; // This is critical for proper first-person controls
+
     if (!camera.quaternion) {
         camera.quaternion = new THREE.Quaternion();
-        camera.quaternion.setFromEuler(camera.rotation);
     }
+    camera.quaternion.setFromEuler(camera.rotation);
+
+    // Create on-screen debug info
+    createCameraDebugInfo();
 
     // Add visual indicator for fly mode
     createFlyModeIndicator();
 }
 
 /**
- * Create a visual indicator showing fly mode is active and controls
+ * Disable all other camera control systems to prevent conflicts
  */
-function createFlyModeIndicator() {
-    // Remove existing indicator if present
-    removeFlyModeIndicator();
+function disableAllOtherCameraControls() {
+    // Disable standard camera controls
+    if (window.cameraMouseDown) {
+        document.removeEventListener('mousedown', window.cameraMouseDown);
+        console.log('[FLY] Removed cameraMouseDown');
+    }
+    if (window.cameraMouseMove) {
+        document.removeEventListener('mousemove', window.cameraMouseMove);
+        console.log('[FLY] Removed cameraMouseMove');
+    }
+    if (window.cameraMouseUp) {
+        document.removeEventListener('mouseup', window.cameraMouseUp);
+        console.log('[FLY] Removed cameraMouseUp');
+    }
+    if (window.cameraTouchStart) {
+        document.removeEventListener('touchstart', window.cameraTouchStart);
+        console.log('[FLY] Removed cameraTouchStart');
+    }
+    if (window.cameraTouchMove) {
+        document.removeEventListener('touchmove', window.cameraTouchMove);
+        console.log('[FLY] Removed cameraTouchMove');
+    }
+    if (window.cameraTouchEnd) {
+        document.removeEventListener('touchend', window.cameraTouchEnd);
+        console.log('[FLY] Removed cameraTouchEnd');
+    }
 
-    // Create the indicator
-    const indicator = document.createElement('div');
-    indicator.id = 'fly-mode-indicator';
-    indicator.style.position = 'fixed';
-    indicator.style.top = '80px';
-    indicator.style.right = '20px';
-    indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-    indicator.style.color = '#fff';
-    indicator.style.padding = '10px';
-    indicator.style.borderRadius = '5px';
-    indicator.style.fontFamily = 'serif';
-    indicator.style.fontSize = '14px';
-    indicator.style.zIndex = '1000';
-    indicator.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
-    indicator.style.border = '1px solid #B8860B'; // Gold border
-
-    // Create content
-    indicator.innerHTML = `
-        <div style="margin-bottom: 5px; font-weight: bold; color: #DAA520; text-align: center;">✈️ FLY MODE ACTIVE</div>
-        <div style="border-bottom: 1px solid #B8860B; margin-bottom: 5px;"></div>
-        <div style="display: grid; grid-template-columns: auto auto; gap: 5px;">
-            <div><b>W/↑</b>: Forward</div>
-            <div><b>S/↓</b>: Backward</div>
-            <div><b>A/←</b>: Left</div>
-            <div><b>D/→</b>: Right</div>
-            <div><b>Space</b>: Up</div>
-            <div><b>Shift</b>: Down</div>
-            <div><b>P</b>: Rotate Left</div>
-            <div><b>O</b>: Rotate Right</div>
-            <div><b>Click+Drag</b>: Look</div>
-            <div><b>/fly</b>: Exit</div>
-        </div>
-        <div style="border-top: 1px solid #B8860B; margin-top: 5px; font-size: 12px; text-align: center;">
-            Speed: ${state.flySpeed.toFixed(1)}x • <span style="cursor:pointer; text-decoration:underline;" onclick="document.querySelector('#chat-input').value='/fly speed '; document.querySelector('#chat-input').focus();">Change Speed</span>
-        </div>
-    `;
-
-    document.body.appendChild(indicator);
+    // Save for restoration later
+    state.disabledCameraControls = {
+        mouseDown: window.cameraMouseDown,
+        mouseMove: window.cameraMouseMove,
+        mouseUp: window.cameraMouseUp,
+        touchStart: window.cameraTouchStart,
+        touchMove: window.cameraTouchMove,
+        touchEnd: window.cameraTouchEnd
+    };
 }
 
 /**
- * Remove the fly mode indicator
+ * Restore all previously disabled camera control systems
  */
-function removeFlyModeIndicator() {
-    const existingIndicator = document.getElementById('fly-mode-indicator');
-    if (existingIndicator) {
-        existingIndicator.remove();
+function restoreOtherCameraControls() {
+    if (!state.disabledCameraControls) return;
+
+    // Restore standard camera controls
+    if (state.disabledCameraControls.mouseDown) {
+        document.addEventListener('mousedown', state.disabledCameraControls.mouseDown);
+        console.log('[FLY] Restored cameraMouseDown');
     }
+    if (state.disabledCameraControls.mouseMove) {
+        document.addEventListener('mousemove', state.disabledCameraControls.mouseMove);
+        console.log('[FLY] Restored cameraMouseMove');
+    }
+    if (state.disabledCameraControls.mouseUp) {
+        document.addEventListener('mouseup', state.disabledCameraControls.mouseUp);
+        console.log('[FLY] Restored cameraMouseUp');
+    }
+    if (state.disabledCameraControls.touchStart) {
+        document.addEventListener('touchstart', state.disabledCameraControls.touchStart);
+        console.log('[FLY] Restored cameraTouchStart');
+    }
+    if (state.disabledCameraControls.touchMove) {
+        document.addEventListener('touchmove', state.disabledCameraControls.touchMove);
+        console.log('[FLY] Restored cameraTouchMove');
+    }
+    if (state.disabledCameraControls.touchEnd) {
+        document.addEventListener('touchend', state.disabledCameraControls.touchEnd);
+        console.log('[FLY] Restored cameraTouchEnd');
+    }
+
+    // Clear saved controls
+    state.disabledCameraControls = null;
 }
 
 /**
- * Disable fly mode
+ * Setup the camera rotation system using separate pitch and yaw objects
  */
-function disableFlyMode() {
-    // Remove fly mode keyboard handlers
-    document.removeEventListener('keydown', handleFlyModeKeyDown);
-    document.removeEventListener('keyup', handleFlyModeKeyUp);
-
-    // Remove mouse handlers
-    document.removeEventListener('mousemove', handleFlyModeMouseMove);
-    document.removeEventListener('mousedown', handleFlyModeMouseDown);
-    document.removeEventListener('mouseup', handleFlyModeMouseUp);
-
-    // Exit pointer lock if active (legacy cleanup)
-    if (document.pointerLockElement) {
-        document.exitPointerLock();
-    }
-
-    // Restore original keyboard handlers
-    if (state.originalKeyHandlers.keydown) {
-        document.addEventListener('keydown', state.originalKeyHandlers.keydown);
-    }
-    if (state.originalKeyHandlers.keyup) {
-        document.addEventListener('keyup', state.originalKeyHandlers.keyup);
-    }
-
+function setupCameraRotationSystem() {
     // Reset state
-    state.flyMode = false;
-    window.flyModeEnabled = false; // Reset the global state
+    state.mouseLook.pitchObject = { rotation: 0 }; // Pitch (up/down)
+    state.mouseLook.yawObject = { rotation: 0 };   // Yaw (left/right)
 
-    // Restore original updateCamera function
-    if (state.originalUpdateCamera) {
-        window.updateCamera = state.originalUpdateCamera;
-    }
+    // Initialize with camera's current rotation
+    state.mouseLook.pitchObject.rotation = camera.rotation.x;
+    state.mouseLook.yawObject.rotation = camera.rotation.y;
 
-    // Reset camera to original position and rotation
-    camera.position.copy(state.cameraPosition);
-    camera.rotation.copy(state.cameraRotation);
+    // Set the rotation order - critical for FPS camera
+    camera.rotation.order = 'YXZ';
 
-    // Call updateCameraPosition once to restore proper camera positioning
-    updateCameraPosition();
-
-    // Remove visual indicator
-    removeFlyModeIndicator();
-}
-
-/**
- * Request pointer lock for mouse look
- */
-function requestPointerLock() {
-    if (!state.flyMode) return;
-    document.body.requestPointerLock();
-}
-
-/**
- * Handle pointer lock change
- */
-function handlePointerLockChange() {
-    state.mouseLook.isLocked = document.pointerLockElement === document.body;
+    // Log initial camera state
+    console.log('[FLY] Initial camera state:', {
+        position: camera.position.clone(),
+        rotation: {
+            x: camera.rotation.x,
+            y: camera.rotation.y,
+            z: camera.rotation.z,
+            order: camera.rotation.order
+        },
+        quaternion: camera.quaternion.clone()
+    });
 }
 
 /**
@@ -532,6 +604,10 @@ function handleFlyModeMouseDown(event) {
         state.mouseLook.isDragging = true;
         state.mouseLook.lastX = event.clientX;
         state.mouseLook.lastY = event.clientY;
+        console.log('Mouse DOWN - Drag started', { x: event.clientX, y: event.clientY });
+
+        // Update debug info
+        updateCameraDebugInfo();
     }
 }
 
@@ -545,11 +621,15 @@ function handleFlyModeMouseUp(event) {
     // Only handle left mouse button (button 0)
     if (event.button === 0) {
         state.mouseLook.isDragging = false;
+        console.log('Mouse UP - Drag ended', { x: event.clientX, y: event.clientY });
+
+        // Update debug info
+        updateCameraDebugInfo();
     }
 }
 
 /**
- * Handle mouse movement in fly mode
+ * Handle mouse movement in fly mode - completely rewritten with better pitch/yaw handling
  * @param {MouseEvent} event - Mouse event
  */
 function handleFlyModeMouseMove(event) {
@@ -557,19 +637,62 @@ function handleFlyModeMouseMove(event) {
 
     // Only rotate camera if mouse is being dragged (clicked and moved)
     if (state.mouseLook.isDragging) {
+        // Calculate mouse movement since last frame
         const movementX = event.clientX - state.mouseLook.lastX;
         const movementY = event.clientY - state.mouseLook.lastY;
-
-        // Update camera rotation based on mouse movement
-        camera.rotation.y -= movementX * state.mouseLook.sensitivity;
-
-        // Limit vertical rotation to avoid flipping
-        const newRotationX = camera.rotation.x - movementY * state.mouseLook.sensitivity;
-        camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, newRotationX));
 
         // Store current position for next frame
         state.mouseLook.lastX = event.clientX;
         state.mouseLook.lastY = event.clientY;
+
+        // Skip tiny movements to reduce jitter
+        if (Math.abs(movementX) < 0.5 && Math.abs(movementY) < 0.5) return;
+
+        // Start fresh with current values
+        let newPitch = state.mouseLook.pitchObject.rotation;
+        let newYaw = state.mouseLook.yawObject.rotation;
+
+        // Apply pitch change (up/down) - INVERT Y for natural movement
+        // Negative movementY (mouse up) should increase pitch angle (look up)
+        newPitch -= movementY * state.mouseLook.sensitivity;
+
+        // Apply yaw change (left/right)
+        // Negative movementX (mouse left) should decrease yaw angle (look left)
+        newYaw -= movementX * state.mouseLook.sensitivity;
+
+        // Clamp pitch to avoid flipping
+        newPitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, newPitch));
+
+        // Store final values in state
+        state.mouseLook.pitchObject.rotation = newPitch;
+        state.mouseLook.yawObject.rotation = newYaw;
+
+        // Apply rotations directly to camera
+        // For a proper FPS camera:
+        // 1. Rotation order must be YXZ
+        // 2. Apply yaw first (Y), then pitch (X)
+        camera.rotation.y = newYaw;
+        camera.rotation.x = newPitch;
+
+        // Update quaternion from Euler angles
+        camera.quaternion.setFromEuler(camera.rotation);
+
+        // Verbose logging for debugging every 20px of movement
+        const totalMovement = Math.abs(movementX) + Math.abs(movementY);
+        if (totalMovement > 20) {
+            console.log('[FLY] Mouse move:', {
+                movementX,
+                movementY,
+                pitch: newPitch.toFixed(3),
+                yaw: newYaw.toFixed(3),
+                camX: camera.rotation.x.toFixed(3),
+                camY: camera.rotation.y.toFixed(3),
+                order: camera.rotation.order
+            });
+        }
+
+        // Update debug info
+        updateCameraDebugInfo();
     }
 }
 
@@ -870,4 +993,154 @@ function setupFireballUpdates() {
 
         requestAnimationFrame(updateLoop);
     }
+}
+
+/**
+ * Create a visual indicator showing fly mode is active and controls
+ */
+function createFlyModeIndicator() {
+    // Remove existing indicator if present
+    removeFlyModeIndicator();
+
+    // Create the indicator
+    const indicator = document.createElement('div');
+    indicator.id = 'fly-mode-indicator';
+    indicator.style.position = 'fixed';
+    indicator.style.top = '80px';
+    indicator.style.right = '20px';
+    indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+    indicator.style.color = '#fff';
+    indicator.style.padding = '10px';
+    indicator.style.borderRadius = '5px';
+    indicator.style.fontFamily = 'serif';
+    indicator.style.fontSize = '14px';
+    indicator.style.zIndex = '1000';
+    indicator.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
+    indicator.style.border = '1px solid #B8860B'; // Gold border
+
+    // Create content
+    indicator.innerHTML = `
+        <div style="margin-bottom: 5px; font-weight: bold; color: #DAA520; text-align: center;">✈️ FLY MODE ACTIVE</div>
+        <div style="border-bottom: 1px solid #B8860B; margin-bottom: 5px;"></div>
+        <div style="display: grid; grid-template-columns: auto auto; gap: 5px;">
+            <div><b>W/↑</b>: Forward</div>
+            <div><b>S/↓</b>: Backward</div>
+            <div><b>A/←</b>: Left</div>
+            <div><b>D/→</b>: Right</div>
+            <div><b>Space</b>: Up</div>
+            <div><b>Shift</b>: Down</div>
+            <div><b>P</b>: Rotate Left</div>
+            <div><b>O</b>: Rotate Right</div>
+            <div><b>Click+Drag</b>: Look</div>
+            <div><b>/fly</b>: Exit</div>
+        </div>
+        <div style="border-top: 1px solid #B8860B; margin-top: 5px; font-size: 12px; text-align: center;">
+            Speed: ${state.flySpeed.toFixed(1)}x • <span style="cursor:pointer; text-decoration:underline;" onclick="document.querySelector('#chat-input').value='/fly speed '; document.querySelector('#chat-input').focus();">Change Speed</span>
+        </div>
+    `;
+
+    document.body.appendChild(indicator);
+}
+
+/**
+ * Remove the fly mode indicator
+ */
+function removeFlyModeIndicator() {
+    const existingIndicator = document.getElementById('fly-mode-indicator');
+    if (existingIndicator) {
+        existingIndicator.remove();
+    }
+}
+
+/**
+ * Disable fly mode - cleanup and restore previous camera state
+ */
+function disableFlyMode() {
+    console.log('[FLY] Disabling fly mode');
+
+    // Remove fly mode keyboard handlers
+    document.removeEventListener('keydown', handleFlyModeKeyDown);
+    document.removeEventListener('keyup', handleFlyModeKeyUp);
+
+    // Remove mouse handlers
+    document.removeEventListener('mousemove', handleFlyModeMouseMove);
+    document.removeEventListener('mousedown', handleFlyModeMouseDown);
+    document.removeEventListener('mouseup', handleFlyModeMouseUp);
+
+    // Exit pointer lock if active (legacy cleanup)
+    if (document.pointerLockElement) {
+        document.exitPointerLock();
+    }
+
+    // Restore original keyboard handlers
+    if (state.originalKeyHandlers.keydown) {
+        document.addEventListener('keydown', state.originalKeyHandlers.keydown);
+    }
+    if (state.originalKeyHandlers.keyup) {
+        document.addEventListener('keyup', state.originalKeyHandlers.keyup);
+    }
+
+    // Reset state
+    state.flyMode = false;
+    window.flyModeEnabled = false; // Reset the global state
+
+    // Restore original updateCamera function
+    if (state.originalUpdateCamera) {
+        window.updateCamera = state.originalUpdateCamera;
+    }
+
+    // Restore original MOBA camera update function
+    if (state.originalUpdateMOBACamera) {
+        window.updateMOBACamera = state.originalUpdateMOBACamera;
+        state.originalUpdateMOBACamera = null;
+    }
+
+    // Restore original standard camera controls update function
+    if (state.originalUpdateCameraPosition) {
+        window.updateCameraPosition = state.originalUpdateCameraPosition;
+        state.originalUpdateCameraPosition = null;
+    }
+
+    // Reset camera to original position and rotation
+    camera.position.copy(state.cameraPosition);
+    camera.rotation.copy(state.cameraRotation);
+    camera.quaternion.setFromEuler(camera.rotation);
+
+    // Restore the MOBA camera state if it was saved
+    if (state.originalMOBACameraState) {
+        // Restore orbit position if it was saved
+        if (state.originalMOBACameraState.orbitPosition && window.cameraOrbitPosition) {
+            window.cameraOrbitPosition.distance = state.originalMOBACameraState.orbitPosition.distance;
+            window.cameraOrbitPosition.phi = state.originalMOBACameraState.orbitPosition.phi;
+            window.cameraOrbitPosition.theta = state.originalMOBACameraState.orbitPosition.theta;
+        }
+
+        // Re-lock the camera if it was locked before, using window.toggleCameraLock
+        if (typeof window.toggleCameraLock === 'function' && state.originalMOBACameraState.wasCameraLocked) {
+            console.log('[FLY] Restoring camera lock state:', state.originalMOBACameraState.wasCameraLocked);
+            window.toggleCameraLock(true); // Lock the camera
+        }
+    }
+
+    // Restore all other camera control systems
+    restoreOtherCameraControls();
+
+    // Call updateMOBACamera once to restore proper camera positioning for the MOBA camera
+    if (typeof updateMOBACamera === 'function') {
+        updateMOBACamera();
+    } else if (typeof window.updateMOBACamera === 'function') {
+        window.updateMOBACamera(); // Try the window version
+    } else {
+        // Fallback to standard camera update
+        updateCameraPosition();
+    }
+
+    // Remove debug elements
+    if (state.mouseLook.debugElement) {
+        document.body.removeChild(state.mouseLook.debugElement);
+        state.mouseLook.debugElement = null;
+    }
+
+    // Remove visual indicator
+    removeFlyModeIndicator();
 } 

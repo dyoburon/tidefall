@@ -9,7 +9,7 @@ import { createDestinationMarker, createAttackMarker } from '../effects/navigati
 // Navigation variables for click-based movement
 export let targetDestination = null;
 export let isNavigatingToDestination = false;
-export const navigationTolerance = 25.0; // Increased from 15.0 - Distance threshold to consider destination reached
+export const navigationTolerance = 20.0; // Increased from 15.0 - Distance threshold to consider destination reached
 export const maxNavigationTime = 60.0; // Safety timeout (in seconds)
 export let navigationStartTime = 0;
 
@@ -86,8 +86,23 @@ export function initializeShipController() {
         // Only handle left click (button 0)
         if (event.button !== 0) return;
 
+        // Skip navigation if the click is on the chat container or its children
+        const chatContainer = document.querySelector('.chat-container');
+        if (chatContainer && event.target && (chatContainer === event.target || chatContainer.contains(event.target))) {
+            return;
+        }
+
         // Debug log to verify abilityManager access
         console.log('Click detected, abilityManager exists:', !!window.abilityManager);
+
+        // Skip if chat input is focused
+        if (window.chatInputActive ||
+            (document.activeElement &&
+                (document.activeElement.tagName === 'INPUT' ||
+                    document.activeElement.tagName === 'TEXTAREA' ||
+                    document.activeElement.isContentEditable))) {
+            return;
+        }
 
         // Check if an ability with crosshair is active - do this first
         if (window.abilityManager && window.abilityManager.crosshair) {
@@ -97,15 +112,6 @@ export function initializeShipController() {
                 console.log('Navigation prevented due to active crosshair');
                 return; // Don't navigate when in crosshair/aiming mode
             }
-        }
-
-        // Skip if chat or any text input is focused
-        if (window.chatInputActive ||
-            (document.activeElement &&
-                (document.activeElement.tagName === 'INPUT' ||
-                    document.activeElement.tagName === 'TEXTAREA' ||
-                    document.activeElement.isContentEditable))) {
-            return;
         }
 
         // Get mouse position
@@ -136,6 +142,12 @@ export function initializeShipController() {
     document.addEventListener('contextmenu', (event) => {
         // Prevent default right-click menu
         event.preventDefault();
+
+        // Skip navigation if the click is on the chat container or its children
+        const chatContainer = document.querySelector('.chat-container');
+        if (chatContainer && event.target && (chatContainer === event.target || chatContainer.contains(event.target))) {
+            return;
+        }
 
         // Skip if chat or any text input is focused
         if (window.chatInputActive ||

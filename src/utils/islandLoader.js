@@ -28,12 +28,36 @@ export function loadBrightenedModel(parent, options, onComplete) {
             // Apply brightness enhancement to all meshes after successful load
             parent.traverse(child => {
                 if (child.isMesh && child.material) {
+                    // Disable frustum culling to ensure visibility from any distance
+                    child.frustumCulled = false;
+
+                    // For LOD objects, disable frustum culling on all levels
+                    if (child.isLOD) {
+                        child.levels.forEach(level => {
+                            if (level.object) {
+                                level.object.frustumCulled = false;
+                                level.object.traverse(lodChild => {
+                                    if (lodChild.isMesh) {
+                                        lodChild.frustumCulled = false;
+                                    }
+                                });
+                            }
+                        });
+                    }
+
                     // Handle both single materials and arrays
                     const materials = Array.isArray(child.material) ? child.material : [child.material];
 
                     materials.forEach(material => {
                         // Clone the material to avoid modifying shared materials
                         const newMaterial = material.clone();
+
+                        // Set far clipping distance to maximum
+                        newMaterial.depthTest = true;
+                        newMaterial.depthWrite = true;
+
+                        // Ensure no fog affects this model
+                        newMaterial.fog = false;
 
                         // Directly set a much brighter color (forced approach)
                         if (newMaterial.map) {
@@ -60,6 +84,19 @@ export function loadBrightenedModel(parent, options, onComplete) {
                         } else {
                             child.material = newMaterial;
                         }
+                    });
+                }
+            });
+
+            // For the parent group and its direct children, disable frustum culling
+            parent.frustumCulled = false;
+            parent.children.forEach(child => {
+                child.frustumCulled = false;
+
+                // Handle LOD specifically
+                if (child.isLOD) {
+                    child.levels.forEach(level => {
+                        if (level.object) level.object.frustumCulled = false;
                     });
                 }
             });

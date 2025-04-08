@@ -1189,8 +1189,11 @@ function animate() {
         lastLeaderboardUpdate = time;
     }
 
-    // Update camera - now updateCameraPosition handles zooming internally
-    updateCameraPosition();
+    // Update camera only if fly mode is not enabled
+    if (!window.flyModeEnabled) {
+        // Update camera - now updateCameraPosition handles zooming internally
+        updateCameraPosition();
+    }
 
     // Add this line right below it to force a proper camera update
     camera.updateProjectionMatrix();

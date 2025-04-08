@@ -84,9 +84,9 @@ export function loadGLBModel(targetGroup, config, onComplete) {
             // Use visibleDistance from chunkControl.js to match view distance
             lod.addLevel(simplifiedModel, visibleDistance * 0.5);  // Medium detail at half visible distance
 
-            // For huge islands or portals, we don't want the tiny box representation at all
-            if (modelId && (modelId.includes('huge_island') || modelId.includes('portal'))) {
-                // For huge islands and portals, don't add the box level - keep detailed model visible from all distances
+            // For huge islands, portals, or main map, we don't want the tiny box representation at all
+            if (modelId && (modelId.includes('huge_island') || modelId.includes('portal') || modelId === 'main_map')) {
+                // For huge islands, portals, and main map, don't add the box level - keep detailed model visible from all distances
                 // This ensures they are always visible when their chunk is loaded
 
                 // Also disable frustum culling to ensure visibility
@@ -100,6 +100,29 @@ export function loadGLBModel(targetGroup, config, onComplete) {
                         child.frustumCulled = false;
                     }
                 });
+
+                // For main_map specifically, force it to be visible from maximum distance
+                if (modelId === 'main_map') {
+                    // Remove any LOD levels and directly add the model to the target group
+                    targetGroup.remove(lod);
+
+                    // Make sure model has frustum culling disabled at all levels
+                    model.frustumCulled = false;
+                    model.traverse(child => {
+                        child.frustumCulled = false;
+
+                        // Ensure materials ignore fog effects
+                        if (child.isMesh && child.material) {
+                            const materials = Array.isArray(child.material) ? child.material : [child.material];
+                            materials.forEach(material => {
+                                if (material) material.fog = false;
+                            });
+                        }
+                    });
+
+                    // Add the model directly to the target group
+                    targetGroup.add(model);
+                }
             } else {
                 // For regular models, add a box level at visible distance
                 const boxGeometry = new THREE.BoxGeometry(6, 2, 12);
