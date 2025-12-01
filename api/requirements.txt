@@ -10,4 +10,5 @@ eventlet==0.33.3
 discord.py>=2.3.2
 requests>=2.31.0
 better_profanity>=0.7.0
+google-api-python-client>=2.0.0
 

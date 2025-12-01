@@ -1,0 +1,138 @@
+HOW TO: Automatically Send Discord Message When You Go Live on YouTube
+
+This guide explains how to modify your `discord_bot.py` to poll the YouTube API and announce when you start livestreaming.
+
+### 1. Prerequisites
+
+You need a YouTube Data API Key.
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project (or use an existing one).
+3. Search for "YouTube Data API v3" in the library and Enable it.
+4. Go to "Credentials" -> "Create Credentials" -> "API Key".
+5. Copy this API Key.
+
+You also need your YouTube Channel ID.
+1. Go to your YouTube channel page.
+2. The ID is in the URL: `youtube.com/channel/YOUR_CHANNEL_ID`.
+
+### 2. Environment Variables
+
+Add these to your `.env` file:
+
+```
+YOUTUBE_API_KEY=your_api_key_here
+YOUTUBE_CHANNEL_ID=your_channel_id_here
+```
+
+### 3. Install Dependencies
+
+You need the Google API client library. Run this in your terminal:
+
+```bash
+pip install google-api-python-client
+```
+
+Add `google-api-python-client` to your `requirements.txt`.
+
+### 4. Modify `discord_bot.py`
+
+You need to add a background task that checks YouTube periodically. We will use `discord.ext.tasks` for this.
+
+**A. Add Imports**
+
+At the top of `discord_bot.py`:
+
+```python
+from discord.ext import tasks
+from googleapiclient.discovery import build
+```
+
+**B. Initialize YouTube Client**
+
+Near your other configurations (around line 20):
+
+```python
+YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
+YOUTUBE_CHANNEL_ID = os.environ.get("YOUTUBE_CHANNEL_ID")
+
+youtube = None
+if YOUTUBE_API_KEY:
+    youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+```
+
+**C. Create the Polling Task**
+
+Add this function before `on_ready`:
+
+```python
+# Track the last known status to avoid spamming
+is_currently_live = False
+
+@tasks.loop(minutes=5) # Check every 5 minutes
+async def check_youtube_live():
+    global is_currently_live
+    
+    if not youtube or not YOUTUBE_CHANNEL_ID:
+        return
+
+    try:
+        # Request the channel's live streaming details
+        request = youtube.search().list(
+            part="snippet",
+            channelId=YOUTUBE_CHANNEL_ID,
+            eventType="live",
+            type="video"
+        )
+        response = request.execute()
+
+        # If there are items, the channel is live
+        if response['items']:
+            if not is_currently_live:
+                is_currently_live = True
+                
+                video_data = response['items'][0]
+                video_id = video_data['id']['videoId']
+                video_title = video_data['snippet']['title']
+                video_url = f"https://www.youtube.com/watch?v={video_id}"
+                
+                message = f"@everyone 🔴 **I am now LIVE!**\n\n**{video_title}**\n{video_url}"
+                
+                await send_to_discord_channel(message)
+        else:
+            is_currently_live = False
+            
+    except Exception as e:
+        logger.error(f"Error checking YouTube status: {e}")
+
+@check_youtube_live.before_loop
+async def before_check_live():
+    await bot.wait_until_ready()
+```
+
+**D. Start the Task**
+
+Inside your `on_ready` event:
+
+```python
+@bot.event
+async def on_ready():
+    logger.info(f'Discord bot logged in as {bot.user.name}')
+    # ... existing code ...
+    
+    # Start the YouTube loop
+    if YOUTUBE_API_KEY and YOUTUBE_CHANNEL_ID:
+        if not check_youtube_live.is_running():
+            check_youtube_live.start()
+            logger.info("YouTube live check started.")
+    else:
+        logger.warning("YouTube API Key or Channel ID missing. Live check skipped.")
+```
+
+### Summary
+
+1. Get API Key & Channel ID.
+2. Install `google-api-python-client`.
+3. Add the code above to `discord_bot.py`.
+4. Restart your bot.
+

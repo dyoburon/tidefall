@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import os
 from dotenv import load_dotenv
 import asyncio
@@ -8,15 +8,25 @@ from flask import Flask, request, jsonify
 import threading
 import logging
 from better_profanity import profanity
+from googleapiclient.discovery import build
 
 # --- Configuration ---
 load_dotenv() # Load environment variables from .env
 
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
-CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID")) # Channel to listen/post messages
+CHANNEL_ID_STR = os.environ.get("DISCORD_CHANNEL_ID")
+CHANNEL_ID = int(CHANNEL_ID_STR) if CHANNEL_ID_STR else None  # Channel to listen/post messages
 GAME_SERVER_URL = os.environ.get("GAME_SERVER_URL", "http://127.0.0.1:5000") # URL of your app.py Flask server
 BOT_API_PORT = int(os.environ.get("DISCORD_BOT_API_PORT", 5002)) # Port for this bot's Flask API
 SHARED_SECRET = os.environ.get("DISCORD_SHARED_SECRET", "default_secret_key") # Secret key for API security
+YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
+YOUTUBE_CHANNEL_ID = os.environ.get("YOUTUBE_CHANNEL_ID")
+DISCORD_YOUTUBE_CHANNEL_ID_STR = os.environ.get("DISCORD_YOUTUBE_CHANNEL_ID")
+DISCORD_YOUTUBE_CHANNEL_ID = int(DISCORD_YOUTUBE_CHANNEL_ID_STR) if DISCORD_YOUTUBE_CHANNEL_ID_STR else None
+
+youtube = None
+if YOUTUBE_API_KEY:
+    youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 
 # --- Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -90,6 +100,69 @@ def handle_game_event():
 
     return jsonify({"status": "success"}), 200
 
+# Track which livestreams we've already notified about (by video ID)
+notified_livestreams = set()
+
+@tasks.loop(minutes=5) # Check every 5 minutes
+async def check_youtube_live():
+    global notified_livestreams
+
+    if not youtube or not YOUTUBE_CHANNEL_ID or not DISCORD_YOUTUBE_CHANNEL_ID:
+        return
+
+    try:
+        # Request the channel's live streaming details
+        request = youtube.search().list(
+            part="snippet",
+            channelId=YOUTUBE_CHANNEL_ID,
+            eventType="live",
+            type="video"
+        )
+        response = request.execute()
+
+        # Get current live video IDs
+        current_live_ids = set()
+
+        for video_data in response.get('items', []):
+            video_id = video_data['id']['videoId']
+            current_live_ids.add(video_id)
+
+            # Only notify if we haven't notified about this stream yet
+            if video_id not in notified_livestreams:
+                video_title = video_data['snippet']['title']
+                video_url = f"https://www.youtube.com/watch?v={video_id}"
+
+                message = f"@everyone 🔴 **I am now LIVE!**\n\n**{video_title}**\n{video_url}"
+
+                await send_youtube_notification(message)
+                notified_livestreams.add(video_id)
+                logger.info(f"Notified about new livestream: {video_id}")
+
+        # Clean up: remove IDs that are no longer live (stream ended)
+        ended_streams = notified_livestreams - current_live_ids
+        if ended_streams:
+            notified_livestreams -= ended_streams
+            logger.info(f"Cleared ended livestreams from tracking: {ended_streams}")
+
+    except Exception as e:
+        logger.error(f"Error checking YouTube status: {e}")
+
+@check_youtube_live.before_loop
+async def before_check_live():
+    await bot.wait_until_ready()
+
+async def send_youtube_notification(message):
+    """Sends YouTube live notification to the dedicated YouTube Discord channel."""
+    try:
+        channel = bot.get_channel(DISCORD_YOUTUBE_CHANNEL_ID)
+        if channel:
+            await channel.send(message)
+            logger.info(f"Sent YouTube notification to Discord channel {DISCORD_YOUTUBE_CHANNEL_ID}")
+        else:
+            logger.error(f"Could not find Discord YouTube channel with ID {DISCORD_YOUTUBE_CHANNEL_ID}")
+    except Exception as e:
+        logger.error(f"Error sending YouTube notification to Discord: {e}")
+
 async def send_to_discord_channel(message):
     """Sends a message to the configured Discord channel."""
     try:
@@ -106,9 +179,18 @@ async def send_to_discord_channel(message):
 @bot.event
 async def on_ready():
     logger.info(f'Discord bot logged in as {bot.user.name}')
-    logger.info(f'Monitoring channel ID: {CHANNEL_ID}')
-    logger.info(f'Game server URL: {GAME_SERVER_URL}')
+    if CHANNEL_ID:
+        logger.info(f'Monitoring channel ID: {CHANNEL_ID}')
+        logger.info(f'Game server URL: {GAME_SERVER_URL}')
     logger.info(f'Flask API running on port {BOT_API_PORT}')
+
+    # Start the YouTube loop
+    if YOUTUBE_API_KEY and YOUTUBE_CHANNEL_ID and DISCORD_YOUTUBE_CHANNEL_ID:
+        if not check_youtube_live.is_running():
+            check_youtube_live.start()
+            logger.info(f"YouTube live check started. Notifications will go to channel {DISCORD_YOUTUBE_CHANNEL_ID}")
+    else:
+        logger.warning("YouTube API Key, YouTube Channel ID, or Discord YouTube Channel ID missing. Live check skipped.")
 
 @bot.event
 async def on_message(message):
@@ -117,8 +199,8 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Only process messages from the designated channel
-    if message.channel.id == CHANNEL_ID:
+    # Only process messages from the designated channel (if configured)
+    if CHANNEL_ID and message.channel.id == CHANNEL_ID:
         logger.info(f"Received message from Discord channel {CHANNEL_ID}: '{message.content}' by {message.author.display_name}")
         # Censor the message content *before* sending to the game server
         censored_content = profanity.censor(message.content)
@@ -172,9 +254,12 @@ def run_flask():
         logger.error(f"Flask server failed: {e}")
 
 if __name__ == "__main__":
-    if not BOT_TOKEN or not CHANNEL_ID:
-        logger.error("Error: DISCORD_BOT_TOKEN and DISCORD_CHANNEL_ID must be set in environment variables or .env file.")
+    if not BOT_TOKEN:
+        logger.error("Error: DISCORD_BOT_TOKEN must be set in environment variables or .env file.")
     else:
+        if not CHANNEL_ID:
+            logger.warning("DISCORD_CHANNEL_ID not set. Game server integration disabled.")
+
         # Start Flask in a separate thread
         flask_thread = threading.Thread(target=run_flask, daemon=True)
         flask_thread.start()
