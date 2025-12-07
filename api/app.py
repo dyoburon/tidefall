@@ -18,6 +18,8 @@ import harpoon_handler # <-- Import the new harpoon handler
 import requests # <-- Add requests for HTTP calls
 import projectile_manager # <-- Import the new manager
 import threading # <-- Add threading for non-blocking HTTP calls
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Load environment variables from .env file
 load_dotenv()
@@ -49,6 +51,13 @@ firebase_logger.setLevel(logging.WARNING)  # Changed from DEBUG to WARNING
 
 # Initialize Flask app and Socket.IO
 app = Flask(__name__)
+# Initialize Rate Limiter
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ship_game_secret_key')
 
 # Set up Socket.IO
@@ -181,6 +190,14 @@ def handle_disconnect():
 
 @socketio.on('player_join')
 def handle_player_join(data):
+    # --- Max Player Cap Check ---
+    active_player_count = len([p for p in players.values() if p.get('active', False)])
+    if active_player_count >= 10:
+        logger.warning(f"Connection rejected: Server full ({active_player_count}/10 active players)")
+        emit('connection_response', {'error': 'Server is full (max 10 players)'})
+        return
+    # ----------------------------
+
     # Get the Firebase token and UID from the request
     firebase_token = data.get('firebaseToken')
     claimed_firebase_uid = data.get('player_id')
@@ -680,6 +697,7 @@ def sanitize_player_name(name):
 
 # API endpoints
 @app.route('/api/players', methods=['GET'])
+@limiter.limit("50 per minute")
 def get_players():
     """Get all active players"""
     active_players = [p for p in players.values() if p.get('active', False)]
@@ -694,16 +712,19 @@ def get_player(player_id):
     return jsonify({'error': 'Player not found'}), 404
 
 @app.route('/api/islands', methods=['GET'])
+@limiter.limit("50 per minute")
 def get_islands():
     """Get all islands"""
     return jsonify(list(islands.values()))
 
 @app.route('/api/leaderboard', methods=['GET'])
+@limiter.limit("50 per minute")
 def get_leaderboard():
     """Get the combined leaderboard"""
     return jsonify(firestore_models.Player.get_combined_leaderboard())
 
 @app.route('/api/messages', methods=['GET'])
+@limiter.limit("50 per minute")
 def get_messages():
     """Get recent chat messages"""
     message_type = request.args.get('type', 'global')
@@ -712,6 +733,7 @@ def get_messages():
     return jsonify(messages)
 
 @app.route('/api/admin/create_island', methods=['POST'])
+@limiter.limit("10 per minute")
 def create_island():
     """Admin endpoint to create an island"""
     data = request.json

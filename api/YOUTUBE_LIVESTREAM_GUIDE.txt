@@ -136,3 +136,4 @@ async def on_ready():
 3. Add the code above to `discord_bot.py`.
 4. Restart your bot.
 
+

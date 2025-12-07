@@ -11,4 +11,7 @@ discord.py>=2.3.2
 requests>=2.31.0
 better_profanity>=0.7.0
 google-api-python-client>=2.0.0
+Flask-Limiter>=3.3.0
 
+youtube-transcript-api
+google-generativeai
