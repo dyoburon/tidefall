@@ -10,6 +10,7 @@ import logging
 import hmac
 import hashlib
 import random
+import time
 from better_profanity import profanity
 from googleapiclient.discovery import build
 
@@ -171,7 +172,8 @@ def github_webhook():
             message_text = message_text[:200] + '...'
 
         commit_url = commit.get('url', '')
-        author = commit.get('author', {}).get('name', pusher)
+        # Use GitHub username, not full name (username is in 'username' field, fallback to pusher)
+        author = commit.get('author', {}).get('username') or pusher
         verb = random.choice(commit_verbs)
 
         # Sanitize for Discord
@@ -201,7 +203,7 @@ async def send_github_notification(message):
 # Track which livestreams we've already notified about (by video ID)
 notified_livestreams = set()
 
-@tasks.loop(minutes=5) # Check every 5 minutes
+@tasks.loop(minutes=30) # Check every 30 minutes (to stay within YouTube API quota)
 async def check_youtube_live():
     global notified_livestreams
 
@@ -298,6 +300,45 @@ async def on_ready():
     else:
         logger.warning("DISCORD_GITHUB_CHANNEL_ID not set. GitHub webhook integration disabled.")
 
+# --- Manual Live Command ---
+@bot.command(name='live')
+@commands.has_permissions(administrator=True)  # Only admins can use this
+async def go_live(ctx, *, stream_url: str = None):
+    """
+    Manually announce that you're live. Bypasses the 30-min polling.
+    Usage: !live [optional stream URL]
+    Example: !live https://youtube.com/watch?v=abc123
+    """
+    global notified_livestreams
+
+    if not DISCORD_YOUTUBE_CHANNEL_ID:
+        await ctx.send("YouTube notification channel not configured.")
+        return
+
+    # Generate a unique ID for this manual notification to prevent auto-check duplicates
+    manual_id = f"manual_{int(time.time())}"
+    notified_livestreams.add(manual_id)
+
+    # Build the notification message
+    if stream_url:
+        message = f"@everyone 🔴 **I am now LIVE!**\n\n{stream_url}"
+    else:
+        # Default to YouTube channel if no URL provided
+        default_url = f"https://youtube.com/channel/{YOUTUBE_CHANNEL_ID}" if YOUTUBE_CHANNEL_ID else ""
+        message = f"@everyone 🔴 **I am now LIVE!**\n\n{default_url}"
+
+    await send_youtube_notification(message)
+    await ctx.send("Live notification sent!")
+    logger.info(f"Manual live notification sent by {ctx.author.display_name}")
+
+@go_live.error
+async def go_live_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("You need administrator permissions to use this command.")
+    else:
+        await ctx.send(f"An error occurred: {error}")
+        logger.error(f"Error in !live command: {error}")
+
 @bot.event
 async def on_message(message):
     """Handles messages received from Discord."""
@@ -313,8 +354,8 @@ async def on_message(message):
         # Pass the original message object but provide the censored content separately for sending
         await send_to_game_server(message, censored_content)
 
-    # Allow processing commands if needed (optional)
-    # await bot.process_commands(message)
+    # Process commands (like !live)
+    await bot.process_commands(message)
 
 async def send_to_game_server(message, content_to_send):
     """Sends a censored and sanitized message from Discord to the game server."""
