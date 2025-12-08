@@ -59,6 +59,39 @@ flask_app = Flask(__name__)
 werkzeug_logger = logging.getLogger('werkzeug')
 werkzeug_logger.setLevel(logging.ERROR)
 
+# --- Feed Storage (for OBS overlay) ---
+from collections import deque
+import queue
+
+feed_items = deque(maxlen=50)  # Store last 50 feed items
+feed_subscribers = []  # SSE subscribers for real-time updates
+
+def add_feed_item(item_type, author, message, url=None, project=None):
+    """Add an item to the feed and notify all subscribers."""
+    item = {
+        'id': f"{item_type}_{int(time.time() * 1000)}",
+        'type': item_type,
+        'author': author,
+        'message': message,
+        'url': url,
+        'project': project,
+        'timestamp': time.time()
+    }
+    feed_items.append(item)
+
+    # Notify all SSE subscribers
+    dead_subscribers = []
+    for q in feed_subscribers:
+        try:
+            q.put_nowait(item)
+        except:
+            dead_subscribers.append(q)
+
+    # Clean up dead subscribers
+    for q in dead_subscribers:
+        if q in feed_subscribers:
+            feed_subscribers.remove(q)
+
 @flask_app.route('/game_event', methods=['POST'])
 def handle_game_event():
     """Receives events (like chat, player join) from the game server."""
@@ -161,7 +194,7 @@ def github_webhook():
     commit_verbs = [
         "shipped", "pushed", "deployed", "unleashed", "conjured",
         "manifested", "summoned", "crafted", "forged", "dropped",
-        "launched", "beamed", "teleported", "vibed", "cooked up"
+        "launched", "beamed", "teleported", "cooked up"
     ]
 
     # Build the notification message
@@ -185,6 +218,15 @@ def github_webhook():
 
         asyncio.run_coroutine_threadsafe(send_github_notification(discord_message), bot.loop)
 
+        # Add to feed for OBS overlay
+        add_feed_item(
+            item_type='commit',
+            author=author,
+            message=f"has {verb} \"{message_text}\"",
+            url=commit_url,
+            project=repo_name
+        )
+
     logger.info(f"Processed {len(commits)} commit(s) from {repo_name}")
     return jsonify({"status": "success", "commits_processed": len(commits)}), 200
 
@@ -199,6 +241,244 @@ async def send_github_notification(message):
             logger.error(f"Could not find Discord GitHub channel with ID {DISCORD_GITHUB_CHANNEL_ID}")
     except Exception as e:
         logger.error(f"Error sending GitHub notification to Discord: {e}")
+
+# --- OBS Feed Endpoints ---
+from flask import Response, stream_with_context
+import json as json_module
+
+FEED_HTML = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Feed</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            background-color: rgba(0, 0, 0, 0) !important;
+            background: transparent !important;
+            overflow: hidden !important;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        #feed-container {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        ::-webkit-scrollbar { display: none !important; }
+
+        @keyframes slideIn {
+            0% { opacity: 0; transform: translateX(-20px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .feed-item {
+            animation: slideIn 0.3s ease-out both, fadeOut 1s ease-in forwards;
+            animation-delay: 0s, 15s;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(4px);
+            border-left: 4px solid #E6C200;
+            border-radius: 4px 12px 12px 4px;
+            padding: 14px 34px;
+            width: fit-content;
+            max-width: 90%;
+            box-shadow: 2px 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .feed-item.removing {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        .feed-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .feed-icon {
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+        }
+
+        .feed-author {
+            font-size: 24px;
+            font-weight: 700;
+            color: #E6C200;
+            letter-spacing: -0.5px;
+        }
+
+        .feed-message {
+            font-size: 28px;
+            color: #EEEEEE;
+            line-height: 1.4;
+            font-weight: 400;
+        }
+
+        .feed-project {
+            color: #E6C200;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div id="feed-container"></div>
+
+    <script>
+        const container = document.getElementById('feed-container');
+        const displayedItems = new Set();
+
+        // GitHub icon SVG
+        const githubIcon = `<svg class="feed-icon" viewBox="0 0 24 24" fill="#EEEEEE"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>`;
+
+        function addItem(item) {
+            if (displayedItems.has(item.id)) return;
+            displayedItems.add(item.id);
+
+            const el = document.createElement('div');
+            el.className = 'feed-item';
+            el.id = item.id;
+
+            let icon = githubIcon;
+            let content = '';
+
+            if (item.type === 'commit') {
+                content = `
+                    <div class="feed-header">
+                        ${icon}
+                        <span class="feed-author">${escapeHtml(item.author)}</span>
+                    </div>
+                    <div class="feed-message">
+                        ${escapeHtml(item.message)} to <span class="feed-project">${escapeHtml(item.project)}</span>
+                    </div>
+                `;
+            } else {
+                content = `
+                    <div class="feed-header">
+                        ${icon}
+                        <span class="feed-author">${escapeHtml(item.author || 'System')}</span>
+                    </div>
+                    <div class="feed-message">${escapeHtml(item.message)}</div>
+                `;
+            }
+
+            el.innerHTML = content;
+            container.insertBefore(el, container.firstChild);
+
+            // Remove after animation completes (16 seconds = 15s delay + 1s fade)
+            setTimeout(() => {
+                el.classList.add('removing');
+                setTimeout(() => {
+                    el.remove();
+                    displayedItems.delete(item.id);
+                }, 500);
+            }, 16000);
+
+            // Keep only last 10 items visible
+            while (container.children.length > 10) {
+                const last = container.lastChild;
+                displayedItems.delete(last.id);
+                last.remove();
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Server-Sent Events for real-time updates
+        function connectSSE() {
+            const evtSource = new EventSource('/feed/events');
+
+            evtSource.onmessage = (event) => {
+                try {
+                    const item = JSON.parse(event.data);
+                    addItem(item);
+                } catch (e) {
+                    console.error('Error parsing SSE data:', e);
+                }
+            };
+
+            evtSource.onerror = () => {
+                console.log('SSE connection lost, reconnecting...');
+                evtSource.close();
+                setTimeout(connectSSE, 3000);
+            };
+        }
+
+        // Load existing items on page load
+        fetch('/feed/items')
+            .then(r => r.json())
+            .then(items => {
+                // Show last 5 items on load (oldest first so newest appears on top)
+                items.slice(-5).forEach(item => addItem(item));
+            })
+            .catch(console.error);
+
+        // Start SSE connection
+        connectSSE();
+    </script>
+</body>
+</html>'''
+
+@flask_app.route('/feed')
+def serve_feed():
+    """Serve the OBS overlay feed page."""
+    return FEED_HTML
+
+@flask_app.route('/feed/items')
+def get_feed_items():
+    """Get recent feed items as JSON."""
+    return jsonify(list(feed_items))
+
+@flask_app.route('/feed/events')
+def feed_events():
+    """Server-Sent Events endpoint for real-time feed updates."""
+    def generate():
+        q = queue.Queue()
+        feed_subscribers.append(q)
+        try:
+            # Send initial ping
+            yield f"data: {json_module.dumps({'type': 'ping'})}\n\n"
+
+            while True:
+                try:
+                    # Wait for new items with timeout (for keep-alive)
+                    item = q.get(timeout=30)
+                    yield f"data: {json_module.dumps(item)}\n\n"
+                except queue.Empty:
+                    # Send keep-alive ping
+                    yield f": ping\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            if q in feed_subscribers:
+                feed_subscribers.remove(q)
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*'
+        }
+    )
 
 # Track which livestreams we've already notified about (by video ID)
 notified_livestreams = set()
