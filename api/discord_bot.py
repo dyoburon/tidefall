@@ -7,6 +7,9 @@ import requests
 from flask import Flask, request, jsonify
 import threading
 import logging
+import hmac
+import hashlib
+import random
 from better_profanity import profanity
 from googleapiclient.discovery import build
 
@@ -23,6 +26,9 @@ YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
 YOUTUBE_CHANNEL_ID = os.environ.get("YOUTUBE_CHANNEL_ID")
 DISCORD_YOUTUBE_CHANNEL_ID_STR = os.environ.get("DISCORD_YOUTUBE_CHANNEL_ID")
 DISCORD_YOUTUBE_CHANNEL_ID = int(DISCORD_YOUTUBE_CHANNEL_ID_STR) if DISCORD_YOUTUBE_CHANNEL_ID_STR else None
+DISCORD_GITHUB_CHANNEL_ID_STR = os.environ.get("DISCORD_GITHUB_CHANNEL_ID")
+DISCORD_GITHUB_CHANNEL_ID = int(DISCORD_GITHUB_CHANNEL_ID_STR) if DISCORD_GITHUB_CHANNEL_ID_STR else None
+GITHUB_WEBHOOK_SECRET = os.environ.get("GITHUB_WEBHOOK_SECRET")  # Optional: for signature verification
 
 youtube = None
 if YOUTUBE_API_KEY:
@@ -99,6 +105,98 @@ def handle_game_event():
         asyncio.run_coroutine_threadsafe(send_to_discord_channel(message_to_send), bot.loop)
 
     return jsonify({"status": "success"}), 200
+
+def verify_github_signature(payload_body, signature_header):
+    """Verify the GitHub webhook signature if a secret is configured."""
+    if not GITHUB_WEBHOOK_SECRET:
+        return True  # Skip verification if no secret configured
+
+    if not signature_header:
+        return False
+
+    hash_algorithm, signature = signature_header.split('=', 1)
+    if hash_algorithm != 'sha256':
+        return False
+
+    expected_signature = hmac.new(
+        GITHUB_WEBHOOK_SECRET.encode('utf-8'),
+        payload_body,
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(signature, expected_signature)
+
+@flask_app.route('/github-webhook', methods=['POST'])
+def github_webhook():
+    """Receives push events from GitHub and sends commit info to Discord."""
+    # Verify signature if secret is configured
+    if GITHUB_WEBHOOK_SECRET:
+        signature = request.headers.get('X-Hub-Signature-256')
+        if not verify_github_signature(request.data, signature):
+            logger.warning("Received GitHub webhook with invalid signature")
+            return jsonify({"error": "Invalid signature"}), 403
+
+    # Only process push events
+    event_type = request.headers.get('X-GitHub-Event')
+    if event_type != 'push':
+        logger.info(f"Ignoring GitHub event type: {event_type}")
+        return jsonify({"status": "ignored", "reason": f"event type {event_type}"}), 200
+
+    if not DISCORD_GITHUB_CHANNEL_ID:
+        logger.warning("DISCORD_GITHUB_CHANNEL_ID not configured, ignoring GitHub webhook")
+        return jsonify({"error": "GitHub channel not configured"}), 500
+
+    data = request.json
+    repo_name = data.get('repository', {}).get('name', 'Unknown repo')
+    pusher = data.get('pusher', {}).get('name', 'Unknown')
+    commits = data.get('commits', [])
+    branch = data.get('ref', '').replace('refs/heads/', '')
+
+    if not commits:
+        logger.info(f"Push to {repo_name} with no commits (possibly branch delete)")
+        return jsonify({"status": "ignored", "reason": "no commits"}), 200
+
+    # Fun verbs for commit messages
+    commit_verbs = [
+        "shipped", "pushed", "deployed", "unleashed", "conjured",
+        "manifested", "summoned", "crafted", "forged", "dropped",
+        "launched", "beamed", "teleported", "vibed", "cooked up"
+    ]
+
+    # Build the notification message
+    for commit in commits:
+        message_text = commit.get('message', 'No message')
+        # Truncate long commit messages
+        if len(message_text) > 200:
+            message_text = message_text[:200] + '...'
+
+        commit_url = commit.get('url', '')
+        author = commit.get('author', {}).get('name', pusher)
+        verb = random.choice(commit_verbs)
+
+        # Sanitize for Discord
+        safe_repo = discord.utils.escape_markdown(repo_name)
+        safe_author = discord.utils.escape_markdown(author)
+        safe_message = discord.utils.escape_markdown(message_text)
+
+        discord_message = f"**{safe_author}** has {verb} `{safe_message}` to project **{safe_repo}** [→]({commit_url})"
+
+        asyncio.run_coroutine_threadsafe(send_github_notification(discord_message), bot.loop)
+
+    logger.info(f"Processed {len(commits)} commit(s) from {repo_name}")
+    return jsonify({"status": "success", "commits_processed": len(commits)}), 200
+
+async def send_github_notification(message):
+    """Sends GitHub commit notification to the dedicated GitHub Discord channel."""
+    try:
+        channel = bot.get_channel(DISCORD_GITHUB_CHANNEL_ID)
+        if channel:
+            await channel.send(message)
+            logger.info(f"Sent GitHub notification to Discord channel {DISCORD_GITHUB_CHANNEL_ID}")
+        else:
+            logger.error(f"Could not find Discord GitHub channel with ID {DISCORD_GITHUB_CHANNEL_ID}")
+    except Exception as e:
+        logger.error(f"Error sending GitHub notification to Discord: {e}")
 
 # Track which livestreams we've already notified about (by video ID)
 notified_livestreams = set()
@@ -191,6 +289,14 @@ async def on_ready():
             logger.info(f"YouTube live check started. Notifications will go to channel {DISCORD_YOUTUBE_CHANNEL_ID}")
     else:
         logger.warning("YouTube API Key, YouTube Channel ID, or Discord YouTube Channel ID missing. Live check skipped.")
+
+    # Log GitHub webhook status
+    if DISCORD_GITHUB_CHANNEL_ID:
+        logger.info(f"GitHub webhook enabled. Notifications will go to channel {DISCORD_GITHUB_CHANNEL_ID}")
+        if GITHUB_WEBHOOK_SECRET:
+            logger.info("GitHub webhook signature verification enabled")
+    else:
+        logger.warning("DISCORD_GITHUB_CHANNEL_ID not set. GitHub webhook integration disabled.")
 
 @bot.event
 async def on_message(message):
