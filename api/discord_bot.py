@@ -512,7 +512,7 @@ async def check_youtube_live():
                 video_title = video_data['snippet']['title']
                 video_url = f"https://www.youtube.com/watch?v={video_id}"
 
-                message = f"@everyone 🔴 **I am now LIVE!**\n\n**{video_title}**\n{video_url}"
+                message = f"🔴 **I am now LIVE!**\n\n**{video_title}**\n{video_url}"
 
                 await send_youtube_notification(message)
                 notified_livestreams.add(video_id)
@@ -601,11 +601,11 @@ async def go_live(ctx, *, stream_url: str = None):
 
     # Build the notification message
     if stream_url:
-        message = f"@everyone 🔴 **I am now LIVE!**\n\n{stream_url}"
+        message = f"🔴 **I am now LIVE!**\n\n{stream_url}"
     else:
         # Default to YouTube channel if no URL provided
         default_url = f"https://youtube.com/channel/{YOUTUBE_CHANNEL_ID}" if YOUTUBE_CHANNEL_ID else ""
-        message = f"@everyone 🔴 **I am now LIVE!**\n\n{default_url}"
+        message = f"🔴 **I am now LIVE!**\n\n{default_url}"
 
     await send_youtube_notification(message)
     await ctx.send("Live notification sent!")
