@@ -288,7 +288,7 @@ FEED_HTML = '''<!DOCTYPE html>
             animation-delay: 0s, 15s;
             background: rgba(0, 0, 0, 0.95);
             backdrop-filter: blur(4px);
-            border-left: 4px solid #E6C200;
+            border-left: 4px solid #2ea043;
             border-radius: 4px 12px 12px 4px;
             padding: 14px 34px;
             width: fit-content;
@@ -316,7 +316,7 @@ FEED_HTML = '''<!DOCTYPE html>
         .feed-author {
             font-size: 24px;
             font-weight: 700;
-            color: #E6C200;
+            color: #2ea043;
             letter-spacing: -0.5px;
         }
 
@@ -328,7 +328,7 @@ FEED_HTML = '''<!DOCTYPE html>
         }
 
         .feed-project {
-            color: #E6C200;
+            color: #2ea043;
             font-weight: 700;
         }
     </style>
