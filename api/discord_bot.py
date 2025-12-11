@@ -976,9 +976,9 @@ async def working_command(interaction: discord.Interaction, task: str = None):
         logger.info(f"Working status cleared by {interaction.user.display_name}")
 
 # --- Break Timer Slash Command ---
-@bot.tree.command(name="break", description="Start a coffee break countdown timer on the stream overlay")
+@bot.tree.command(name="coffee", description="Start a coffee break countdown timer on the stream overlay")
 @app_commands.describe(minutes="How many minutes for the break (default: 5)")
-async def break_command(interaction: discord.Interaction, minutes: int = 5):
+async def coffee_command(interaction: discord.Interaction, minutes: int = 5):
     """Start a break countdown timer on the OBS overlay."""
     # Only allow admins to use this command
     if not interaction.user.guild_permissions.administrator:
@@ -994,8 +994,8 @@ async def break_command(interaction: discord.Interaction, minutes: int = 5):
         return
 
     update_working_status(f"{minutes} min", mode='break', duration_minutes=minutes)
-    await interaction.response.send_message(f"Coffee break started: **{minutes} minute(s)**", ephemeral=True)
-    logger.info(f"Break timer started by {interaction.user.display_name}: {minutes} minutes")
+    await interaction.response.send_message(f"☕ Coffee break started: **{minutes} minute(s)**", ephemeral=True)
+    logger.info(f"Coffee break started by {interaction.user.display_name}: {minutes} minutes")
 
 # --- Back From Break Slash Command ---
 @bot.tree.command(name="back", description="Cancel the break and restore the previous working status")
