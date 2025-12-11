@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 import os
 from dotenv import load_dotenv
@@ -65,6 +66,31 @@ import queue
 
 feed_items = deque(maxlen=50)  # Store last 50 feed items
 feed_subscribers = []  # SSE subscribers for real-time updates
+
+# --- Working Status Storage (for OBS overlay) ---
+current_working_status = {'text': None, 'timestamp': None}
+working_subscribers = []  # SSE subscribers for working status updates
+
+def update_working_status(text):
+    """Update the current working status and notify all subscribers."""
+    global current_working_status
+    current_working_status = {
+        'text': text,
+        'timestamp': time.time() if text else None
+    }
+
+    # Notify all SSE subscribers
+    dead_subscribers = []
+    for q in working_subscribers:
+        try:
+            q.put_nowait(current_working_status)
+        except:
+            dead_subscribers.append(q)
+
+    # Clean up dead subscribers
+    for q in dead_subscribers:
+        if q in working_subscribers:
+            working_subscribers.remove(q)
 
 def add_feed_item(item_type, author, message, url=None, project=None):
     """Add an item to the feed and notify all subscribers."""
@@ -480,6 +506,223 @@ def feed_events():
         }
     )
 
+# --- Working Status OBS Overlay ---
+WORKING_HTML = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Working Status</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            background-color: rgba(0, 0, 0, 0) !important;
+            background: transparent !important;
+            overflow: hidden !important;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        #working-container {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        ::-webkit-scrollbar { display: none !important; }
+
+        @keyframes slideIn {
+            0% { opacity: 0; transform: translateX(-20px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideOut {
+            0% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .working-item {
+            animation: slideIn 0.3s ease-out both;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(4px);
+            border-left: 4px solid #f59e0b;
+            border-radius: 4px 12px 12px 4px;
+            padding: 14px 34px;
+            width: fit-content;
+            max-width: 90%;
+            box-shadow: 2px 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .working-item.removing {
+            animation: slideOut 0.3s ease-out forwards;
+        }
+
+        .working-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .working-icon {
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .working-label {
+            font-size: 24px;
+            font-weight: 700;
+            color: #f59e0b;
+            letter-spacing: -0.5px;
+        }
+
+        .working-text {
+            font-size: 28px;
+            color: #EEEEEE;
+            line-height: 1.4;
+            font-weight: 400;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="working-container">
+        <div id="working-item" class="working-item hidden">
+            <div class="working-header">
+                <svg class="working-icon" viewBox="0 0 24 24" fill="#f59e0b">
+                    <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>
+                </svg>
+                <span class="working-label">Working on</span>
+            </div>
+            <div id="working-text" class="working-text"></div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('working-container');
+        const workingItem = document.getElementById('working-item');
+        const workingText = document.getElementById('working-text');
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateStatus(status) {
+            if (status.text) {
+                workingText.innerHTML = escapeHtml(status.text);
+                workingItem.classList.remove('hidden', 'removing');
+                // Trigger re-animation
+                workingItem.style.animation = 'none';
+                workingItem.offsetHeight; // Force reflow
+                workingItem.style.animation = null;
+            } else {
+                // Clear status - slide out
+                workingItem.classList.add('removing');
+                setTimeout(() => {
+                    workingItem.classList.add('hidden');
+                    workingItem.classList.remove('removing');
+                }, 300);
+            }
+        }
+
+        // Server-Sent Events for real-time updates
+        function connectSSE() {
+            const evtSource = new EventSource('/working/events');
+
+            evtSource.onmessage = (event) => {
+                try {
+                    const status = JSON.parse(event.data);
+                    if (status.type !== 'ping') {
+                        updateStatus(status);
+                    }
+                } catch (e) {
+                    console.error('Error parsing SSE data:', e);
+                }
+            };
+
+            evtSource.onerror = () => {
+                console.log('SSE connection lost, reconnecting...');
+                evtSource.close();
+                setTimeout(connectSSE, 3000);
+            };
+        }
+
+        // Load current status on page load
+        fetch('/working/status')
+            .then(r => r.json())
+            .then(status => {
+                if (status.text) {
+                    updateStatus(status);
+                }
+            })
+            .catch(console.error);
+
+        // Start SSE connection
+        connectSSE();
+    </script>
+</body>
+</html>'''
+
+@flask_app.route('/working')
+def serve_working():
+    """Serve the OBS overlay working status page."""
+    return WORKING_HTML
+
+@flask_app.route('/working/status')
+def get_working_status():
+    """Get current working status as JSON."""
+    return jsonify(current_working_status)
+
+@flask_app.route('/working/events')
+def working_events():
+    """Server-Sent Events endpoint for real-time working status updates."""
+    def generate():
+        q = queue.Queue()
+        working_subscribers.append(q)
+        try:
+            # Send initial ping
+            yield f"data: {json_module.dumps({'type': 'ping'})}\n\n"
+
+            while True:
+                try:
+                    # Wait for new status with timeout (for keep-alive)
+                    status = q.get(timeout=30)
+                    yield f"data: {json_module.dumps(status)}\n\n"
+                except queue.Empty:
+                    # Send keep-alive ping
+                    yield f": ping\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            if q in working_subscribers:
+                working_subscribers.remove(q)
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*'
+        }
+    )
+
 # Track which livestreams we've already notified about (by video ID)
 notified_livestreams = set()
 
@@ -579,6 +822,32 @@ async def on_ready():
             logger.info("GitHub webhook signature verification enabled")
     else:
         logger.warning("DISCORD_GITHUB_CHANNEL_ID not set. GitHub webhook integration disabled.")
+
+    # Sync slash commands
+    try:
+        synced = await bot.tree.sync()
+        logger.info(f"Synced {len(synced)} slash command(s)")
+    except Exception as e:
+        logger.error(f"Failed to sync slash commands: {e}")
+
+# --- Working Status Slash Command ---
+@bot.tree.command(name="working", description="Set your current working status for the stream overlay")
+@app_commands.describe(task="What you're currently working on (leave empty to clear)")
+async def working_command(interaction: discord.Interaction, task: str = None):
+    """Set the working status displayed on the OBS overlay."""
+    # Only allow admins to use this command
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("You need administrator permissions to use this command.", ephemeral=True)
+        return
+
+    if task:
+        update_working_status(task)
+        await interaction.response.send_message(f"Working status set to: **{task}**", ephemeral=True)
+        logger.info(f"Working status updated by {interaction.user.display_name}: {task}")
+    else:
+        update_working_status(None)
+        await interaction.response.send_message("Working status cleared.", ephemeral=True)
+        logger.info(f"Working status cleared by {interaction.user.display_name}")
 
 # --- Manual Live Command ---
 @bot.command(name='live')
