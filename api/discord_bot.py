@@ -68,22 +68,63 @@ feed_items = deque(maxlen=50)  # Store last 50 feed items
 feed_subscribers = []  # SSE subscribers for real-time updates
 
 # --- Working Status Storage (for OBS overlay) ---
-current_working_status = {'text': None, 'timestamp': None}
+current_working_status = {'text': None, 'timestamp': None, 'mode': 'working', 'end_time': None}
+saved_working_status = {'text': None, 'timestamp': None}  # Saved status during breaks
 working_subscribers = []  # SSE subscribers for working status updates
 
-def update_working_status(text):
-    """Update the current working status and notify all subscribers."""
-    global current_working_status
+def update_working_status(text, mode='working', duration_minutes=None):
+    """Update the current working status and notify all subscribers.
+
+    Args:
+        text: The status text to display
+        mode: 'working' or 'break'
+        duration_minutes: For break mode, how many minutes until break ends
+    """
+    global current_working_status, saved_working_status
+
+    # If switching to break mode, save the current working status
+    if mode == 'break' and current_working_status.get('mode') == 'working':
+        saved_working_status = {
+            'text': current_working_status.get('text'),
+            'timestamp': current_working_status.get('timestamp')
+        }
+
+    end_time = None
+    if mode == 'break' and duration_minutes:
+        end_time = time.time() + (duration_minutes * 60)
+
     current_working_status = {
         'text': text,
-        'timestamp': time.time() if text else None
+        'timestamp': time.time() if text else None,
+        'mode': mode,
+        'end_time': end_time
     }
 
     # Notify all SSE subscribers
+    _notify_working_subscribers(current_working_status)
+
+def restore_working_status():
+    """Restore the saved working status (used when canceling a break)."""
+    global current_working_status, saved_working_status
+
+    current_working_status = {
+        'text': saved_working_status.get('text'),
+        'timestamp': saved_working_status.get('timestamp'),
+        'mode': 'working',
+        'end_time': None
+    }
+
+    # Notify all SSE subscribers
+    _notify_working_subscribers(current_working_status)
+
+    return saved_working_status.get('text')
+
+def _notify_working_subscribers(status):
+    """Notify all SSE subscribers of a status update."""
     dead_subscribers = []
     for q in working_subscribers:
         try:
-            q.put_nowait(current_working_status)
+            q.put_nowait(status)
         except:
             dead_subscribers.append(q)
 
@@ -549,6 +590,11 @@ WORKING_HTML = '''<!DOCTYPE html>
             50% { opacity: 0.7; }
         }
 
+        @keyframes steam {
+            0%, 100% { opacity: 0; transform: translateY(0) scale(1); }
+            50% { opacity: 0.6; transform: translateY(-8px) scale(1.1); }
+        }
+
         .working-item {
             animation: slideIn 0.3s ease-out both;
             background: rgba(0, 0, 0, 0.95);
@@ -559,6 +605,11 @@ WORKING_HTML = '''<!DOCTYPE html>
             width: fit-content;
             max-width: 90%;
             box-shadow: 2px 4px 10px rgba(0,0,0,0.5);
+            transition: border-color 0.3s ease;
+        }
+
+        .working-item.break-mode {
+            border-left-color: #8b5cf6;
         }
 
         .working-item.removing {
@@ -584,6 +635,11 @@ WORKING_HTML = '''<!DOCTYPE html>
             font-weight: 700;
             color: #f59e0b;
             letter-spacing: -0.5px;
+            transition: color 0.3s ease;
+        }
+
+        .break-mode .working-label {
+            color: #8b5cf6;
         }
 
         .working-text {
@@ -591,6 +647,10 @@ WORKING_HTML = '''<!DOCTYPE html>
             color: #EEEEEE;
             line-height: 1.4;
             font-weight: 400;
+        }
+
+        .countdown {
+            font-variant-numeric: tabular-nums;
         }
 
         .hidden {
@@ -602,19 +662,27 @@ WORKING_HTML = '''<!DOCTYPE html>
     <div id="working-container">
         <div id="working-item" class="working-item hidden">
             <div class="working-header">
-                <svg class="working-icon" viewBox="0 0 24 24" fill="#f59e0b">
+                <svg id="working-icon" class="working-icon" viewBox="0 0 24 24" fill="#f59e0b">
                     <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>
                 </svg>
-                <span class="working-label">Working on</span>
+                <span id="working-label" class="working-label">Working on</span>
             </div>
             <div id="working-text" class="working-text"></div>
         </div>
     </div>
 
     <script>
-        const container = document.getElementById('working-container');
         const workingItem = document.getElementById('working-item');
+        const workingIcon = document.getElementById('working-icon');
+        const workingLabel = document.getElementById('working-label');
         const workingText = document.getElementById('working-text');
+
+        // Icons
+        const wrenchIcon = '<path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>';
+        const coffeeIcon = '<path d="M2 21h18v-2H2v2zm16-8.18c.64-.37 1.14-.93 1.43-1.61.29-.68.37-1.44.23-2.16-.14-.73-.51-1.39-1.05-1.9-.54-.52-1.24-.85-1.98-.96V4h1V2H4v2h1v2.19c-.74.11-1.44.44-1.98.96-.54.51-.91 1.17-1.05 1.9-.14.72-.06 1.48.23 2.16.29.68.79 1.24 1.43 1.61L2 21h2l.52-3h12.96l.52 3h2l-2-8.18zM9 4h6v2H9V4zM6.14 10c-.04-.17-.06-.35-.06-.52 0-.82.39-1.59 1.03-2.06.24-.18.51-.31.8-.41V7h8.18v-.01c.29.1.56.23.8.41.64.47 1.03 1.24 1.03 2.06 0 .17-.02.35-.06.52-.14.68-.52 1.27-1.05 1.68-.53.4-1.19.63-1.87.63H9.06c-.68 0-1.34-.23-1.87-.63-.53-.41-.91-1-1.05-1.68V10z"/>';
+
+        let currentStatus = null;
+        let countdownInterval = null;
 
         function escapeHtml(text) {
             if (!text) return '';
@@ -623,21 +691,74 @@ WORKING_HTML = '''<!DOCTYPE html>
             return div.innerHTML;
         }
 
+        function formatTime(seconds) {
+            if (seconds <= 0) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return mins + ':' + secs.toString().padStart(2, '0');
+        }
+
+        function updateCountdown() {
+            if (!currentStatus || currentStatus.mode !== 'break' || !currentStatus.end_time) {
+                return;
+            }
+
+            const now = Date.now() / 1000;
+            const remaining = currentStatus.end_time - now;
+
+            if (remaining <= 0) {
+                // Break is over - clear the display
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+                hideStatus();
+            } else {
+                workingText.innerHTML = '<span class="countdown">' + formatTime(remaining) + '</span>';
+            }
+        }
+
+        function hideStatus() {
+            workingItem.classList.add('removing');
+            setTimeout(() => {
+                workingItem.classList.add('hidden');
+                workingItem.classList.remove('removing', 'break-mode');
+            }, 300);
+        }
+
         function updateStatus(status) {
-            if (status.text) {
-                workingText.innerHTML = escapeHtml(status.text);
+            // Clear any existing countdown
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+
+            currentStatus = status;
+
+            if (status.text || (status.mode === 'break' && status.end_time)) {
+                // Update icon and label based on mode
+                if (status.mode === 'break') {
+                    workingIcon.innerHTML = coffeeIcon;
+                    workingIcon.setAttribute('fill', '#8b5cf6');
+                    workingLabel.textContent = 'Coffee break';
+                    workingItem.classList.add('break-mode');
+
+                    // Start countdown
+                    updateCountdown();
+                    countdownInterval = setInterval(updateCountdown, 1000);
+                } else {
+                    workingIcon.innerHTML = wrenchIcon;
+                    workingIcon.setAttribute('fill', '#f59e0b');
+                    workingLabel.textContent = 'Working on';
+                    workingItem.classList.remove('break-mode');
+                    workingText.innerHTML = escapeHtml(status.text);
+                }
+
                 workingItem.classList.remove('hidden', 'removing');
                 // Trigger re-animation
                 workingItem.style.animation = 'none';
                 workingItem.offsetHeight; // Force reflow
                 workingItem.style.animation = null;
             } else {
-                // Clear status - slide out
-                workingItem.classList.add('removing');
-                setTimeout(() => {
-                    workingItem.classList.add('hidden');
-                    workingItem.classList.remove('removing');
-                }, 300);
+                hideStatus();
             }
         }
 
@@ -667,7 +788,7 @@ WORKING_HTML = '''<!DOCTYPE html>
         fetch('/working/status')
             .then(r => r.json())
             .then(status => {
-                if (status.text) {
+                if (status.text || (status.mode === 'break' && status.end_time)) {
                     updateStatus(status);
                 }
             })
@@ -848,6 +969,48 @@ async def working_command(interaction: discord.Interaction, task: str = None):
         update_working_status(None)
         await interaction.response.send_message("Working status cleared.", ephemeral=True)
         logger.info(f"Working status cleared by {interaction.user.display_name}")
+
+# --- Break Timer Slash Command ---
+@bot.tree.command(name="break", description="Start a coffee break countdown timer on the stream overlay")
+@app_commands.describe(minutes="How many minutes for the break (default: 5)")
+async def break_command(interaction: discord.Interaction, minutes: int = 5):
+    """Start a break countdown timer on the OBS overlay."""
+    # Only allow admins to use this command
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("You need administrator permissions to use this command.", ephemeral=True)
+        return
+
+    if minutes < 1:
+        await interaction.response.send_message("Break must be at least 1 minute.", ephemeral=True)
+        return
+
+    if minutes > 60:
+        await interaction.response.send_message("Break cannot be longer than 60 minutes.", ephemeral=True)
+        return
+
+    update_working_status(f"{minutes} min", mode='break', duration_minutes=minutes)
+    await interaction.response.send_message(f"Coffee break started: **{minutes} minute(s)**", ephemeral=True)
+    logger.info(f"Break timer started by {interaction.user.display_name}: {minutes} minutes")
+
+# --- Back From Break Slash Command ---
+@bot.tree.command(name="back", description="Cancel the break and restore the previous working status")
+async def back_command(interaction: discord.Interaction):
+    """Cancel break and restore previous working status."""
+    # Only allow admins to use this command
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("You need administrator permissions to use this command.", ephemeral=True)
+        return
+
+    if current_working_status.get('mode') != 'break':
+        await interaction.response.send_message("No active break to cancel.", ephemeral=True)
+        return
+
+    restored_text = restore_working_status()
+    if restored_text:
+        await interaction.response.send_message(f"Welcome back! Restored status: **{restored_text}**", ephemeral=True)
+    else:
+        await interaction.response.send_message("Welcome back! (No previous status to restore)", ephemeral=True)
+    logger.info(f"Break canceled by {interaction.user.display_name}")
 
 # --- Manual Live Command ---
 @bot.command(name='live')
