@@ -900,6 +900,11 @@ async def send_youtube_notification(message):
     try:
         channel = bot.get_channel(DISCORD_YOUTUBE_CHANNEL_ID)
         if channel:
+            # Check last message to avoid duplicates on redeploy
+            async for last_message in channel.history(limit=1):
+                if last_message.content == message:
+                    logger.info("Skipping duplicate YouTube notification")
+                    return
             await channel.send(message)
             logger.info(f"Sent YouTube notification to Discord channel {DISCORD_YOUTUBE_CHANNEL_ID}")
         else:
