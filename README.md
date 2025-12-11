@@ -1,8 +1,12 @@
 # Tidefall
 
+![Tidefall Demo](demo.gif)
+
 A multiplayer 3D sailing game built with Three.js where players navigate procedurally generated seas, battle sea monsters, explore islands, and compete on the leaderboard.
 
 **Work in progress.**
+
+https://x.com/dyoburon/status/1904003191534137528
 
 ## Features
 
