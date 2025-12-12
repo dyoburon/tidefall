@@ -106,10 +106,7 @@ def register_routes(app):
     # --- Control Panel ---
     @app.route('/controls')
     def serve_controls():
-        """Serve the stream control panel. Requires key to access."""
-        auth_key = request.args.get('key')
-        if auth_key != config.SHARED_SECRET:
-            return "Unauthorized", 401
+        """Serve the stream control panel."""
         return CONTROL_PANEL_HTML
 
     # --- API Endpoints ---
