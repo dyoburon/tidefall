@@ -465,6 +465,10 @@ BRB_HTML = '''<!DOCTYPE html>
             z-index: 10;
             text-align: center;
             color: #f5f0eb;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 50px 80px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
         }
 
         .coffee-icon {

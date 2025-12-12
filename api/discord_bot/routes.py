@@ -120,10 +120,6 @@ def register_routes(app):
     @app.route('/api/back', methods=['POST', 'GET'])
     def api_back():
         """End break and restore status via API call."""
-        auth_secret = request.headers.get('X-Secret-Key') or request.args.get('key')
-        if auth_secret != config.SHARED_SECRET:
-            return jsonify({"error": "Unauthorized"}), 403
-
         if config.current_working_status.get('mode') != 'break':
             return jsonify({"status": "no_break", "message": "No active break"})
 
@@ -134,10 +130,6 @@ def register_routes(app):
     @app.route('/api/working', methods=['POST', 'GET'])
     def api_working():
         """Set working status via API call."""
-        auth_secret = request.headers.get('X-Secret-Key') or request.args.get('key')
-        if auth_secret != config.SHARED_SECRET:
-            return jsonify({"error": "Unauthorized"}), 403
-
         if request.method == 'POST':
             data = request.json or {}
             task = data.get('task')
