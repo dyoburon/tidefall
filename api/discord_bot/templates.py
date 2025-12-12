@@ -465,10 +465,10 @@ BRB_HTML = '''<!DOCTYPE html>
             z-index: 10;
             text-align: center;
             color: #f5f0eb;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 50px 80px;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.75);
+            padding: 60px 100px;
+            border-radius: 24px;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
         }
 
         .coffee-icon {
@@ -476,6 +476,7 @@ BRB_HTML = '''<!DOCTYPE html>
             margin-bottom: 20px;
             animation: steam 2s ease-in-out infinite;
             display: inline-block;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
         }
 
         @keyframes steam {
@@ -490,27 +491,24 @@ BRB_HTML = '''<!DOCTYPE html>
             letter-spacing: 4px;
             text-transform: uppercase;
             margin-bottom: 16px;
-            text-shadow: 0 4px 30px rgba(139, 90, 43, 0.5);
-            background: linear-gradient(135deg, #f5f0eb 0%, #d4a574 50%, #f5f0eb 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8), 0 4px 20px rgba(0,0,0,0.5);
         }
 
         .subtitle {
             font-family: 'Inter', sans-serif;
             font-size: 24px;
-            font-weight: 300;
+            font-weight: 400;
             letter-spacing: 8px;
             text-transform: uppercase;
-            opacity: 0.8;
-            color: #d4a574;
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
 
         .divider {
             width: 200px;
             height: 2px;
-            background: linear-gradient(90deg, transparent, #d4a574, transparent);
+            background: rgba(255,255,255,0.5);
             margin: 30px auto;
         }
     </style>
