@@ -113,10 +113,6 @@ def register_routes(app):
     @app.route('/api/coffee', methods=['POST', 'GET'])
     def api_coffee():
         """Start coffee break via API call."""
-        auth_secret = request.headers.get('X-Secret-Key') or request.args.get('key')
-        if auth_secret != config.SHARED_SECRET:
-            return jsonify({"error": "Unauthorized"}), 403
-
         update_working_status("Coffee Break", mode='break')
         config.logger.info("Coffee break started via API")
         return jsonify({"status": "success", "message": "Coffee break started"})
